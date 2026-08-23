@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  qmd's local search server.
+
+  A template: setup.sh substitutes the __PLACEHOLDERS__ and installs the result into
+  ~/Library/LaunchAgents. KeepAlive because this is what recall talks to — a search engine that
+  needed starting by hand would make the first request of every session miss.
+
+  It belongs to the user's environment, not to AtAt or to the plugin: nothing in AtAt starts it,
+  and removing it only turns search off.
+-->
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.atat.memory.qmd-server</string>
+
+	<key>ProgramArguments</key>
+	<array>
+		<string>__QMD_BINARY__</string>
+		<string>mcp</string>
+		<string>--http</string>
+		<string>--port</string>
+		<string>__QMD_PORT__</string>
+	</array>
+
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<true/>
+
+	<!-- launchd hands a job almost no PATH, and qmd shells out to its own toolchain. -->
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>PATH</key>
+		<string>__LAUNCH_PATH__</string>
+	</dict>
+
+	<key>StandardOutPath</key>
+	<string>__LOG_DIRECTORY__/atat-qmd-server.log</string>
+	<key>StandardErrorPath</key>
+	<string>__LOG_DIRECTORY__/atat-qmd-server.log</string>
+</dict>
+</plist>
