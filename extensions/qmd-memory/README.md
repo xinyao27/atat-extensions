@@ -45,35 +45,45 @@ add reach.
 
 ## Installing
 
-**1. The plugin.** Copy this directory into
-`~/Library/Application Support/AtAt/Plugins/qmd-memory/`. AtAt picks it up without a restart
-and asks you to confirm what it can do.
-
-**2. qmd and the automation.** Run the setup script:
+Copy this directory into `~/Library/Application Support/AtAt/Plugins/qmd-memory/` — AtAt picks
+it up without a restart and asks you to confirm what it can do — then run one script:
 
 ```sh
 ./setup/setup.sh
 ```
 
-It checks for qmd, asks for the two folders and the port, creates
-`inbox/`, `assets/` and `atat/`, registers two qmd collections (`atat-memory` and
-`atat-trajectory`), and installs two launchd agents:
+It does the rest, pausing to show you every command that installs something before it runs it:
 
-- `com.atat.memory.qmd-server` keeps `qmd mcp --http` running, because that is what recall
-  talks to.
-- `com.atat.memory.indexer` runs `setup/memory-sync.sh` whenever a memory folder changes, and
-  every ten minutes regardless. The script pulls down iCloud placeholders with `brctl
-  download`, then runs `qmd update` and `qmd embed`. A file your phone wrote is indexed within
-  seconds of arriving, with nobody watching.
+- **Installs qmd** if it is not already there, with `bun install -g @tobilu/qmd`, or
+  `npm install -g` when there is no bun, or by installing bun first when there is neither. On
+  macOS it also puts Homebrew's SQLite in place, because qmd loads `sqlite-vec` as a SQLite
+  extension and the SQLite macOS ships is built without extension support.
+- **Asks for the two folders and the port**, creates `inbox/`, `assets/` and `atat/`, and
+  registers two qmd collections (`atat-memory` and `atat-trajectory`).
+- **Installs two launchd agents.** `com.atat.memory.qmd-server` keeps `qmd mcp --http` running,
+  because that is what recall talks to. `com.atat.memory.indexer` runs `setup/memory-sync.sh`
+  whenever a memory folder changes and every ten minutes regardless; the script pulls down
+  iCloud placeholders with `brctl download`, then runs `qmd update` and `qmd embed`. A file your
+  phone wrote is indexed within seconds of arriving, with nobody watching. Both agents belong to
+  your machine, not to AtAt: the app starts nothing and keeps nothing running.
+- **Turns the plugin system on for this Mac.** While the plugin system is in dark launch it is
+  off for everyone until an allowlist rule names an installation, so the script asks for your
+  installation id — Settings → Usage statistics → Copy installation ID — and adds it to the
+  Flagship `plugin-system` flag. It reads the flag's current rules first and widens the existing
+  allowlist rather than replacing anything. Without Cloudflare credentials it prints the command
+  for you to run elsewhere; `--skip-flag` skips the step entirely.
 
-Both agents belong to your machine, not to AtAt: the app starts nothing and keeps nothing
-running. `./setup/setup.sh --dry-run` shows what it would install without touching anything,
-and `./setup/uninstall.sh` removes the two agents and no data.
+Two flags worth knowing: `--dry-run` prints every step, including the exact install and flag
+commands, without doing any of them or touching your keychain; `--yes` stops it pausing for
+confirmation. `./setup/uninstall.sh` removes the two agents and no data.
 
-**3. The folder grants, in AtAt.** Settings → Plugins → qmd-memory, and choose the two folders
-there. No script can do this step: a plugin gets a directory only from your own hand in that
-panel, which is what makes the grant worth anything. The port goes in the same panel if you
-changed it.
+**The one step no script can do:** Settings → Plugins → qmd-memory, and choose the two folders
+there. A plugin gets a directory only from your own hand in that panel, which is what makes the
+grant worth anything. The port goes in the same panel if you changed it.
+
+One more thing about the flag: it is evaluated by the website Worker, not by the app, so until
+that Worker is deployed the app reads `off` no matter what the flag says. The script prints
+`cd website && npx wrangler deploy` as a reminder and does not run it.
 
 ## Without qmd
 
