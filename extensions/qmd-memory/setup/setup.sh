@@ -7,27 +7,26 @@
 # watching. AtAt stays a plugin host with no background job of its own — which is the point of
 # doing it this way and not inside the app.
 #
-# Safe to run again. Every step checks for what it would create, the agents are unloaded before
-# they are replaced, and the dark-launch rule is merged rather than overwritten.
+# Safe to run again. Every step checks for what it would create, and the agents are unloaded
+# before they are replaced.
 #
 #   ./setup.sh                install
 #   ./setup.sh --dry-run      print every step without doing any of it
 #   ./setup.sh --yes          do not pause for confirmation before installing software
-#   ./setup.sh --skip-flag    skip the dark-launch step at the end
 #
 set -uo pipefail
 
 DRY_RUN=0
 ASSUME_YES=0
-SKIP_FLAG=0
 for argument in "$@"; do
   case "${argument}" in
     --dry-run) DRY_RUN=1 ;;
     --yes | -y) ASSUME_YES=1 ;;
-    --skip-flag) SKIP_FLAG=1 ;;
     --help | -h)
-      # The header comment, which is the help text — one place to keep it correct.
-      sed -n '2,17p' "${BASH_SOURCE[0]}" | sed 's/^#//; s/^ //'
+      # The header comment is the help text, so there is one place to keep it correct. Read up
+      # to the first line that is not a comment rather than to a line number, which is the kind
+      # of coupling that goes stale the first time the header changes length.
+      awk 'NR == 1 { next } /^#/ { sub(/^# ?/, ""); print; next } { exit }' "${BASH_SOURCE[0]}"
       exit 0
       ;;
     *)
@@ -48,15 +47,6 @@ TRAJECTORY_COLLECTION="atat-trajectory"
 DEFAULT_MEMORY_DIRECTORY="${HOME}/Library/Mobile Documents/iCloud~is~workflow~my~workflows/Documents/memory"
 DEFAULT_TRAJECTORY_DIRECTORY="${HOME}/AtAt-Memory-Trajectory"
 DEFAULT_PORT="8181"
-
-# The dark-launch flag. Two switches gate the plugin system: a build-time one in the app, and
-# this runtime one, which is off for everybody until an allowlist rule names an installation.
-FLAGSHIP_APP_ID="4e521143-ee4f-48f2-a6bb-add04b5790a4"
-FLAGSHIP_FLAG_KEY="plugin-system"
-# The app's anonymous telemetry installation id, which the website passes to Flagship as the
-# targeting key. It exists only once the user has allowed usage statistics.
-KEYCHAIN_SERVICE="com.atat.app.telemetry"
-KEYCHAIN_ACCOUNT="install-id"
 
 SCRATCH_DIRECTORY="$(mktemp -d)"
 trap 'rm -rf "${SCRATCH_DIRECTORY}"' EXIT
@@ -98,30 +88,6 @@ confirm() {
   printf '  press return to continue, or Ctrl-C to stop: ' >&2
   IFS= read -r _ || true
   return 0
-}
-
-# macOS has no `timeout(1)`. A watchdog kills the command if it outlives its budget, which is
-# what keeps a credential check from sitting on a prompt forever.
-run_with_timeout() {
-  local seconds="$1"
-  shift
-  "$@" &
-  local worker=$!
-  (
-    waited=0
-    while [ "${waited}" -lt "${seconds}" ]; do
-      kill -0 "${worker}" 2>/dev/null || exit 0
-      sleep 1
-      waited=$((waited + 1))
-    done
-    kill -TERM "${worker}" 2>/dev/null
-  ) &
-  local watchdog=$!
-  wait "${worker}" 2>/dev/null
-  local status=$?
-  kill -TERM "${watchdog}" 2>/dev/null
-  wait "${watchdog}" 2>/dev/null
-  return "${status}"
 }
 
 # A folder called "Notes & Ideas" is not exotic, and neither is one with a `|` in it. Two
@@ -493,249 +459,3 @@ note "  qmd port                ${QMD_PORT}"
 printf '\n'
 note "A folder grant has to come from your own hand in that panel — no script can give"
 note "a plugin access to a directory, which is the point."
-
-# -------------------------------------------------------------------- dark launch
-
-printf '\n'
-bold "dark launch"
-
-if [ "${SKIP_FLAG}" = "1" ]; then
-  note "--skip-flag, so the ${FLAGSHIP_FLAG_KEY} flag is left alone."
-  exit 0
-fi
-
-# `wrangler` if it is installed, `npx wrangler` otherwise.
-WRANGLER=(npx --yes wrangler)
-if command -v wrangler >/dev/null 2>&1; then
-  WRANGLER=(wrangler)
-fi
-
-manual_instructions() {
-  local identifier="$1"
-  printf '\n'
-  note "Run these yourself, from a machine with Cloudflare credentials:"
-  printf '\n'
-  printf '    npx wrangler flagship flags get %s %s\n' "${FLAGSHIP_APP_ID}" "${FLAGSHIP_FLAG_KEY}"
-  printf '    npx wrangler flagship flags update %s %s \\\n' "${FLAGSHIP_APP_ID}" "${FLAGSHIP_FLAG_KEY}"
-  printf '      --add-rule "serve=on; when=targetingKey in [%s]"\n' "${identifier}"
-  printf '\n'
-  note "--add-rule appends and keeps whatever rules are already there. Do not use --rule:"
-  note "that one replaces the flag's whole rule set."
-}
-
-# The installation id, asked for rather than taken.
-#
-# Reading it out of the keychain works, but it makes macOS throw an authorisation dialog for a
-# value the user can see and copy in AtAt's own settings — so copying is the first path and the
-# keychain is the fallback, entered only when the user declines to paste. Non-interactive runs
-# skip straight to the fallback, because there is nobody to paste.
-UUID_PATTERN='^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$'
-
-read_pasted_id() {
-  local answer
-  note "In AtAt: Settings → Usage statistics → Copy installation ID."
-  note "That id is the only thing Flagship can target a single device by."
-  for _ in 1 2 3; do
-    printf '  paste it here, or press return to read it from the keychain instead: ' >&2
-    IFS= read -r answer || return 1
-    # A pasted value arrives with whatever whitespace came with it.
-    answer="$(printf '%s' "${answer}" | tr -d '[:space:]')"
-    if [ -z "${answer}" ]; then
-      return 1
-    fi
-    if [[ ${answer} =~ ${UUID_PATTERN} ]]; then
-      printf '%s\n' "${answer}"
-      return 0
-    fi
-    fail "  that does not look like an installation id (expected 8-4-4-4-12 hex)."
-  done
-  return 1
-}
-
-read_keychain_id() {
-  local value
-  note "Reading it from the keychain instead — macOS will ask you to authorise that once."
-  value="$(security find-generic-password -s "${KEYCHAIN_SERVICE}" -a "${KEYCHAIN_ACCOUNT}" -w 2>/dev/null)"
-  value="$(printf '%s' "${value}" | tr -d '[:space:]')"
-  [ -n "${value}" ] || return 1
-  printf '%s\n' "${value}"
-}
-
-INSTALL_ID=""
-if [ "${ASSUME_YES}" != "1" ] && [ -t 0 ]; then
-  INSTALL_ID="$(read_pasted_id || true)"
-fi
-if [ -z "${INSTALL_ID}" ]; then
-  if [ "${DRY_RUN}" = "1" ]; then
-    # Even the keychain read is a side effect worth not having in a dry run: it is what puts
-    # the authorisation dialog on screen.
-    note "dry run — not reading the keychain"
-    INSTALL_ID="<your installation id>"
-  else
-    INSTALL_ID="$(read_keychain_id || true)"
-  fi
-fi
-
-if [ -z "${INSTALL_ID}" ]; then
-  note "No installation id, so there is nothing to put on the allowlist. Turn on usage"
-  note "statistics in AtAt's settings, copy the id from there, and run this again."
-  manual_instructions "<your installation id>"
-  exit 0
-fi
-note "installation id: ${INSTALL_ID}"
-
-if [ "${DRY_RUN}" = "1" ]; then
-  plan "${WRANGLER[*]} flagship flags get ${FLAGSHIP_APP_ID} ${FLAGSHIP_FLAG_KEY} --json"
-  note "then, depending on what that returns, one of:"
-  printf '    %s flagship flags update %s %s --add-rule "serve=on; when=targetingKey in [%s]"\n' \
-    "${WRANGLER[*]}" "${FLAGSHIP_APP_ID}" "${FLAGSHIP_FLAG_KEY}" "${INSTALL_ID}"
-  printf '    %s flagship flags rules update %s %s --priority <n> --serve on --when "targetingKey in [<existing ids>,%s]"\n' \
-    "${WRANGLER[*]}" "${FLAGSHIP_APP_ID}" "${FLAGSHIP_FLAG_KEY}" "${INSTALL_ID}"
-  note "the second form is used when an allowlist rule already exists, so the ids"
-  note "already on it survive."
-  printf '\n'
-  note "Reminder: the flag is evaluated by the website Worker. Until that is deployed,"
-  note "the app reads off no matter what this flag says:"
-  printf '    cd website && npx wrangler deploy\n'
-  exit 0
-fi
-
-if ! run_with_timeout 15 "${WRANGLER[@]}" whoami >"${SCRATCH_DIRECTORY}/whoami" 2>&1; then
-  note "no usable Cloudflare credentials here (wrangler whoami failed or timed out)."
-  manual_instructions "${INSTALL_ID}"
-  printf '\n'
-  note "Reminder: until the website Worker is deployed the app reads off regardless:"
-  printf '    cd website && npx wrangler deploy\n'
-  exit 0
-fi
-note "Cloudflare credentials found"
-
-if ! command -v node >/dev/null 2>&1; then
-  note "node is not available to read the flag's current rules safely."
-  manual_instructions "${INSTALL_ID}"
-  exit 0
-fi
-
-if ! "${WRANGLER[@]}" flagship flags get "${FLAGSHIP_APP_ID}" "${FLAGSHIP_FLAG_KEY}" --json \
-  >"${SCRATCH_DIRECTORY}/flag.json" 2>"${SCRATCH_DIRECTORY}/flag.err"; then
-  fail "Could not read the ${FLAGSHIP_FLAG_KEY} flag:"
-  sed 's/^/    /' "${SCRATCH_DIRECTORY}/flag.err" >&2
-  manual_instructions "${INSTALL_ID}"
-  exit 0
-fi
-
-# Decides what to do without ever throwing a rule away.
-#
-# `--rule` replaces the flag's whole rule set, so it is never used here. Either an allowlist
-# rule already exists and one `rules update` widens it, or none does and `--add-rule` appends —
-# and a rule with more conditions than a bare allowlist is left alone entirely, because
-# rewriting its `when` would drop the conditions this script cannot see the intent of.
-cat >"${SCRATCH_DIRECTORY}/decide.js" <<'NODE'
-const { readFileSync } = require("node:fs");
-const [, , path, installID] = process.argv;
-
-let parsed;
-try {
-  parsed = JSON.parse(readFileSync(path, "utf8"));
-} catch {
-  process.stdout.write("unreadable|||");
-  process.exit(0);
-}
-
-// The command may hand back the flag definition itself or an envelope around it.
-const candidates = [parsed, parsed && parsed.result, parsed && parsed.flag, parsed && parsed.definition];
-const definition =
-  candidates.find((entry) => entry && typeof entry === "object" && Array.isArray(entry.rules)) || {};
-const rules = Array.isArray(definition.rules) ? definition.rules : [];
-const enabled = definition.enabled === false ? "0" : "1";
-
-/** The ids in a bare `targetingKey in [...]` condition, or null for anything else. */
-function allowlistOf(condition) {
-  if (!condition || typeof condition !== "object") return null;
-  if (condition.attribute !== "targetingKey" || condition.operator !== "in") return null;
-  return Array.isArray(condition.value) ? condition.value.map(String) : [String(condition.value)];
-}
-
-/** Every allowlist anywhere in a condition tree, however deeply nested. */
-function allAllowlists(condition, found) {
-  if (!condition || typeof condition !== "object") return found;
-  if (Array.isArray(condition.clauses)) {
-    for (const clause of condition.clauses) allAllowlists(clause, found);
-    return found;
-  }
-  const ids = allowlistOf(condition);
-  if (ids) found.push(ids);
-  return found;
-}
-
-// Already on any allowlist, nested or not: nothing to do.
-for (const rule of rules) {
-  for (const condition of Array.isArray(rule.conditions) ? rule.conditions : []) {
-    for (const ids of allAllowlists(condition, [])) {
-      if (ids.includes(installID)) {
-        process.stdout.write(`armed|||${enabled}`);
-        process.exit(0);
-      }
-    }
-  }
-}
-
-// A rule that is exactly one allowlist serving `on` can be widened in place.
-for (const rule of rules) {
-  const conditions = Array.isArray(rule.conditions) ? rule.conditions : [];
-  if (conditions.length !== 1) continue;
-  if (rule.serve_variation !== "on") continue;
-  const ids = allowlistOf(conditions[0]);
-  if (!ids) continue;
-  process.stdout.write(`merge|${rule.priority}|${ids.concat([installID]).join(",")}|${enabled}`);
-  process.exit(0);
-}
-
-process.stdout.write(`append|||${enabled}`);
-NODE
-
-DECISION="$(node "${SCRATCH_DIRECTORY}/decide.js" "${SCRATCH_DIRECTORY}/flag.json" "${INSTALL_ID}")"
-IFS='|' read -r ACTION PRIORITY MERGED_IDS FLAG_ENABLED <<<"${DECISION}"
-
-if [ "${FLAG_ENABLED}" = "0" ]; then
-  note "the flag is disabled, which makes every rule moot — enabling it"
-  if ! "${WRANGLER[@]}" flagship flags update "${FLAGSHIP_APP_ID}" "${FLAGSHIP_FLAG_KEY}" --enable; then
-    fail "Could not enable the flag."
-  fi
-fi
-
-case "${ACTION}" in
-  armed)
-    note "this installation is already on the ${FLAGSHIP_FLAG_KEY} allowlist — nothing to do"
-    ;;
-  merge)
-    note "widening the existing allowlist rule (priority ${PRIORITY}) instead of replacing it"
-    if "${WRANGLER[@]}" flagship flags rules update "${FLAGSHIP_APP_ID}" "${FLAGSHIP_FLAG_KEY}" \
-      --priority "${PRIORITY}" --serve on --when "targetingKey in [${MERGED_IDS}]"; then
-      note "the allowlist now holds: ${MERGED_IDS}"
-    else
-      fail "Could not update rule ${PRIORITY}."
-      manual_instructions "${INSTALL_ID}"
-    fi
-    ;;
-  append)
-    note "no allowlist rule yet — appending one, keeping every existing rule"
-    if "${WRANGLER[@]}" flagship flags update "${FLAGSHIP_APP_ID}" "${FLAGSHIP_FLAG_KEY}" \
-      --add-rule "serve=on; when=targetingKey in [${INSTALL_ID}]"; then
-      note "${FLAGSHIP_FLAG_KEY} is now on for this installation"
-    else
-      fail "Could not append the rule."
-      manual_instructions "${INSTALL_ID}"
-    fi
-    ;;
-  *)
-    note "could not make sense of the flag's current rules, so nothing was changed."
-    manual_instructions "${INSTALL_ID}"
-    ;;
-esac
-
-printf '\n'
-note "The flag is evaluated by the website Worker, not by the app — the app asks it and"
-note "caches the answer. Until that Worker is deployed, the app reads off whatever this"
-note "flag says. Deploying is your call, so this script does not do it:"
-printf '    cd website && npx wrangler deploy\n'

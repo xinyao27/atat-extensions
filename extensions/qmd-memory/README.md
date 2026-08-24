@@ -66,24 +66,16 @@ It does the rest, pausing to show you every command that installs something befo
   iCloud placeholders with `brctl download`, then runs `qmd update` and `qmd embed`. A file your
   phone wrote is indexed within seconds of arriving, with nobody watching. Both agents belong to
   your machine, not to AtAt: the app starts nothing and keeps nothing running.
-- **Turns the plugin system on for this Mac.** While the plugin system is in dark launch it is
-  off for everyone until an allowlist rule names an installation, so the script asks for your
-  installation id — Settings → Usage statistics → Copy installation ID — and adds it to the
-  Flagship `plugin-system` flag. It reads the flag's current rules first and widens the existing
-  allowlist rather than replacing anything. Without Cloudflare credentials it prints the command
-  for you to run elsewhere; `--skip-flag` skips the step entirely.
+- **Indexes what is already there**, then reports `qmd status` and checks that the search
+  server answers.
 
-Two flags worth knowing: `--dry-run` prints every step, including the exact install and flag
-commands, without doing any of them or touching your keychain; `--yes` stops it pausing for
-confirmation. `./setup/uninstall.sh` removes the two agents and no data.
+Two flags worth knowing: `--dry-run` prints every step, including the exact install commands,
+without doing any of them; `--yes` stops it pausing for confirmation. `./setup/uninstall.sh`
+removes the two agents and no data.
 
 **The one step no script can do:** Settings → Plugins → qmd-memory, and choose the two folders
 there. A plugin gets a directory only from your own hand in that panel, which is what makes the
 grant worth anything. The port goes in the same panel if you changed it.
-
-One more thing about the flag: it is evaluated by the website Worker, not by the app, so until
-that Worker is deployed the app reads `off` no matter what the flag says. The script prints
-`cd website && npx wrangler deploy` as a reminder and does not run it.
 
 ## Without qmd
 
