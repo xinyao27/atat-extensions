@@ -1,12 +1,12 @@
 // Type declarations for a plugin's hooks, actions and host context.
 //
 // Transcribed from the manifest and Host API sections of AtAt's plugin specification and
-// checked against the runtime that implements them (`PluginJavaScriptPrelude.swift`,
-// `PluginHookPayload.swift`, `PluginHostAPI.swift`). Stands in for the `@atat/plugin-types`
-// npm package until it ships. Types only — nothing here exists at runtime, so every import
-// of it must be an `import type`.
+// checked against the public `@atat/api` contract. This temporary declaration mirror keeps
+// the extensions monorepo buildable before the first npm publication; it is removed as soon
+// as the package is available from the registry.
 
-declare module "@atat/plugin-types" {
+declare module "@atat/api" {
+  import type { ComponentType } from "react";
   // -------------------------------------------------------------- host context
 
   export interface FetchInit {
@@ -30,11 +30,25 @@ declare module "@atat/plugin-types" {
   }
 
   /**
+   * One result from `files.search`, the host's index over a granted directory.
+   *
+   * `path` is absolute and inside the directory that was searched. `snippet` is the passage
+   * around the match, taken from the file itself. `score` orders the results and nothing else:
+   * the host's ranking is hybrid and its scale is not a contract.
+   */
+  export interface FileSearchHit {
+    path: string;
+    snippet: string;
+    score: number;
+  }
+
+  /**
    * Injected into every hook and action call. Absent capabilities are not missing
    * properties — they are calls that reject, naming the entitlement they need.
    */
   export interface HostContext {
     plugin: { identifier: string; version: string };
+    locale: string;
     /** Secret-typed options are absent by construction. A folder option's value is a path. */
     options: Record<string, string | boolean>;
 
@@ -61,13 +75,26 @@ declare module "@atat/plugin-types" {
     /**
      * A relative path resolves inside the plugin's own data directory. An absolute one has
      * to be a path this call was handed, or one inside a folder the user granted through a
-     * `folder` option — `list` and `remove` accept only the latter.
+     * `folder` option — `list`, `remove` and `search` accept only the latter.
+     *
+     * `write` creates the directories on the way to the file, so a plugin's own layout inside
+     * a granted folder comes into being on first write.
      */
     files: {
       read(path: string): Promise<{ base64: string }>;
       write(path: string, data: { base64: string }): Promise<void>;
       list(dirPath: string): Promise<DirectoryEntry[]>;
       remove(path: string): Promise<void>;
+      /**
+       * The host's own index over a granted directory: markdown and text, recursive, lexical
+       * and semantic together. It is the way a plugin searches its files — a JavaScript
+       * sandbox cannot build an index, and reading a folder to grep it is not one either.
+       */
+      search(
+        dirPath: string,
+        query: string,
+        opts?: { limit?: number }
+      ): Promise<FileSearchHit[]>;
     };
 
     ocr(filePath: string): Promise<string>;
@@ -124,6 +151,7 @@ declare module "@atat/plugin-types" {
     /** Truncated to 32000 characters by the host. */
     responseText: string;
     items: ContextItemSnapshot[];
+    interactionSource: string;
   }
 
   export interface ClipboardIngestInput {
@@ -145,7 +173,7 @@ declare module "@atat/plugin-types" {
   export interface CaptureInput {
     filePath: string;
     outputPath: string;
-    kind: "screenshot" | "recording";
+    kind: "screenshot";
     sourceFrame?: { x: number; y: number; width: number; height: number };
     ocrText?: string;
   }
@@ -156,7 +184,11 @@ declare module "@atat/plugin-types" {
 
   // ------------------------------------------------------------------ actions
 
-  export type Surface = "selectionBar" | "clipboardHistory" | "captureQuickAccess";
+  export type Surface =
+    | "selectionBar"
+    | "clipboardHistory"
+    | "captureBar"
+    | "captureQuickAccess";
 
   export interface ActionInput {
     surface: Surface;
@@ -188,4 +220,23 @@ declare module "@atat/plugin-types" {
     input: ActionInput,
     ctx: HostContext
   ) => Promise<string | void>;
+
+  export interface PluginViewProps {
+    presentation: "settingsPanel" | "selectionPopover";
+    input: Readonly<{
+      surface?: Surface;
+      text?: string;
+      sourceBundleIdentifier?: string;
+    }>;
+  }
+
+  export interface PluginDefinition {
+    hooks?: PluginHooks;
+    actions?: Record<string, PluginAction>;
+    views?: Record<string, ComponentType<PluginViewProps>>;
+  }
+
+  export function definePlugin<Definition extends PluginDefinition>(
+    plugin: Definition
+  ): Definition;
 }

@@ -20,3 +20,15 @@ declare class TextDecoder {
   readonly encoding: "utf-8";
   decode(input?: Uint8Array | ArrayBuffer): string;
 }
+
+declare class URLSearchParams {
+  keys(): IterableIterator<string>;
+  delete(name: string): void;
+  toString(): string;
+}
+
+declare class URL {
+  constructor(input: string, base?: string);
+  readonly searchParams: URLSearchParams;
+  toString(): string;
+}

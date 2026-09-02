@@ -1,9 +1,9 @@
 // Markdown notes, paths and base64.
 //
-// The memory library is a folder of markdown files and nothing else — no database, no index of
+// The memory folder is a folder of markdown files and nothing else — no database, no index of
 // this plugin's own. That is what makes the whole thing survive: the notes are readable in any
-// editor, syncable by iCloud, writable by a Shortcut on a phone, and indexable by qmd. This
-// module is the small amount of plumbing that requires.
+// editor, syncable by iCloud, writable by a Shortcut on a phone, and indexable by the host's
+// own folder search. This module is the small amount of plumbing that requires.
 
 /** `files.read` and `files.write` carry base64, so a note has to be encoded going both ways. */
 const BASE64_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -158,8 +158,8 @@ export type FrontMatterValue = string | number | boolean;
  * A note as it is written to disk: YAML front matter, then markdown.
  *
  * The front matter is deliberately flat and quoted conservatively — these files are read by
- * qmd, by a text editor and by whatever a phone Shortcut appends, so the format has to be the
- * boring one everything already understands.
+ * the host's search index, by a text editor and by whatever a phone Shortcut appends, so the
+ * format has to be the boring one everything already understands.
  */
 export function buildNote(
   fields: Record<string, FrontMatterValue | undefined>,
@@ -226,13 +226,22 @@ export function truncate(text: string, limit: number): string {
   return value.slice(0, Math.max(0, limit - 1)) + "…";
 }
 
-/** qmd prefixes every snippet line with `N: `. Useful in a terminal, noise in a prompt. */
-export function stripLineNumbers(snippet: string): string {
-  return String(snippet == null ? "" : snippet)
-    .split(/\r?\n/)
-    .map((line) => line.replace(/^\s*\d+:\s?/, ""))
-    .join("\n")
-    .trim();
+/** A search snippet as one paragraph. What the host returns keeps the note's own line breaks. */
+export function flatten(snippet: string): string {
+  return String(snippet == null ? "" : snippet).replace(/\s+/g, " ").trim();
+}
+
+/**
+ * The sortable part of a note's file name: `20260824-011500-a3f9.md` → `20260824011500`.
+ *
+ * Notes are named after the moment they were written, so newest-first is a string comparison
+ * on this rather than a `files.list` that reports modification times — a file iCloud
+ * downloaded this morning was written months ago, and the name is when it was written.
+ * Anything unnamed by that convention sorts last, which is where a stray file belongs.
+ */
+export function sortKey(name: string): string {
+  const match = /(\d{8})-(\d{6})/.exec(String(name == null ? "" : name));
+  return match ? (match[1] ?? "") + (match[2] ?? "") : "";
 }
 
 const IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "gif", "heic", "webp", "tiff", "bmp"];

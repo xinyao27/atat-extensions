@@ -1,15 +1,15 @@
 // `response` — the trajectory.
 //
-// One markdown file per interaction, in a folder the user granted, with front matter qmd can
-// index. This is the half of the plugin that never needs qmd at all: it keeps writing whether
-// or not anything is searching, so a user who installs qmd a month from now finds a month of
-// history already there.
+// One markdown file per interaction, in `trajectory/` inside the granted folder. This is the
+// half of the plugin that depends on nothing: it keeps writing whether or not anything is
+// searching, so recall that starts working next month finds a month of history already there.
 //
-// It writes nothing unless the user granted a trajectory folder. That grant is the consent —
-// there is no “record everything into a directory we picked for you”.
+// The consent is the switch. `recordsInteractions` is on by default and is the one thing in
+// this plugin's settings that answers a question a user actually has — “I don't want to be
+// recorded” — so it is checked before anything is read, let alone written.
 
-import type { HostContext, ResponseInput, ContextItemSnapshot } from "@atat/plugin-types";
-import { readConfiguration } from "./library.js";
+import type { ContextItemSnapshot, HostContext, ResponseInput } from "@atat/api";
+import { readConfiguration, trajectoryDirectory } from "./library.js";
 import { buildNote, encodeText, joinPath, stamp, token, truncate } from "./notes.js";
 
 const MAXIMUM_PROMPT_CHARACTERS = 4000;
@@ -20,8 +20,8 @@ const MAXIMUM_ITEM_EXCERPT = 200;
 export async function record(input: ResponseInput, ctx: HostContext): Promise<void> {
   const configuration = readConfiguration(ctx.options);
   if (!configuration.recordsInteractions) return;
-  if (configuration.trajectoryDirectory.length === 0) {
-    ctx.log("recording skipped: no trajectory folder granted");
+  if (configuration.memoryDirectory.length === 0) {
+    ctx.log("recording skipped: no memory folder granted");
     return;
   }
 
@@ -34,16 +34,16 @@ export async function record(input: ResponseInput, ctx: HostContext): Promise<vo
   const note = buildNote(
     {
       date: at.iso,
-      source: "atat",
-      interactionSource: interactionSource(input),
+      interactionSource: String(input.interactionSource ?? "").length > 0
+        ? input.interactionSource
+        : "unknown",
       title,
     },
     body(prompt, responseText, input.items ?? [])
   );
-  const path = joinPath(
-    configuration.trajectoryDirectory,
-    "atat-" + at.compact + "-" + token() + ".md"
-  );
+  // `files.write` creates the directories along the way, so `trajectory/` comes into being on
+  // the first recorded interaction and nothing has to prepare it.
+  const path = joinPath(trajectoryDirectory(configuration), at.compact + "-" + token() + ".md");
 
   try {
     await ctx.files.write(path, { base64: encodeText(note) });
@@ -55,17 +55,6 @@ export async function record(input: ResponseInput, ctx: HostContext): Promise<vo
   }
 }
 
-/**
- * `ResponseInput` has no `interactionSource` field, unlike `ContextAssembledInput`.
- *
- * Read defensively rather than dropped: the value is useful in the front matter, and if the
- * host ever carries it here this keeps working without a change.
- */
-function interactionSource(input: ResponseInput): string {
-  const value = (input as unknown as Record<string, unknown>)["interactionSource"];
-  return typeof value === "string" && value.length > 0 ? value : "unknown";
-}
-
 function headline(prompt: string, responseText: string): string {
   const source = prompt.length > 0 ? prompt : responseText;
   for (const line of source.split(/\r?\n/)) {
@@ -75,11 +64,7 @@ function headline(prompt: string, responseText: string): string {
   return "AtAt interaction";
 }
 
-function body(
-  prompt: string,
-  responseText: string,
-  items: ContextItemSnapshot[]
-): string {
+function body(prompt: string, responseText: string, items: ContextItemSnapshot[]): string {
   const parts: string[] = ["# " + headline(prompt, responseText)];
 
   if (prompt.length > 0) {

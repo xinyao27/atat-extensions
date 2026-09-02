@@ -1,2 +1,4 @@
 node_modules/
+extensions/*/main.js
+dist/
 .DS_Store

@@ -1,0 +1,8 @@
+{
+  "category": "productivity",
+  "keywords": ["memory", "markdown", "recall", "notes", "search"],
+  "releaseNotes": {
+    "en": "Initial Store release: recall through the host's folder search, automatic trajectory notes, a save action on selection, clipboard and capture, and a native Memory panel. No dependencies, no network.",
+    "zh-hans": "首个商店版本：基于宿主目录检索的记忆召回、自动记录的交互轨迹、划词/剪贴板/截图三处的「存入记忆」，以及原生记忆面板。零依赖、不联网。"
+  }
+}

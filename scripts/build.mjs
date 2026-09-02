@@ -2,12 +2,11 @@
 //
 // This is the prototype of `atat plugin build`. The shape of the output is dictated by the
 // runtime, not by taste: JavaScriptCore has no module loader, so a plugin ships one CommonJS
-// file that assigns to `exports`, and `react` / `@atat/ui` stay external because the host
+// file that assigns to `exports`, and `react` / `@atat/api` stay external because the host
 // vendors both and pins their versions.
 //
-// Products are committed. A plugin directory in this repository is something a user can copy
-// into `~/Library/Application Support/AtAt/Plugins/` as it stands, so `main.js` lives next to
-// its sources rather than behind a build step nobody ran.
+// Products are generated and checked in CI. Store artifacts are never assembled from a
+// contributor's prebuilt JavaScript.
 
 import { readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
@@ -18,14 +17,14 @@ const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const extensionsRoot = join(repositoryRoot, "extensions");
 
 /// The two modules the host supplies, plus the JSX entry points that resolve to the first.
-const EXTERNAL = ["react", "react/jsx-runtime", "react/jsx-dev-runtime", "@atat/ui"];
+const EXTERNAL = ["react", "react/jsx-runtime", "react/jsx-dev-runtime", "@atat/api"];
 
 /// Prepended to every bundle.
 ///
 /// The `require` line is what lets one file carry both a plugin's hooks and its panel. A
 /// panel session has `require`, installed by the host's runtime blob before the bundle is
-/// evaluated; a hook invocation does not, because a hook has no React and no `@atat/ui`. A
-/// bundle whose top-level `require("@atat/ui")` threw would take every hook down with it, so
+/// evaluated; a hook invocation does not, because a hook has no React and no `@atat/api`. A
+/// bundle whose top-level `require("@atat/api")` threw would take every hook down with it, so
 /// the call resolves to an empty object there instead and the panel half simply never runs.
 const PREAMBLE = [
   "'use strict';",

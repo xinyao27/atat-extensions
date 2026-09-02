@@ -1,7 +1,7 @@
-// “Save to memory” — the action, on all three surfaces.
+// “Save to memory” — the action, on three surfaces.
 //
-// One declaration, three places: selected text, a clipboard entry, a capture. That is the
-// dividend of AtAt converging its three capture surfaces on one representation — this is not a
+// One declaration, three placements: selected text, a clipboard entry, a capture in Quick
+// Access. That is the dividend of converging capture surfaces on one representation — not a
 // selection plugin and a clipboard plugin and a screenshot plugin, it is a plugin that handles
 // text and files.
 //
@@ -9,7 +9,7 @@
 // with front matter, and for a capture a copy of the image in `assets/` beside it, with
 // recognised text in the note so the picture is searchable by what it says.
 
-import type { ActionInput, HostContext } from "@atat/plugin-types";
+import type { ActionInput, HostContext } from "@atat/api";
 import {
   ASSETS_DIRECTORY,
   assetsDirectory,
@@ -28,37 +28,39 @@ import {
   token,
   truncate,
 } from "./notes.js";
+import { strings } from "./text.js";
 
 /** A click saves what the user pointed at, not a folder's worth of attachments. */
 const MAXIMUM_FILES = 4;
 const MAXIMUM_TEXT_CHARACTERS = 20000;
 
 export async function saveToMemory(input: ActionInput, ctx: HostContext): Promise<void> {
+  const words = strings(ctx.locale);
   const configuration = readConfiguration(ctx.options);
   if (configuration.memoryDirectory.length === 0) {
-    ctx.notify("Choose a memory folder for qmd-memory in Settings → Plugins first.");
+    ctx.notify(words.noFolder);
     return;
   }
 
-  const files = (input.filePaths ?? []).filter((path) => typeof path === "string" && path.length > 0);
+  const files = (input.filePaths ?? []).filter(
+    (path) => typeof path === "string" && path.length > 0
+  );
   const text = String(input.text ?? "").trim();
 
   try {
     if (files.length > 0) {
       const saved = await saveFiles(files.slice(0, MAXIMUM_FILES), input, configuration, ctx);
-      ctx.notify(
-        saved === 1 ? "Saved to memory." : "Saved " + String(saved) + " files to memory."
-      );
+      ctx.notify(saved === 1 ? words.saved : words.savedFiles(saved));
       return;
     }
     if (text.length > 0) {
-      const name = await saveText(text, input, configuration, ctx);
-      ctx.notify("Saved to memory · " + name);
+      await saveText(text, input, configuration, ctx);
+      ctx.notify(words.saved);
       return;
     }
-    ctx.notify("Nothing to save.");
+    ctx.notify(words.nothingToSave);
   } catch (error) {
-    ctx.notify("Could not save to memory: " + messageOf(error));
+    ctx.notify(words.saveFailed(messageOf(error)));
   }
 }
 
@@ -73,13 +75,13 @@ async function saveText(
   const note = buildNote(
     {
       date: at.iso,
-      source: "atat",
       sourceBundleID: input.sourceBundleID ?? undefined,
       surface: input.surface,
       title: headline(text),
     },
     truncate(text, MAXIMUM_TEXT_CHARACTERS)
   );
+  // `inbox/` need not exist: `files.write` creates the directories on the way to the file.
   await ctx.files.write(joinPath(inboxDirectory(configuration), name), {
     base64: encodeText(note),
   });
@@ -126,7 +128,6 @@ async function saveFiles(
     const note = buildNote(
       {
         date: at.iso,
-        source: "atat",
         sourceBundleID: input.sourceBundleID ?? undefined,
         surface: input.surface,
         asset: ASSETS_DIRECTORY + "/" + assetName,

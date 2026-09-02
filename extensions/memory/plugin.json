@@ -1,0 +1,70 @@
+{
+  "identifier": "memory",
+  "name": {
+    "en": "Memory",
+    "zh-hans": "记忆"
+  },
+  "description": {
+    "en": "Your memory as a folder of markdown files: AtAt writes what you do into it, and brings the relevant parts back.",
+    "zh-hans": "记忆就是一个 markdown 目录：AtAt 把你的交互写进去，需要时再拿回来。"
+  },
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "minimumAtAtVersion": "0.10.0",
+  "author": "@@",
+  "entitlements": [],
+  "options": [
+    {
+      "identifier": "memoryFolder",
+      "type": "folder",
+      "label": {
+        "en": "Memory folder",
+        "zh-hans": "记忆目录"
+      },
+      "description": {
+        "en": "Where your memories live. Keep it in iCloud Drive and your phone can write into the same folder.",
+        "zh-hans": "记忆存放的位置。放在 iCloud Drive 里，手机也能往同一个目录写。"
+      },
+      "defaultPath": "icloud"
+    },
+    {
+      "identifier": "recordsInteractions",
+      "type": "boolean",
+      "label": {
+        "en": "Record interactions automatically",
+        "zh-hans": "自动记录交互"
+      },
+      "description": {
+        "en": "Writes one note per interaction — your request, the answer and a summary of the attached context.",
+        "zh-hans": "每次交互写一篇笔记：你的请求、回答，以及附带 context 的概要。"
+      },
+      "defaultValue": true
+    }
+  ],
+  "hooks": [
+    { "hook": "contextAssembled" },
+    { "hook": "response" }
+  ],
+  "actions": [
+    {
+      "identifier": "saveToMemory",
+      "title": {
+        "en": "Save to memory",
+        "zh-hans": "存入记忆"
+      },
+      "surfaces": ["selectionBar", "clipboardHistory", "captureQuickAccess"],
+      "after": "none"
+    }
+  ],
+  "views": [{ "identifier": "memory" }],
+  "panels": [
+    {
+      "identifier": "memory",
+      "view": "memory",
+      "title": {
+        "en": "Memory",
+        "zh-hans": "记忆"
+      }
+    }
+  ]
+}

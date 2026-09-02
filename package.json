@@ -6,7 +6,10 @@
   "description": "The official directory of AtAt plugins.",
   "scripts": {
     "build": "node scripts/build.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "validate": "node scripts/validate.mjs",
+    "package": "node scripts/package.mjs",
+    "verify": "pnpm validate && pnpm typecheck && node scripts/verify-build.mjs"
   },
   "devDependencies": {
     "@types/react": "19.2.7",

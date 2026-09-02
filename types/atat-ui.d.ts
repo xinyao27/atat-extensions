@@ -1,14 +1,46 @@
-// Type declarations for `@atat/ui`, the module a panel author imports.
+// Temporary Plugin View declarations for the public `@atat/api` module.
 //
 // Copied verbatim from the AtAt repository (`packages/plugin-ui-runtime/types/atat-ui.d.ts`),
-// which is the authority: the implementation next to it is what a panel actually calls. Until
-// `@atat/plugin-types` ships on npm, this file is how a plugin in this repository type-checks
-// against it.
+// which is the authority: the implementation next to it is what a panel actually calls. The
+// npm package becomes authoritative at publication; this bridge exists only until then.
 
-declare module "@atat/ui" {
+declare module "@atat/api" {
   import type { ReactElement, ReactNode } from "react";
 
   // ------------------------------------------------------------- components
+
+  export type PluginViewSpacing = "none" | "xs" | "sm" | "md" | "lg" | "xl";
+  export type PluginViewAlignment = "leading" | "center" | "trailing";
+
+  export interface StackProps {
+    children?: ReactNode;
+    spacing?: PluginViewSpacing;
+    alignment?: PluginViewAlignment;
+  }
+
+  export const Stack: (props: StackProps) => ReactElement;
+  export const HStack: (props: StackProps) => ReactElement;
+
+  export interface TextProps {
+    children?: string | number;
+    style?: "title" | "heading" | "body" | "caption" | "label";
+    emphasis?: "primary" | "secondary" | "tertiary";
+    lineLimit?: 1 | 2 | 3 | 4 | 5 | 6;
+  }
+
+  export const Text: (props: TextProps) => ReactElement;
+
+  export interface ButtonProps {
+    title: string;
+    icon?: string;
+    style?: "primary" | "secondary" | "plain";
+    onAction?: () => void;
+  }
+
+  export const Button: (props: ButtonProps) => ReactElement;
+  export const Divider: (props: Record<string, never>) => ReactElement;
+  export const ScrollView: (props: { children?: ReactNode }) => ReactElement;
+  export const Markdown: (props: { markdown: string }) => ReactElement;
 
   export interface ListProps {
     children?: ReactNode;
@@ -196,6 +228,12 @@ declare module "@atat/ui" {
     write(path: string, data: { base64: string }): Promise<void>;
     list(dirPath: string): Promise<{ name: string; isDirectory: boolean }[]>;
     remove(path: string): Promise<void>;
+    /** The host's index over a granted directory. Same call a hook's `ctx.files` has. */
+    search(
+      dirPath: string,
+      query: string,
+      opts?: { limit?: number }
+    ): Promise<{ path: string; snippet: string; score: number }[]>;
   };
 
   /** Entitlement: `network`. */
@@ -223,6 +261,8 @@ declare module "@atat/ui" {
 
   /** Entitlement: `automation`. */
   export function openUrl(url: string): Promise<void>;
+  /** Entitlement: `automation`. */
+  export function runShortcut(name: string, input?: string): Promise<string | null>;
 
   export function ocr(path: string): Promise<string>;
 
@@ -233,6 +273,7 @@ declare module "@atat/ui" {
   export const options: Record<string, string | boolean>;
 
   export const plugin: { identifier: string; version: string };
+  export const environment: { locale: string };
 
   export function notify(message: string): Promise<void>;
   export function log(message: string): Promise<void>;

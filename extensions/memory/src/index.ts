@@ -1,26 +1,29 @@
-// qmd-memory — the entry point.
+// memory — the entry point.
 //
 // One bundle carries all three worlds AtAt can start this plugin in: a hook invocation, an
 // action, and a panel session. They share this file and nothing else — each hook call gets its
 // own JavaScriptCore context, so there is no state here to share even if there were a reason to.
 //
-// `exports.hooks`, `exports.actions` and `exports.panel` are the three names the host looks up.
-// The panel is exported under its own name rather than as a default so that one bundle can
-// carry a panel and hooks at once without the two resolutions competing.
+// `definePlugin` keeps hooks, actions and named views in the same versioned public contract.
 
-import type { PluginAction, PluginHooks } from "@atat/plugin-types";
+import { definePlugin } from "@atat/api";
+import type { PluginAction, PluginHooks } from "@atat/api";
 import MemoryPanel from "./panel.js";
 import { recall } from "./recall.js";
 import { record } from "./record.js";
 import { saveToMemory } from "./save.js";
 
-export const hooks: PluginHooks = {
+const hooks: PluginHooks = {
   contextAssembled: recall,
   response: record,
 };
 
-export const actions: Record<string, PluginAction> = {
+const actions: Record<string, PluginAction> = {
   saveToMemory,
 };
 
-export const panel = MemoryPanel;
+export default definePlugin({
+  hooks,
+  actions,
+  views: { memory: MemoryPanel },
+});
