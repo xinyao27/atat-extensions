@@ -2,13 +2,13 @@
 //
 // The host tells a plugin which language it is running in (`ctx.locale` in a hook,
 // `environment.locale` in a panel) and expects the plugin to localise its own output — a pill
-// label saying “Trajectory” inside a Chinese interface is the plugin's bug, not the host's.
+// label saying “Recorded” inside a Chinese interface is the plugin's bug, not the host's.
 //
 // Nothing here is addressed to the agent. The `<memory>` section stays in English on purpose:
 // it is scaffolding around the user's own words, and the words carry their own language.
 
 export interface Strings {
-  /** Pill and row label for a note AtAt recorded by itself. */
+  /** Pill and row label for a note the plugin wrote by itself. */
   trajectory: string;
   memory: string;
   saved: string;
@@ -38,23 +38,24 @@ export interface Strings {
 }
 
 const EN: Strings = {
-  trajectory: "Trajectory",
+  trajectory: "Recorded",
   memory: "Memory",
   saved: "Saved to memory.",
   savedFiles: (count) => "Saved " + String(count) + " files to memory.",
   nothingToSave: "Nothing to save.",
-  saveFailed: (reason) => "Could not save to memory: " + reason,
-  noFolder: "Choose a memory folder in Settings → Plugins → Memory first.",
+  saveFailed: (reason) => "Couldn’t save that: " + reason,
+  noFolder: "Choose a memory folder in Settings → Plugins → Memory.",
   deleted: "Deleted",
-  deleteFailed: (reason) => "Could not delete that note: " + reason,
-  deleteTitle: "Delete this memory?",
-  deleteMessage: (name) => name + " will be removed from the folder. This cannot be undone.",
+  deleteFailed: (reason) => "Couldn’t delete that note: " + reason,
+  deleteTitle: "Delete this note?",
+  deleteMessage: (name) =>
+    name + " will be deleted from your memory folder. You can’t undo this.",
   searchPlaceholder: "Search your memory",
   loading: "Loading…",
-  unreadableNote: "This note could not be read. It may have been moved or deleted.",
-  unreadableFolder: (reason) => "The memory folder could not be read: " + reason,
-  noMatches: (query) => "No memories match “" + query + "”.",
-  empty: "No memories yet. Use “Save to memory” from a selection, a clipboard entry or a capture.",
+  unreadableNote: "This note can’t be opened. It may have been moved or deleted.",
+  unreadableFolder: (reason) => "Can’t read the memory folder: " + reason,
+  noMatches: (query) => "Nothing matches “" + query + "”.",
+  empty: "Nothing saved yet. Select some text or a screenshot, then choose “Save to memory”.",
   matches: "Matches",
   memories: "Memories",
   newest: (count) => " (newest " + String(count) + ")",
@@ -63,27 +64,27 @@ const EN: Strings = {
   copyNote: "Copy Note",
   copyPath: "Copy Path",
   delete: "Delete",
-  sendFailed: (reason) => "Could not send that note: " + reason,
+  sendFailed: (reason) => "Couldn’t send that note: " + reason,
 };
 
 const ZH: Strings = {
-  trajectory: "轨迹",
+  trajectory: "自动记录",
   memory: "记忆",
   saved: "已存入记忆。",
-  savedFiles: (count) => "已存入记忆，共 " + String(count) + " 个文件。",
+  savedFiles: (count) => "已存入 " + String(count) + " 个文件。",
   nothingToSave: "没有可存的内容。",
-  saveFailed: (reason) => "存入记忆失败：" + reason,
-  noFolder: "请先在 设置 → 插件 → 记忆 里选择记忆目录。",
+  saveFailed: (reason) => "没能存进记忆：" + reason,
+  noFolder: "先到 设置 → 插件 → 记忆 里选一个目录。",
   deleted: "已删除",
-  deleteFailed: (reason) => "删除失败：" + reason,
-  deleteTitle: "删除这条记忆？",
-  deleteMessage: (name) => name + " 会从目录里移除，无法恢复。",
+  deleteFailed: (reason) => "没能删掉这篇笔记：" + reason,
+  deleteTitle: "删除这篇笔记？",
+  deleteMessage: (name) => name + " 会从记忆目录里删掉，撤销不了。",
   searchPlaceholder: "搜索记忆",
-  loading: "加载中…",
-  unreadableNote: "读不到这篇笔记，可能已经被移动或删除。",
+  loading: "正在加载…",
+  unreadableNote: "这篇笔记打不开了，可能被移走或删掉了。",
   unreadableFolder: (reason) => "读不到记忆目录：" + reason,
-  noMatches: (query) => "没有匹配「" + query + "」的记忆。",
-  empty: "还没有记忆。在划词、剪贴板条目或截图上点「存入记忆」试试。",
+  noMatches: (query) => "没有匹配「" + query + "」的内容。",
+  empty: "还没存过内容。选中一段文字或一张截图，点「存入记忆」。",
   matches: "匹配结果",
   memories: "记忆",
   newest: (count) => "（最近 " + String(count) + " 条）",
@@ -92,7 +93,7 @@ const ZH: Strings = {
   copyNote: "复制笔记",
   copyPath: "复制路径",
   delete: "删除",
-  sendFailed: (reason) => "发送失败：" + reason,
+  sendFailed: (reason) => "没能发送这篇笔记：" + reason,
 };
 
 /** `zh`, `zh-Hans`, `zh-Hant-TW` all get Chinese; everything else gets English. */

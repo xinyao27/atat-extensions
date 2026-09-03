@@ -5,8 +5,8 @@
     "zh-hans": "记忆"
   },
   "description": {
-    "en": "Your memory as a folder of markdown files: AtAt writes what you do into it, and brings the relevant parts back.",
-    "zh-hans": "记忆就是一个 markdown 目录：AtAt 把你的交互写进去，需要时再拿回来。"
+    "en": "Keeps a folder of notes about what you do, and brings the right ones back when you ask.",
+    "zh-hans": "把你做过的事记成一篇篇笔记，需要的时候再帮你找回来。"
   },
   "version": "1.0.0",
   "apiVersion": 1,
@@ -22,8 +22,8 @@
         "zh-hans": "记忆目录"
       },
       "description": {
-        "en": "Where your memories live. Keep it in iCloud Drive and your phone can write into the same folder.",
-        "zh-hans": "记忆存放的位置。放在 iCloud Drive 里，手机也能往同一个目录写。"
+        "en": "Where your notes are kept. Put it in iCloud Drive and your phone can add to it too.",
+        "zh-hans": "笔记存放的位置。放在 iCloud Drive 里，手机也能往里加。"
       },
       "defaultPath": "icloud"
     },
@@ -31,12 +31,12 @@
       "identifier": "recordsInteractions",
       "type": "boolean",
       "label": {
-        "en": "Record interactions automatically",
+        "en": "Record my interactions",
         "zh-hans": "自动记录交互"
       },
       "description": {
-        "en": "Writes one note per interaction — your request, the answer and a summary of the attached context.",
-        "zh-hans": "每次交互写一篇笔记：你的请求、回答，以及附带 context 的概要。"
+        "en": "Saves a note after each question: what you asked, the answer, and what came with it.",
+        "zh-hans": "每问一次就写一篇笔记：你问了什么、回答是什么、带上了哪些内容。"
       },
       "defaultValue": true
     }

@@ -29,7 +29,7 @@
     "result": {
       "addItems": [
         { "label": "Memory · Why the deploy failed on Friday" },
-        { "label": "Trajectory · Rolling back a bad deploy" }
+        { "label": "Recorded · Rolling back a bad deploy" }
       ],
       "promptSections": [{ "name": "memory" }]
     },

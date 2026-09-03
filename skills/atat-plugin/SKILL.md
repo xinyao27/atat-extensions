@@ -83,6 +83,15 @@ schema. What it cannot tell you:
 - **`name` and `description` carry `en` and `zh-hans`.** Write each language natively instead of
   translating one into the other. The description is one plain sentence about what the user
   gets, in their words; a reviewer checks it against the code.
+- **Every string a user sees reads like a person wrote it** — this covers the manifest, toasts,
+  panel text and the README. Lead with what the user gets or should do and cut the mechanism
+  (`Saved in your Keychain.`, not `Goes to your Keychain, never to a settings file.`). One
+  short sentence; no clause chains ending in `so …`; no sentence opening with `It`. No
+  implementation words in front of a user: hook, entitlement, manifest, runtime, host API.
+  English in sentence case with contractions welcome, the register of macOS Settings.
+  简体中文像系统设置的中文：短句、直说，引用用「」，避免「该/此/进行/相关」的公文腔，
+  不为对齐英文硬塞从句。Read each string aloud as if it sat on an Apple settings screen;
+  if it would not be there, rewrite it.
 - **The plugin works the moment it is installed.** Every option either has a `defaultValue` or
   leaves the plugin gracefully doing nothing when it is empty. `folder` and `secret` take no
   `defaultValue`: a folder declares `defaultPath: "icloud"` (or `"documents"`) and the host
