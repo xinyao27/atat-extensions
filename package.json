@@ -5,10 +5,12 @@
   "type": "module",
   "description": "The official directory of AtAt plugins.",
   "scripts": {
+    "new": "node scripts/new.mjs",
     "build": "node scripts/build.mjs",
     "typecheck": "tsc --noEmit",
     "validate": "node scripts/validate.mjs",
     "package": "node scripts/package.mjs",
+    "smoke": "node scripts/smoke.mjs",
     "verify": "pnpm validate && pnpm typecheck && node scripts/verify-build.mjs"
   },
   "devDependencies": {

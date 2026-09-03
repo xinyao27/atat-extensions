@@ -1,0 +1,36 @@
+{
+  "description": "the response hook records one trajectory note per interaction",
+  "options": { "memoryFolder": "{folder}", "recordsInteractions": true },
+  "call": {
+    "hook": "response",
+    "input": {
+      "prompt": "why did the deploy fail on Friday?",
+      "responseText": "The release job used the old worker binding, so production kept last week's routes.",
+      "items": [
+        {
+          "id": "item-1",
+          "source": "selection",
+          "text": "wrangler deploy --env production",
+          "label": "Selection"
+        }
+      ],
+      "interactionSource": "composer"
+    }
+  },
+  "expect": {
+    "files": [
+      {
+        "path": "trajectory/*.md",
+        "count": 1,
+        "contains": [
+          "interactionSource: composer",
+          "## Request",
+          "## Response",
+          "## Context",
+          "wrangler deploy --env production"
+        ]
+      }
+    ],
+    "log": ["recorded one interaction"]
+  }
+}

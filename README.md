@@ -14,7 +14,11 @@ extensions/
     main.js              # temporary build output; ignored and removed after verification
     icon.png             # 256×256 (optional)
     README.md
+    smoke/               # fake-host scenarios, run by `pnpm smoke <identifier>`
 scripts/build.mjs        # the builder, `atat plugin build` in prototype form
+scripts/new.mjs          # `pnpm new <identifier>` scaffold
+scripts/smoke.mjs        # `pnpm smoke <identifier>` fake host
+skills/atat-plugin/      # the authoring skill every coding agent reads first
 types/                   # temporary @atat/api declaration mirror until its first npm release
 ```
 
@@ -22,8 +26,10 @@ types/                   # temporary @atat/api declaration mirror until its firs
 
 ```sh
 pnpm install
+pnpm new <identifier>    # scaffold a new extension directory
 pnpm build               # every extension, or `pnpm build <identifier>` for one
 pnpm typecheck
+pnpm smoke <identifier>  # run that extension's smoke scenarios against a fake host
 pnpm verify              # policy, types, deterministic bundles, and export parity
 pnpm package             # deterministic Store review archives under dist/artifacts
 ```
@@ -59,6 +65,12 @@ create their own windows.
 
 The format specification lives in the AtAt repository at
 `docs/internal/features/plugin-system.md` until a public developer guide ships.
+
+## Contributing
+
+Start from [`skills/atat-plugin/SKILL.md`](skills/atat-plugin/SKILL.md): it takes a request for
+a plugin through extension points, scaffold, implementation, build, smoke test, local install
+and the review checklist, and any coding agent can follow it end to end.
 
 ## Status
 

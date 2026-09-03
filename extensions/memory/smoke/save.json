@@ -1,0 +1,27 @@
+{
+  "description": "Save to memory writes one note into inbox/ and tells the user",
+  "options": { "memoryFolder": "{folder}", "recordsInteractions": true },
+  "call": {
+    "action": "saveToMemory",
+    "input": {
+      "surface": "selectionBar",
+      "text": "Cloudflare Worker deploys ship the release tag, not the branch.",
+      "sourceBundleID": "com.apple.Safari",
+      "modifiers": []
+    }
+  },
+  "expect": {
+    "files": [
+      {
+        "path": "inbox/*.md",
+        "count": 1,
+        "contains": [
+          "surface: selectionBar",
+          "sourceBundleID: com.apple.Safari",
+          "Cloudflare Worker deploys ship the release tag"
+        ]
+      }
+    ],
+    "notifications": ["Saved to memory."]
+  }
+}
