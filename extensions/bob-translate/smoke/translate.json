@@ -1,0 +1,17 @@
+{
+  "description": "selected text reaches Bob through the script's atatSelection handler",
+  "call": {
+    "action": "translateWithBob",
+    "input": {
+      "surface": "selectionBar",
+      "text": "Hello, world"
+    }
+  },
+  "expect": {
+    "result": null,
+    "appleScripts": [
+      "com.hezongyidev.Bob",
+      "Hello, world"
+    ]
+  }
+}

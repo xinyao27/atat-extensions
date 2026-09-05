@@ -54,6 +54,7 @@ A scenario is one hook call or one action call, with the world it happens in:
   "search": [ { "path": "{folder}/inbox/note.md", "snippet": "…", "score": 0.9 } ],
   "fetch":  { "https://host/path": { "status": 200, "body": "…" } },  // or "*" for any URL
   "agent":  "the reply agent.ask returns",        // or { "substring of prompt": "reply" }
+  "appleScript": "the text runAppleScript returns", // default null
   "ocr":    "the text ocr() returns",
   "call":   { "hook": "contextAssembled", "input": { … } },   // or { "action": "name", … }
   "expect": {
@@ -64,6 +65,8 @@ A scenario is one hook call or one action call, with the world it happens in:
     "log":           ["substring of a ctx.log message"],
     "copied":        ["substring of ctx.clipboard.copy"],
     "pasted":        ["substring of ctx.paste"],
+    "favorites":     ["substring of ctx.favorites.add"],
+    "appleScripts":  ["substring of a runAppleScript source or input"],
     "storage":       { "key": { "any": "json" } }              // deep subset, after the call
   }
 }
@@ -302,6 +305,11 @@ function makeContext(manifest, scenario, roots, state) {
         state.copied.push(String(text));
       },
     },
+    favorites: {
+      async add(text) {
+        state.favorites.push(String(text));
+      },
+    },
     async paste(text) {
       state.pasted.push(String(text));
     },
@@ -361,10 +369,25 @@ function makeContext(manifest, scenario, roots, state) {
       state.shortcuts.push({ name: String(name), input: input === undefined ? null : String(input) });
       return null;
     },
+    async runAppleScript(source, input) {
+      gate("automation");
+      const script = String(source);
+      if (script.trim().length === 0) throw new Error("runAppleScript needs a script");
+      if (Buffer.byteLength(script, "utf8") > 64 * 1024) throw new Error("runAppleScript source is limited to 64 KB");
+      const hasInput = input !== undefined && input !== null;
+      if (hasInput && !/^\s*(?:on|to)\s+atatSelection\s*\(/im.test(script)) {
+        throw new Error(
+          "runAppleScript with input calls the script's `on atatSelection(selectedText)` handler; add one"
+        );
+      }
+      state.appleScripts.push({ source: script, input: hasInput ? String(input) : null });
+      return scenario.appleScript === undefined ? null : String(scenario.appleScript);
+    },
 
     agent: {
-      async ask(prompt) {
+      async ask(prompt, opts) {
         gate("agent");
+        if (opts?.skill !== undefined && opts?.skill !== null) state.skills.push(String(opts.skill));
         state.asked.push(String(prompt));
         if (typeof scenario.agent === "string") return scenario.agent;
         if (scenario.agent && typeof scenario.agent === "object") {
@@ -469,6 +492,8 @@ async function expectationErrors(expected, result, state, roots) {
     log: state.log,
     copied: state.copied,
     pasted: state.pasted,
+    favorites: state.favorites,
+    appleScripts: state.appleScripts.map((run) => `${run.source}\n${run.input ?? ""}`),
   };
   for (const [key, values] of Object.entries(collections)) {
     for (const needle of expected[key] ?? []) {
@@ -524,6 +549,9 @@ async function runScenario(manifest, definition, scenarioPath) {
     asked: [],
     opened: [],
     shortcuts: [],
+    appleScripts: [],
+    favorites: [],
+    skills: [],
     notifications: [],
     copied: [],
     pasted: [],

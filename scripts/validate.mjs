@@ -8,12 +8,7 @@ const IDENTIFIER = /^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/;
 const SEMVER = /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
 const ENTITLEMENTS = new Set(["network", "secrets", "automation", "agent"]);
 const HOOKS = new Set(["clipboardIngest", "capture", "contextAssembled", "response"]);
-const SURFACES = new Set([
-  "selectionBar",
-  "clipboardHistory",
-  "captureBar",
-  "captureQuickAccess",
-]);
+const SURFACES = new Set(["selectionBar", "clipboardHistory", "captureQuickAccess"]);
 const ROUTES = new Set(["paste", "copy", "show", "composer", "none"]);
 // No `heading`: options numerous enough to need grouping are a design mistake, not a
 // formatting problem (decision 52).
@@ -28,14 +23,24 @@ const OPTION_FIELDS = new Set([
   "values",
 ]);
 /// Where the host creates and grants a `folder` option's directory at install time.
-const FOLDER_DEFAULT_PATHS = new Set(["icloud", "documents"]);
+const FOLDER_DEFAULT_PATHS = new Set(["shortcuts", "icloud", "documents"]);
+const ACTION_FIELDS = new Set([
+  "identifier",
+  "title",
+  "icon",
+  "surfaces",
+  "requirements",
+  "after",
+  "url",
+  "requiresApp",
+]);
 const ROOT_FIELDS = new Set([
   "identifier",
   "name",
   "description",
   "version",
   "apiVersion",
-  "minimumAtAtVersion",
+  "minimumAppVersion",
   "author",
   "entitlements",
   "networkHosts",
@@ -145,8 +150,8 @@ function validateManifest(manifest, directoryName) {
   const version = string(value.version, `${identifier}.version`);
   if (!SEMVER.test(version)) fail(`${identifier}: version must be semver`);
   if (value.apiVersion !== 1) fail(`${identifier}: apiVersion must be 1`);
-  if (value.minimumAtAtVersion !== undefined && !SEMVER.test(string(value.minimumAtAtVersion, `${identifier}.minimumAtAtVersion`))) {
-    fail(`${identifier}: minimumAtAtVersion must be semver`);
+  if (value.minimumAppVersion !== undefined && !SEMVER.test(string(value.minimumAppVersion, `${identifier}.minimumAppVersion`))) {
+    fail(`${identifier}: minimumAppVersion must be semver`);
   }
   if (value.author !== undefined && string(value.author, `${identifier}.author`).length > 200) {
     fail(`${identifier}: author exceeds 200 characters`);
@@ -184,6 +189,9 @@ function validateManifest(manifest, directoryName) {
   const actions = new Set();
   for (const [index, entry] of array(value.actions ?? [], `${identifier}.actions`).entries()) {
     const action = object(entry, `${identifier}.actions[${index}]`);
+    for (const key of Object.keys(action)) {
+      if (!ACTION_FIELDS.has(key)) fail(`${identifier}: unsupported action field ${key}`);
+    }
     const name = string(action.identifier, `${identifier}.actions[${index}].identifier`);
     if (actions.has(name)) fail(`${identifier}: duplicate action ${name}`);
     actions.add(name);
@@ -193,13 +201,17 @@ function validateManifest(manifest, directoryName) {
     requirements(action.requirements, `${identifier}.actions[${index}].requirements`);
     const route = action.after ?? "none";
     if (!ROUTES.has(route)) fail(`${identifier}: unsupported action route ${route}`);
-    if (action.presentation !== undefined) {
-      const presentation = object(action.presentation, `${identifier}.actions[${index}].presentation`);
-      if (presentation.type !== "selectionPopover" || !views.has(string(presentation.view, `${identifier}.actions[${index}].presentation.view`))) {
-        fail(`${identifier}: invalid action presentation`);
+    if (action.requiresApp !== undefined) {
+      const field = `${identifier}.actions[${index}].requiresApp`;
+      const requirement = object(action.requiresApp, field);
+      string(requirement.name, `${field}.name`);
+      if (uniqueStrings(requirement.bundleIdentifiers, `${field}.bundleIdentifiers`).length === 0) {
+        fail(`${field}.bundleIdentifiers must name at least one bundle identifier`);
       }
-      if (surfaces.length !== 1 || surfaces[0] !== "selectionBar" || action.url !== undefined || route !== "none") {
-        fail(`${identifier}: a selection popover cannot combine with another surface, URL, or route`);
+      if (requirement.website !== undefined) {
+        let website;
+        try { website = new URL(string(requirement.website, `${field}.website`)); } catch { fail(`${field}.website must be an absolute URL`); }
+        if (!["http:", "https:"].includes(website.protocol) || !website.hostname) fail(`${field}.website must be http(s)`);
       }
     }
     if (action.url !== undefined) {

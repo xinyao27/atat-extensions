@@ -8,6 +8,9 @@ const EXTENSIONS = join(ROOT, "extensions");
 const DIST = join(ROOT, "dist");
 const ARTIFACTS = join(DIST, "artifacts");
 const NORMALIZED_DATE = new Date("1980-01-01T00:00:00.000Z");
+/// Where the release workflow publishes every artifact: one rolling GitHub Release, tagged
+/// `store`, so the app has one stable URL for the catalog and one per archive.
+const STORE_DOWNLOAD_BASE = "https://github.com/xinyao27/atat-extensions/releases/download/store";
 const requested = process.argv.slice(2);
 const identifiers = requested.length > 0
   ? requested.map((identifier) => basename(identifier))
@@ -28,7 +31,7 @@ if (!sourceRevision) {
   sourceRevision = execFileSync("git", ["rev-parse", "HEAD"], { cwd: ROOT, encoding: "utf8" }).trim();
 }
 
-const releases = [];
+const plugins = [];
 
 async function normalizedEntries(directory, prefix = "") {
   const entries = [];
@@ -75,12 +78,15 @@ try {
     if (zip.status !== 0) throw new Error(zip.stderr || `could not package ${identifier}`);
     const bytes = (await stat(archivePath)).size;
     const sha256 = createHash("sha256").update(await readFile(archivePath)).digest("hex");
-    releases.push({
-      schemaVersion: 1,
+    let readme = null;
+    try { readme = await readFile(join(source, "README.md"), "utf8"); } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+    }
+    plugins.push({
       identifier,
       version: manifest.version,
       apiVersion: manifest.apiVersion,
-      minimumAtAtVersion: manifest.minimumAtAtVersion ?? "0.10.0",
+      minimumAppVersion: manifest.minimumAppVersion ?? "0.10.0",
       entitlements: manifest.entitlements ?? [],
       networkHosts: manifest.networkHosts ?? [],
       hooks: (manifest.hooks ?? []).map((hook) => hook.hook),
@@ -92,12 +98,22 @@ try {
         keywords: store.keywords,
         releaseNotes: store.releaseNotes,
       },
-      artifact: { fileName: archiveName, sha256, bytes },
+      readme,
+      artifact: {
+        fileName: archiveName,
+        url: `${STORE_DOWNLOAD_BASE}/${archiveName}`,
+        sha256,
+        bytes,
+      },
       sourceRevision,
     });
     process.stdout.write(`Packaged ${archiveName} (${sha256})\n`);
   }
-  await writeFile(join(ARTIFACTS, "release-candidates.json"), `${JSON.stringify({ schemaVersion: 1, releases }, null, 2)}\n`);
+  // The catalog the app's Plugins pane reads: one file, every plugin, where to get each one.
+  await writeFile(
+    join(ARTIFACTS, "catalog.json"),
+    `${JSON.stringify({ schemaVersion: 1, generatedAt: new Date().toISOString(), plugins }, null, 2)}\n`
+  );
 } finally {
   await Promise.all(identifiers.map((identifier) => rm(join(EXTENSIONS, identifier, "main.js"), { force: true })));
 }

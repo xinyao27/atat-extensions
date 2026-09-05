@@ -76,7 +76,7 @@ const manifest = {
   },
   version: "1.0.0",
   apiVersion: 1,
-  minimumAtAtVersion: "0.10.0",
+  minimumAppVersion: "0.10.0",
   author: "@@",
 };
 

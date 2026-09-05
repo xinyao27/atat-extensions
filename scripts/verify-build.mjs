@@ -59,7 +59,7 @@ function verifyExports(identifier, definition, manifest) {
     }
   }
   for (const action of manifest.actions ?? []) {
-    if (action.url || action.presentation) continue;
+    if (action.url) continue;
     if (typeof definition.actions?.[action.identifier] !== "function") {
       throw new Error(`${identifier}: missing exported action ${action.identifier}`);
     }

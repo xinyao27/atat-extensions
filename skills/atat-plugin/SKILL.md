@@ -33,18 +33,19 @@ host already has, or a button the user presses?) and **what does the user get ba
 | a button on selected text | action, `surfaces: ["selectionBar"]` |
 | a button on a clipboard history entry | action, `surfaces: ["clipboardHistory"]` |
 | a button on the finished capture | action, `surfaces: ["captureQuickAccess"]` |
-| a button while capturing | action, `surfaces: ["captureBar"]` (declared here, not yet honoured by the current AtAt build — pick a shipped surface unless the user is targeting a future release) |
 | "…and put the result back where I was typing" | `after: "paste"` |
 | "…and copy it" / "…just show it" | `after: "copy"` / `after: "show"` |
 | "…and let me keep talking to the agent about it" | `after: "composer"` |
 | "open <site> with whatever I selected" | action with a `url` template — no code at all |
-| "show me a card right there" | a `views` entry + the action's `presentation: { type: "selectionPopover" }` (declared here, not yet honoured by the current AtAt build — pick a shipped surface unless the user is targeting a future release) |
 | "let me browse or clean up what it saved" | a `views` entry + a `panels` entry (one Settings tab per plugin) |
 | the user picks where files go | `folder` option, plus `defaultPath` so it works on install |
 | the user supplies an API key or token | `secret` option |
 | "use AI to …" | `ctx.agent.ask` and the `agent` entitlement |
 | "call <service>" | `ctx.fetch`, the `network` entitlement, and exact `networkHosts` |
-| "open a URL" / "run my Shortcut" | the `automation` entitlement |
+| "open a URL" / "run my Shortcut" / "run this AppleScript" | the `automation` entitlement — `ctx.openUrl`, `ctx.runShortcut`, `ctx.runAppleScript` |
+| "save it to my Favorites" | `ctx.favorites.add` — no entitlement |
+| "use AI with my <skill>" | `ctx.agent.ask(prompt, { skill })` and the `agent` entitlement |
+| "it drives <app>" (Bob, Things, …) | the action's `requiresApp` — the button greys out with the reason while the app is missing |
 | remember a few kilobytes between runs | `ctx.storage` — no entitlement |
 | keep the user's own documents | a `folder` option and `ctx.files` — no entitlement |
 
@@ -107,6 +108,14 @@ schema. What it cannot tell you:
   it is handed something the filter let through.
 - **`entitlements` and `networkHosts` are a pair.** Exact lowercase hostnames, each one the code
   actually calls. Anything aspirational is a review finding.
+- **`requiresApp` names the app an action drives.** `{ name, bundleIdentifiers, website? }` on the
+  action. With the app missing, AtAt greys the button and says "<name> isn't installed", the
+  click says the same, and the plugin's page links to the website. Without it the click would
+  fail inside the script. `extensions/bob-translate/plugin.json` is the example.
+- **`minimumAppVersion` is the oldest AtAt the plugin runs on.** Bump it when you use a host API
+  that arrived in a newer build — `runAppleScript`, `favorites.add` and `agent.ask`'s `skill`
+  arrived in 0.10.0 — so an older AtAt lists the plugin with "needs @@ x.y or newer" instead of
+  failing at the first call.
 - **Options are few or the design is wrong.** Each one answers a question a real user has ("I
   want it somewhere else", "I don't want to be recorded"). There is no grouping heading, because
   a list long enough to need grouping is the problem. `extensions/memory/plugin.json` ships two
@@ -236,12 +245,18 @@ cp extensions/<identifier>/plugin.json \
 AtAt watches that directory and picks the plugin up without a restart: copy the files again after
 a rebuild and the change is live. That is the whole development loop.
 
-What the user does next, in AtAt: **Settings → Plugins** lists one row — icon, name, the one-line
-description, an Enabled toggle — with the manifest's options underneath it. Switching that toggle
-on for the first time raises the confirmation dialog: because the plugin carries code, AtAt lists
-in plain language the hooks it will run, the surfaces it appears on, the entitlements it wants,
-and any folder it will create. Accepting the dialog is the grant. If a folder option has no
-`defaultPath`, the user chooses the directory on that same row before anything can be written.
+Or skip the copy: **Settings → Plugins → Install…** takes the extension directory itself, and so
+does dropping it onto that page.
+
+What the user sees next, in AtAt: **Settings → Plugins** lists the plugin under **Installed** —
+name, the one-line description, an Enabled switch, Open — and the plugin gets a page of its own
+under Plugins in the sidebar, holding the manifest's options, any app it needs, Uninstall, and
+its panel as the first segment when it declares one. The moment AtAt sees a plugin that carries
+code or an entitlement it raises the confirmation dialog, listing in plain language the hooks it
+will run, the surfaces it appears on, the entitlements it wants, and any folder it will create.
+Accepting the dialog is the grant — and a plugin that later asks for more is asked again. If a
+folder option has no `defaultPath`, the user chooses the directory on the plugin's page before
+anything can be written.
 
 Watch what it does — and write `/usr/bin/log`, because plain `log` is a zsh builtin that exits
 silently with no output:
@@ -283,7 +298,7 @@ Before opening the pull request, check `REVIEW_POLICY.md` against the change:
       explained in the pull request
 - [ ] `pnpm verify` and `pnpm smoke <identifier>` pass
 - [ ] the commit carries source only — no `main.js`, no archive; a maintainer dispatches
-      `.github/workflows/publish.yml`, which builds and publishes the artifact after approval
+      `.github/workflows/release.yml`, which packages every extension on `main` and publishes the Store release
 
 **Done when** every box is checked and `pnpm verify` is clean on the branch.
 
@@ -291,11 +306,7 @@ Before opening the pull request, check `REVIEW_POLICY.md` against the change:
 
 | To see | Read |
 |---|---|
-| the smallest possible action | `extensions/capture-text/src/index.ts` |
-| one action on two surfaces, `after: "paste"`, the `agent` entitlement | `extensions/rewrite-text/` |
-| a background hook that transforms clipboard content | `extensions/clean-links/` |
-| a `folder` option and copying a file into it | `extensions/save-capture/` |
-| a view rendered as a selection popover (not yet honoured — see gotchas) | `extensions/dictionary/src/index.tsx` |
+| the smallest possible action, `requiresApp`, `runAppleScript` and the `automation` entitlement | `extensions/bob-translate/` |
 | hooks, an action on three surfaces, a view, a panel, options with `defaultPath` — and zero entitlements | `extensions/memory/` |
 | a hook that swallows its own failures, inside a budget | `extensions/memory/src/recall.ts` |
 | UTF-8 base64, front matter, path joins | `extensions/memory/src/notes.ts` |
@@ -305,15 +316,11 @@ Before opening the pull request, check `REVIEW_POLICY.md` against the change:
 
 ## Reference: gotchas
 
-- The shipped AtAt build honours three action surfaces — `selectionBar`, `clipboardHistory` and
-  `captureQuickAccess` — and renders a view only as a Settings panel. `captureBar` and
-  `presentation: { type: "selectionPopover" }` pass this repository's validator and types, and
-  `capture-text` and `dictionary` declare them, but the current build ignores them. Pick a
-  shipped surface unless the user is targeting a future release.
+- Three action surfaces exist — `selectionBar`, `clipboardHistory` and `captureQuickAccess` —
+  and a view renders only as a Settings panel. There is no surface while capturing, on the
+  agent's answer, or on a composer pill yet.
 - The identifier appears three times — directory name, `plugin.json`'s `identifier`, and the
   install directory. Renaming means all three, and `pnpm validate` fails until they agree.
-- `captureBar` is a button offered while capturing; `captureQuickAccess` is a button on the
-  finished file. They are different surfaces and a plugin usually wants one of them.
 - `after: "paste"` degrades to a copy plus a toast when the selection snapshot has expired.
   `ctx.paste` works only inside an action, only with a live selection.
 - Several plugins on one hook run in install order, and a transforming hook's output is the next
@@ -326,12 +333,21 @@ Before opening the pull request, check `REVIEW_POLICY.md` against the change:
 - `capture` transforms by writing the new file to `input.outputPath` and returning
   `{ action: "replace" }`; the original is left alone otherwise.
 - `ctx.ocr` accepts only a path this call was handed.
-- `networkHosts` is fixed when the plugin is built and takes no wildcards, so a per-user host
-  cannot be reached at all. `https` everywhere, plus plain `http` to `127.0.0.1` and `localhost`
-  for a service the user runs themselves.
+- `networkHosts` is this directory's review rule — exact hostnames, no wildcards, each one the
+  code calls — and `pnpm smoke` enforces it. The app itself enforces `https` everywhere, plus
+  plain `http` to `127.0.0.1` and `localhost` for a service the user runs themselves.
+- `ctx.runAppleScript(source, input?)` is the Text Selection AppleScript action reached from a
+  plugin: with `input` the host calls the script's `on atatSelection(selectedText)` handler, so
+  the same script works in both places; without it the script runs top to bottom. Source is
+  capped at 64 KB, the result comes back as text, and a script that never returns cannot be
+  cancelled — keep it short and let the target app do the waiting.
+- `ctx.favorites.add(text)` needs no entitlement; the Favorite is attributed to AtAt, not to
+  the app the text came from.
 - `ctx.agent.ask` borrows the user's own configured agent — hosted or CLI, no key of the
   plugin's own — carries none of the request's context items, and is limited to 10 calls a
-  minute per plugin.
+  minute per plugin. `{ skill: "name" }` makes the agent follow one of the user's installed
+  skills, expanded exactly as the selection bar's skill action expands it; a skill that is not
+  installed rejects by name.
 - The runtime is ES2023 plus `setTimeout`, `sleep`, `URL`, `URLSearchParams`, `TextEncoder`,
   `TextDecoder`, `atob`, `btoa`, `structuredClone` and `console`. There is no `fs`, `process`,
   `require`, `XMLHttpRequest` or DOM; `tsconfig.json` sets `lib: ["ES2022"]` so the type checker

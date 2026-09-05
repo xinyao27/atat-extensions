@@ -68,6 +68,8 @@ declare module "@atat/api" {
     fetch(url: string, init?: FetchInit): Promise<FetchResponse>;
 
     clipboard: { copy(text: string): Promise<void> };
+    /** Adds a text Favorite in Clipboard History, attributed to AtAt. No entitlement. */
+    favorites: { add(text: string): Promise<void> };
     paste(text: string): Promise<void>;
     notify(message: string): void;
     progress(message: string, fraction?: number): void;
@@ -103,9 +105,22 @@ declare module "@atat/api" {
     openUrl(url: string): Promise<void>;
     /** Entitlement: `automation`. */
     runShortcut(name: string, input?: string): Promise<string | null>;
+    /**
+     * Entitlement: `automation`. The same script the Text Selection AppleScript action takes:
+     * with `input`, the host calls the script's `on atatSelection(selectedText)` handler with
+     * it; without, the script runs top to bottom. Resolves with the script's result as text.
+     * Source is capped at 64 KB, and a script that never returns cannot be cancelled.
+     */
+    runAppleScript(source: string, input?: string): Promise<string | null>;
 
-    /** Entitlement: `agent`. Ten calls a minute, per plugin. */
-    agent: { ask(prompt: string, opts?: { timeoutMs?: number }): Promise<string> };
+    /**
+     * Entitlement: `agent`. Ten calls a minute, per plugin. `skill` names one of the user's
+     * installed skills (`~/.agents/skills/<name>`); the host expands it for whichever agent
+     * answers, and rejects when no such skill is installed.
+     */
+    agent: {
+      ask(prompt: string, opts?: { timeoutMs?: number; skill?: string }): Promise<string>;
+    };
 
     log(message: string): void;
   }
@@ -184,11 +199,7 @@ declare module "@atat/api" {
 
   // ------------------------------------------------------------------ actions
 
-  export type Surface =
-    | "selectionBar"
-    | "clipboardHistory"
-    | "captureBar"
-    | "captureQuickAccess";
+  export type Surface = "selectionBar" | "clipboardHistory" | "captureQuickAccess";
 
   export interface ActionInput {
     surface: Surface;
@@ -222,7 +233,7 @@ declare module "@atat/api" {
   ) => Promise<string | void>;
 
   export interface PluginViewProps {
-    presentation: "settingsPanel" | "selectionPopover";
+    presentation: "settingsPanel";
     input: Readonly<{
       surface?: Surface;
       text?: string;

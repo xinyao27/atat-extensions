@@ -1,0 +1,44 @@
+{
+  "identifier": "bob-translate",
+  "name": {
+    "en": "Bob Translate",
+    "zh-hans": "Bob 翻译"
+  },
+  "description": {
+    "en": "Sends the selected text to Bob for translation.",
+    "zh-hans": "把选中的文字交给 Bob 翻译。"
+  },
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "minimumAppVersion": "0.10.0",
+  "author": "@@",
+  "entitlements": [
+    "automation"
+  ],
+  "actions": [
+    {
+      "identifier": "translateWithBob",
+      "title": {
+        "en": "Translate with Bob",
+        "zh-hans": "用 Bob 翻译"
+      },
+      "icon": "translate",
+      "surfaces": [
+        "selectionBar",
+        "clipboardHistory"
+      ],
+      "requirements": {
+        "contentTypes": [
+          "text"
+        ]
+      },
+      "requiresApp": {
+        "name": "Bob",
+        "bundleIdentifiers": [
+          "com.hezongyidev.Bob"
+        ],
+        "website": "https://bobtranslate.com"
+      }
+    }
+  ]
+}
