@@ -198,6 +198,12 @@ function validateManifest(manifest, directoryName) {
     localizable(action.title, `${identifier}.actions[${index}].title`);
     const surfaces = uniqueStrings(action.surfaces, `${identifier}.actions[${index}].surfaces`, SURFACES);
     if (surfaces.length === 0) fail(`${identifier}: action ${name} has no surface`);
+    // The selection bar is icon-only: a button there without an icon of its own is a puzzle
+    // piece the user has to click to identify.
+    if (surfaces.includes("selectionBar") && action.icon === undefined) {
+      fail(`${identifier}: action ${name} appears on the selection bar and needs an icon`);
+    }
+    if (action.icon !== undefined) string(action.icon, `${identifier}.actions[${index}].icon`);
     requirements(action.requirements, `${identifier}.actions[${index}].requirements`);
     const route = action.after ?? "none";
     if (!ROUTES.has(route)) fail(`${identifier}: unsupported action route ${route}`);

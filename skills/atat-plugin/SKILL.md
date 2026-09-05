@@ -108,6 +108,12 @@ schema. What it cannot tell you:
   it is handed something the filter let through.
 - **`entitlements` and `networkHosts` are a pair.** Exact lowercase hostnames, each one the code
   actually calls. Anything aspirational is a review finding.
+- **Every selection-bar action names an `icon`.** The bar is icon-only; the tooltip shows the
+  action's title and the plugin's name, but the glyph is what the user reads first. Use a name
+  from the bar's own set — `note`, `bookmark`, `translate`, `search`, `copy`, `download`,
+  `pin`, `star`, `tag`, `summarize`, `explain`, `link`, `globe`, `mail`, `code`, `image`… — and
+  anything else falls back to the generic plugin glyph. `pnpm validate` refuses a
+  `selectionBar` action without one.
 - **`requiresApp` names the app an action drives.** `{ name, bundleIdentifiers, website? }` on the
   action. With the app missing, AtAt greys the button and says "<name> isn't installed", the
   click says the same, and the plugin's page links to the website. Without it the click would
