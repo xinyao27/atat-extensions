@@ -82,6 +82,16 @@ try {
     try { readme = await readFile(join(source, "README.md"), "utf8"); } catch (error) {
       if (error.code !== "ENOENT") throw error;
     }
+    // The icon travels inside the catalog as a data URL so the app's list draws every row
+    // from one request. Small by policy: 256×256 PNG is tens of kilobytes.
+    let icon = null;
+    try {
+      const iconBytes = await readFile(join(source, "icon.png"));
+      if (iconBytes.length > 128 * 1024) throw new Error(`${identifier}: icon.png exceeds 128 KB`);
+      icon = `data:image/png;base64,${iconBytes.toString("base64")}`;
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+    }
     plugins.push({
       identifier,
       version: manifest.version,
@@ -98,6 +108,13 @@ try {
         keywords: store.keywords,
         releaseNotes: store.releaseNotes,
       },
+      icon,
+      actions: (manifest.actions ?? []).map((action) => ({
+        identifier: action.identifier,
+        title: action.title,
+        surfaces: action.surfaces,
+      })),
+      panel: manifest.panels?.[0] ? { title: manifest.panels[0].title } : null,
       readme,
       artifact: {
         fileName: archiveName,
