@@ -8,7 +8,7 @@
     "search"
   ],
   "releaseNotes": {
-    "en": "Save to memory now shows a note icon on the selection bar, so the button says what it is.",
-    "zh-hans": "「存入记忆」在划词条上有了笔记图标，一眼能看出是什么。"
+    "en": "The folder hint now points at Settings → Extensions → Memory.",
+    "zh-hans": "目录提示改为指向「设置 → 扩展 → 记忆」。"
   }
 }

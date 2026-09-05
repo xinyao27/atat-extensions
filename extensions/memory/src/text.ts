@@ -44,7 +44,7 @@ const EN: Strings = {
   savedFiles: (count) => "Saved " + String(count) + " files to memory.",
   nothingToSave: "Nothing to save.",
   saveFailed: (reason) => "Couldn’t save that: " + reason,
-  noFolder: "Choose a memory folder in Settings → Plugins → Memory.",
+  noFolder: "Choose a memory folder in Settings → Extensions → Memory.",
   deleted: "Deleted",
   deleteFailed: (reason) => "Couldn’t delete that note: " + reason,
   deleteTitle: "Delete this note?",

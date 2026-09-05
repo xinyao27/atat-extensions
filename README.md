@@ -1,6 +1,6 @@
 # AtAt Extensions
 
-The official directory of AtAt plugins — and the Store the app's Plugins pane reads from.
+The official directory of AtAt plugins — and the Store the app's Extensions pane reads from.
 Maintained the way Raycast maintains its extensions: one monorepo, one directory per plugin,
 contributions by pull request.
 
@@ -19,7 +19,7 @@ extensions/
 scripts/build.mjs        # the builder, `atat plugin build` in prototype form
 scripts/new.mjs          # `pnpm new <identifier>` scaffold
 scripts/smoke.mjs        # `pnpm smoke <identifier>` fake host
-scripts/package.mjs      # `pnpm package`: deterministic .atatpluginz archives + catalog.json
+scripts/package.mjs      # `pnpm package`: deterministic .atatextension archives + catalog.json
 skills/atat-plugin/      # the authoring skill every coding agent reads first
 types/                   # temporary @atat/api declaration mirror until its first npm release
 ```
@@ -42,14 +42,14 @@ pnpm package             # what the release publishes, under dist/artifacts
 
 Every push to `main` runs `pnpm package` and publishes the result to one rolling GitHub
 Release tagged **`store`**: a `catalog.json` naming every plugin, and one
-`<identifier>-<version>.atatpluginz` per plugin. AtAt's Settings → Plugins pane reads that
+`<identifier>-<version>.atatextension` per plugin. AtAt's Settings → Extensions pane reads that
 catalog, shows what is available, and installs an archive by downloading it and checking its
 SHA-256 against the catalog. Everything is free; there is no server behind it but GitHub.
 
-Local plugins — a folder dropped into the Plugins pane — stay unreviewed and are never
+Local plugins — a folder dropped into the Extensions pane — stay unreviewed and are never
 updated automatically.
 
-## Plugins
+## Extensions
 
 - `memory`: context recall over the host's folder search, response recording, three action
   surfaces, and a native management panel — with no entitlements at all.

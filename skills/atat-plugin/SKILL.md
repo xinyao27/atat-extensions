@@ -241,22 +241,22 @@ it ran.
 
 ```sh
 pnpm build <identifier>
-mkdir -p ~/Library/Application\ Support/AtAt/Plugins/<identifier>
+mkdir -p ~/Library/Application\ Support/AtAt/Extensions/<identifier>
 cp extensions/<identifier>/plugin.json \
    extensions/<identifier>/main.js \
    extensions/<identifier>/README.md \
-   ~/Library/Application\ Support/AtAt/Plugins/<identifier>/
+   ~/Library/Application\ Support/AtAt/Extensions/<identifier>/
 ```
 
 AtAt watches that directory and picks the plugin up without a restart: copy the files again after
 a rebuild and the change is live. That is the whole development loop.
 
-Or skip the copy: **Settings → Plugins → Install…** takes the extension directory itself, and so
+Or skip the copy: **Settings → Extensions → Install…** takes the extension directory itself, and so
 does dropping it onto that page.
 
-What the user sees next, in AtAt: **Settings → Plugins** lists the plugin under **Installed** —
+What the user sees next, in AtAt: **Settings → Extensions** lists the plugin under **Installed** —
 name, the one-line description, an Enabled switch, Open — and the plugin gets a page of its own
-under Plugins in the sidebar, holding the manifest's options, any app it needs, Uninstall, and
+under Extensions in the sidebar, holding the manifest's options, any app it needs, Uninstall, and
 its panel as the first segment when it declares one. The moment AtAt sees a plugin that carries
 code or an entitlement it raises the confirmation dialog, listing in plain language the hooks it
 will run, the surfaces it appears on, the entitlements it wants, and any folder it will create.

@@ -67,7 +67,7 @@ try {
     }
     const packageEntries = await normalizedEntries(packageDirectory);
     await utimes(packageDirectory, NORMALIZED_DATE, NORMALIZED_DATE);
-    const archiveName = `${identifier}-${manifest.version}.atatpluginz`;
+    const archiveName = `${identifier}-${manifest.version}.atatextension`;
     const archivePath = join(ARTIFACTS, archiveName);
     const entries = [`${packageName}/`, ...packageEntries.map((name) => `${packageName}/${name}`)];
     const zip = spawnSync("/usr/bin/zip", ["-X", "-q", archivePath, "-@"], {
@@ -109,7 +109,7 @@ try {
     });
     process.stdout.write(`Packaged ${archiveName} (${sha256})\n`);
   }
-  // The catalog the app's Plugins pane reads: one file, every plugin, where to get each one.
+  // The catalog the app's Extensions pane reads: one file, every plugin, where to get each one.
   await writeFile(
     join(ARTIFACTS, "catalog.json"),
     `${JSON.stringify({ schemaVersion: 1, generatedAt: new Date().toISOString(), plugins }, null, 2)}\n`

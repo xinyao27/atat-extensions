@@ -27,7 +27,7 @@ one, send one to the composer, or delete one.
 
 One folder, chosen once. Memory creates it in iCloud Drive when you install it
 (`iCloud Drive/AtAt/Memory/`, or `~/Documents/AtAt/Memory/` if iCloud Drive is off), and you
-can move it later in Settings → Plugins → Memory.
+can move it later in Settings → Extensions → Memory.
 
 ```
 <memory folder>/
