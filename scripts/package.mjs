@@ -31,7 +31,7 @@ if (!sourceRevision) {
   sourceRevision = execFileSync("git", ["rev-parse", "HEAD"], { cwd: ROOT, encoding: "utf8" }).trim();
 }
 
-const plugins = [];
+const extensions = [];
 
 async function normalizedEntries(directory, prefix = "") {
   const entries = [];
@@ -52,13 +52,13 @@ async function normalizedEntries(directory, prefix = "") {
 try {
   for (const identifier of identifiers) {
     const source = join(EXTENSIONS, identifier);
-    const manifest = JSON.parse(await readFile(join(source, "plugin.json"), "utf8"));
+    const manifest = JSON.parse(await readFile(join(source, "extension.json"), "utf8"));
     const store = JSON.parse(await readFile(join(source, "store.json"), "utf8"));
     const packageName = identifier;
     const stagingRoot = join(DIST, "staging");
     const packageDirectory = join(stagingRoot, packageName);
     await mkdir(packageDirectory, { recursive: true });
-    await writeFile(join(packageDirectory, "plugin.json"), `${JSON.stringify(manifest, null, 2)}\n`);
+    await writeFile(join(packageDirectory, "extension.json"), `${JSON.stringify(manifest, null, 2)}\n`);
     await copyFile(join(source, "main.js"), join(packageDirectory, "main.js"));
     for (const optional of ["icon.png", "README.md"]) {
       try { await copyFile(join(source, optional), join(packageDirectory, optional)); } catch (error) {
@@ -92,7 +92,7 @@ try {
     } catch (error) {
       if (error.code !== "ENOENT") throw error;
     }
-    plugins.push({
+    extensions.push({
       identifier,
       version: manifest.version,
       apiVersion: manifest.apiVersion,
@@ -126,10 +126,10 @@ try {
     });
     process.stdout.write(`Packaged ${archiveName} (${sha256})\n`);
   }
-  // The catalog the app's Extensions pane reads: one file, every plugin, where to get each one.
+  // The catalog the app's Extensions pane reads: one file, every extension, where to get each one.
   await writeFile(
     join(ARTIFACTS, "catalog.json"),
-    `${JSON.stringify({ schemaVersion: 1, generatedAt: new Date().toISOString(), plugins }, null, 2)}\n`
+    `${JSON.stringify({ schemaVersion: 1, generatedAt: new Date().toISOString(), extensions }, null, 2)}\n`
   );
 } finally {
   await Promise.all(identifiers.map((identifier) => rm(join(EXTENSIONS, identifier, "main.js"), { force: true })));

@@ -9,7 +9,7 @@ contributions by pull request.
 ```
 extensions/
   <identifier>/          # one extension per directory, named by its identifier
-    plugin.json          # manifest (required)
+    extension.json          # manifest (required)
     store.json           # category, keywords, and release notes
     src/                 # TypeScript / TSX sources
     main.js              # build output; ignored and removed after verification
@@ -62,7 +62,7 @@ public package and this bridge goes in the same change.
 
 ## Extension format
 
-A extension is a directory with a `plugin.json` manifest and an optional single-file JavaScript
+A extension is a directory with a `extension.json` manifest and an optional single-file JavaScript
 bundle. Capabilities are gated by entitlements (`network`, `secrets`, `automation`, `agent`)
 declared in the manifest and confirmed by the user at install — and confirmed again when a
 extension grows. Panels are React + JSX against `@atat/api`, built by `scripts/build.mjs`
@@ -70,7 +70,7 @@ extension grows. Panels are React + JSX against `@atat/api`, built by `scripts/b
 fixed vocabulary of components.
 
 The format specification lives in the AtAt repository at
-`docs/internal/features/plugin-system.md` until a public developer guide ships.
+`docs/internal/features/extension-system.md` until a public developer guide ships.
 
 ## Contributing
 

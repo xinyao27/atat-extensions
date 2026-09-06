@@ -35,7 +35,7 @@ async function readProducts() {
 function exportedDefinition(code, identifier) {
   const module = { exports: {} };
   const hostAPI = new Proxy(
-    { definePlugin: (definition) => definition },
+    { defineExtension: (definition) => definition },
     { get: (target, property) => target[property] ?? (() => undefined) }
   );
   const require = (specifier) => {
@@ -48,7 +48,7 @@ function exportedDefinition(code, identifier) {
   };
   Function("exports", "module", "require", code)(module.exports, module, require);
   const candidate = module.exports.default ?? module.exports;
-  if (!candidate || typeof candidate !== "object") throw new Error(`${identifier}: bundle has no default plugin definition`);
+  if (!candidate || typeof candidate !== "object") throw new Error(`${identifier}: bundle has no default extension definition`);
   return candidate;
 }
 
@@ -80,7 +80,7 @@ try {
     if (first.get(identifier).hash !== second.get(identifier).hash) {
       throw new Error(`${identifier}: build is not deterministic`);
     }
-    const manifest = JSON.parse(await readFile(join(EXTENSIONS, identifier, "plugin.json"), "utf8"));
+    const manifest = JSON.parse(await readFile(join(EXTENSIONS, identifier, "extension.json"), "utf8"));
     verifyExports(identifier, exportedDefinition(second.get(identifier).code, identifier), manifest);
     process.stdout.write(`Verified ${identifier} (${second.get(identifier).hash})\n`);
   }

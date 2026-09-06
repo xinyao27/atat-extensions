@@ -77,7 +77,7 @@ field: lowercase letters, digits and hyphens. Name it after what the user gets �
 
 ## Step 3 — Write the manifest
 
-`plugin.json` is what the user agrees to at install and what a reviewer reads first.
+`extension.json` is what the user agrees to at install and what a reviewer reads first.
 `scripts/validate.mjs` enforces every field rule and runs in CI — it is the authority on the
 schema. What it cannot tell you:
 
@@ -117,14 +117,14 @@ schema. What it cannot tell you:
 - **`requiresApp` names the app an action drives.** `{ name, bundleIdentifiers, website? }` on the
   action. With the app missing, AtAt greys the button and says "<name> isn't installed", the
   click says the same, and the extension's page links to the website. Without it the click would
-  fail inside the script. `extensions/bob-translate/plugin.json` is the example.
+  fail inside the script. `extensions/bob-translate/extension.json` is the example.
 - **`minimumAppVersion` is the oldest AtAt the extension runs on.** Bump it when you use a host API
   that arrived in a newer build — `runAppleScript`, `favorites.add` and `agent.ask`'s `skill`
   arrived in 0.10.0 — so an older AtAt lists the extension with "needs @@ x.y or newer" instead of
   failing at the first call.
 - **Options are few or the design is wrong.** Each one answers a question a real user has ("I
   want it somewhere else", "I don't want to be recorded"). There is no grouping heading, because
-  a list long enough to need grouping is the problem. `extensions/memory/plugin.json` ships two
+  a list long enough to need grouping is the problem. `extensions/memory/extension.json` ships two
   options for a extension with four extension points.
 
 **Done when** `pnpm validate <identifier>` passes and every declaration traces back to your
@@ -133,14 +133,14 @@ step 1 list.
 ## Step 4 — Implement `src/`
 
 ```ts
-import { definePlugin } from "@atat/api";
-import type { PluginAction, PluginHooks } from "@atat/api";
+import { defineExtension } from "@atat/api";
+import type { ExtensionAction, ExtensionHooks } from "@atat/api";
 
-export default definePlugin({ hooks, actions, views });
+export default defineExtension({ hooks, actions, views });
 ```
 
 `@atat/api` is the only module a extension imports; a view additionally gets JSX, with `react`
-supplied by the host. Every exact shape is in `types/atat-plugin.d.ts` (hook inputs and results,
+supplied by the host. Every exact shape is in `types/atat-extension.d.ts` (hook inputs and results,
 `ActionInput`, `HostContext`) and `types/atat-ui.d.ts` (view components, and the same host
 capabilities as named imports). Read them rather than guessing — they are short and they are the
 contract.
@@ -187,7 +187,7 @@ above it. Credential and folder input
 never appear in a panel — a extension cannot draw a trustworthy password field, so those stay in
 the host's own option panel.
 
-**Done when** `pnpm typecheck` is clean and every hook, action and view named in `plugin.json`
+**Done when** `pnpm typecheck` is clean and every hook, action and view named in `extension.json`
 has a same-named member in the default export.
 
 ## Step 5 — Build and verify
@@ -242,7 +242,7 @@ it ran.
 ```sh
 pnpm build <identifier>
 mkdir -p ~/Library/Application\ Support/AtAt/Extensions/<identifier>
-cp extensions/<identifier>/plugin.json \
+cp extensions/<identifier>/extension.json \
    extensions/<identifier>/main.js \
    extensions/<identifier>/README.md \
    ~/Library/Application\ Support/AtAt/Extensions/<identifier>/
@@ -325,7 +325,7 @@ Before opening the pull request, check `REVIEW_POLICY.md` against the change:
 - Three action surfaces exist — `selectionBar`, `clipboardHistory` and `captureQuickAccess` —
   and a view renders only as a Settings panel. There is no surface while capturing, on the
   agent's answer, or on a composer pill yet.
-- The identifier appears three times — directory name, `plugin.json`'s `identifier`, and the
+- The identifier appears three times — directory name, `extension.json`'s `identifier`, and the
   install directory. Renaming means all three, and `pnpm validate` fails until they agree.
 - `after: "paste"` degrades to a copy plus a toast when the selection snapshot has expired.
   `ctx.paste` works only inside an action, only with a live selection.

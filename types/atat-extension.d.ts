@@ -1,6 +1,6 @@
-// Type declarations for a plugin's hooks, actions and host context.
+// Type declarations for a extension's hooks, actions and host context.
 //
-// Transcribed from the manifest and Host API sections of AtAt's plugin specification and
+// Transcribed from the manifest and Host API sections of AtAt's extension specification and
 // checked against the public `@atat/api` contract. This temporary declaration mirror keeps
 // the extensions monorepo buildable before the first npm publication; it is removed as soon
 // as the package is available from the registry.
@@ -47,7 +47,7 @@ declare module "@atat/api" {
    * properties — they are calls that reject, naming the entitlement they need.
    */
   export interface HostContext {
-    plugin: { identifier: string; version: string };
+    extension: { identifier: string; version: string };
     locale: string;
     /** Secret-typed options are absent by construction. A folder option's value is a path. */
     options: Record<string, string | boolean>;
@@ -75,11 +75,11 @@ declare module "@atat/api" {
     progress(message: string, fraction?: number): void;
 
     /**
-     * A relative path resolves inside the plugin's own data directory. An absolute one has
+     * A relative path resolves inside the extension's own data directory. An absolute one has
      * to be a path this call was handed, or one inside a folder the user granted through a
      * `folder` option — `list`, `remove` and `search` accept only the latter.
      *
-     * `write` creates the directories on the way to the file, so a plugin's own layout inside
+     * `write` creates the directories on the way to the file, so a extension's own layout inside
      * a granted folder comes into being on first write.
      */
     files: {
@@ -89,7 +89,7 @@ declare module "@atat/api" {
       remove(path: string): Promise<void>;
       /**
        * The host's own index over a granted directory: markdown and text, recursive, lexical
-       * and semantic together. It is the way a plugin searches its files — a JavaScript
+       * and semantic together. It is the way a extension searches its files — a JavaScript
        * sandbox cannot build an index, and reading a folder to grep it is not one either.
        */
       search(
@@ -114,7 +114,7 @@ declare module "@atat/api" {
     runAppleScript(source: string, input?: string): Promise<string | null>;
 
     /**
-     * Entitlement: `agent`. Ten calls a minute, per plugin. `skill` names one of the user's
+     * Entitlement: `agent`. Ten calls a minute, per extension. `skill` names one of the user's
      * installed skills (`~/.agents/skills/<name>`); the host expands it for whichever agent
      * answers, and rejects when no such skill is installed.
      */
@@ -129,7 +129,7 @@ declare module "@atat/api" {
 
   export interface ContextItemSnapshot {
     id: string;
-    /** `"screenshot" | "selection" | "clipboard" | … | "plugin"`. */
+    /** `"screenshot" | "selection" | "clipboard" | … | "extension"`. */
     source: string;
     text?: string;
     filePaths?: string[];
@@ -143,20 +143,20 @@ declare module "@atat/api" {
   }
 
   /** Exactly one of `text` and `filePaths`; both or neither and the host drops the item. */
-  export interface PluginContextItem {
+  export interface ExtensionContextItem {
     label: string;
     text?: string;
     filePaths?: string[];
   }
 
   export interface PromptSection {
-    /** `[a-z0-9-]{1,32}`. At most four per plugin per call, 16000 characters together. */
+    /** `[a-z0-9-]{1,32}`. At most four per extension per call, 16000 characters together. */
     name: string;
     content: string;
   }
 
   export interface ContextAssembledResult {
-    addItems?: PluginContextItem[];
+    addItems?: ExtensionContextItem[];
     removeItemIDs?: string[];
     promptSections?: PromptSection[];
   }
@@ -213,7 +213,7 @@ declare module "@atat/api" {
 
   // ------------------------------------------------------------------ exports
 
-  export interface PluginHooks {
+  export interface ExtensionHooks {
     clipboardIngest?: (
       input: ClipboardIngestInput,
       ctx: HostContext
@@ -227,12 +227,12 @@ declare module "@atat/api" {
   }
 
   /** A string return goes to the action's `after` route; `void` means it handled itself. */
-  export type PluginAction = (
+  export type ExtensionAction = (
     input: ActionInput,
     ctx: HostContext
   ) => Promise<string | void>;
 
-  export interface PluginViewProps {
+  export interface ExtensionViewProps {
     presentation: "settingsPanel";
     input: Readonly<{
       surface?: Surface;
@@ -241,13 +241,13 @@ declare module "@atat/api" {
     }>;
   }
 
-  export interface PluginDefinition {
-    hooks?: PluginHooks;
-    actions?: Record<string, PluginAction>;
-    views?: Record<string, ComponentType<PluginViewProps>>;
+  export interface ExtensionDefinition {
+    hooks?: ExtensionHooks;
+    actions?: Record<string, ExtensionAction>;
+    views?: Record<string, ComponentType<ExtensionViewProps>>;
   }
 
-  export function definePlugin<Definition extends PluginDefinition>(
-    plugin: Definition
+  export function defineExtension<Definition extends ExtensionDefinition>(
+    extension: Definition
   ): Definition;
 }

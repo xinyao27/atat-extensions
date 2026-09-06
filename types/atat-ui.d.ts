@@ -1,6 +1,6 @@
-// Temporary Plugin View declarations for the public `@atat/api` module.
+// Temporary Extension View declarations for the public `@atat/api` module.
 //
-// Copied verbatim from the AtAt repository (`packages/plugin-ui-runtime/types/atat-ui.d.ts`),
+// Copied verbatim from the AtAt repository (`packages/extension-ui-runtime/types/atat-ui.d.ts`),
 // which is the authority: the implementation next to it is what a panel actually calls. The
 // npm package becomes authoritative at publication; this bridge exists only until then.
 
@@ -9,13 +9,13 @@ declare module "@atat/api" {
 
   // ------------------------------------------------------------- components
 
-  export type PluginViewSpacing = "none" | "xs" | "sm" | "md" | "lg" | "xl";
-  export type PluginViewAlignment = "leading" | "center" | "trailing";
+  export type ExtensionViewSpacing = "none" | "xs" | "sm" | "md" | "lg" | "xl";
+  export type ExtensionViewAlignment = "leading" | "center" | "trailing";
 
   export interface StackProps {
     children?: ReactNode;
-    spacing?: PluginViewSpacing;
-    alignment?: PluginViewAlignment;
+    spacing?: ExtensionViewSpacing;
+    alignment?: ExtensionViewAlignment;
   }
 
   export const Stack: (props: StackProps) => ReactElement;
@@ -42,7 +42,18 @@ declare module "@atat/api" {
   export const ScrollView: (props: { children?: ReactNode }) => ReactElement;
   export const Markdown: (props: { markdown: string }) => ReactElement;
 
-  export interface ListProps {
+  /**
+   * What the window's title bar calls this page.
+   *
+   * A page is named where the user reads every other page name — the title bar — and the same
+   * bar carries the back button and the page's actions. A page that gives no title keeps the
+   * panel's own name there.
+   */
+  interface NavigationTitleProps {
+    navigationTitle?: string;
+  }
+
+  export interface ListProps extends NavigationTitleProps {
     children?: ReactNode;
     /** Shown as the prompt of the search field. Omit it and no search field appears. */
     searchBarPlaceholder?: string;
@@ -67,7 +78,7 @@ declare module "@atat/api" {
     title: string;
     subtitle?: string;
     accessories?: ListAccessory[];
-    /** A file name inside the plugin package. */
+    /** A file name inside the extension package. */
     icon?: string;
     actions?: ReactElement;
   }
@@ -78,15 +89,16 @@ declare module "@atat/api" {
     Item: (props: ListItemProps) => ReactElement;
   };
 
-  export interface DetailProps {
+  export interface DetailProps extends NavigationTitleProps {
     /** Headings, paragraphs, bullet lists, code blocks and inline emphasis. */
     markdown: string;
+    /** Drawn at the trailing end of the title bar, because they act on the whole page. */
     actions?: ReactElement;
   }
 
   export const Detail: (props: DetailProps) => ReactElement;
 
-  export interface FormProps {
+  export interface FormProps extends NavigationTitleProps {
     children?: ReactNode;
     actions?: ReactElement;
   }
@@ -254,7 +266,7 @@ declare module "@atat/api" {
 
   export const clipboard: { copy(text: string): Promise<void> };
 
-  /** Entitlement: `agent`. Ten calls a minute, per plugin. */
+  /** Entitlement: `agent`. Ten calls a minute, per extension. */
   export const agent: {
     ask(prompt: string, opts?: { timeoutMs?: number }): Promise<string>;
   };
@@ -272,7 +284,7 @@ declare module "@atat/api" {
    */
   export const options: Record<string, string | boolean>;
 
-  export const plugin: { identifier: string; version: string };
+  export const extension: { identifier: string; version: string };
   export const environment: { locale: string };
 
   export function notify(message: string): Promise<void>;

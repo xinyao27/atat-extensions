@@ -141,7 +141,7 @@ function requirements(value, field) {
 }
 
 function validateManifest(manifest, directoryName) {
-  const value = object(manifest, `${directoryName}/plugin.json`);
+  const value = object(manifest, `${directoryName}/extension.json`);
   for (const key of Object.keys(value)) if (!ROOT_FIELDS.has(key)) fail(`${directoryName}: unsupported manifest field ${key}`);
   const identifier = string(value.identifier, `${directoryName}.identifier`);
   if (!IDENTIFIER.test(identifier) || identifier !== directoryName) fail(`${directoryName}: identifier must equal its directory name`);
@@ -298,7 +298,7 @@ const requested = process.argv.slice(2);
 const identifiers = requested.length > 0 ? requested : (await readdir(EXTENSIONS)).sort();
 for (const identifier of identifiers) {
   const directory = join(EXTENSIONS, basename(identifier));
-  const manifest = JSON.parse(await readFile(join(directory, "plugin.json"), "utf8"));
+  const manifest = JSON.parse(await readFile(join(directory, "extension.json"), "utf8"));
   const result = validateManifest(manifest, basename(directory));
   const storeMetadata = JSON.parse(await readFile(join(directory, "store.json"), "utf8"));
   validateStoreMetadata(storeMetadata, result.identifier);

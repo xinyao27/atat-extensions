@@ -7,7 +7,7 @@
     "applescript"
   ],
   "releaseNotes": {
-    "en": "Wording: the settings pages are called Extensions now.",
-    "zh-hans": "文案：设置页现在叫「扩展」。"
+    "en": "Built for @@ 0.10 and later, where extensions describe themselves in extension.json.",
+    "zh-hans": "面向 @@ 0.10 及以后：扩展的描述文件改叫 extension.json。"
   }
 }

@@ -8,7 +8,7 @@
     "en": "Keeps a folder of notes about what you do, and brings the right ones back when you ask.",
     "zh-hans": "把你做过的事记成一篇篇笔记，需要的时候再帮你找回来。"
   },
-  "version": "1.0.3",
+  "version": "1.1.0",
   "apiVersion": 1,
   "minimumAppVersion": "0.10.0",
   "author": "@@",
@@ -42,8 +42,12 @@
     }
   ],
   "hooks": [
-    { "hook": "contextAssembled" },
-    { "hook": "response" }
+    {
+      "hook": "contextAssembled"
+    },
+    {
+      "hook": "response"
+    }
   ],
   "actions": [
     {
@@ -53,11 +57,19 @@
         "en": "Save to memory",
         "zh-hans": "存入记忆"
       },
-      "surfaces": ["selectionBar", "clipboardHistory", "captureQuickAccess"],
+      "surfaces": [
+        "selectionBar",
+        "clipboardHistory",
+        "captureQuickAccess"
+      ],
       "after": "none"
     }
   ],
-  "views": [{ "identifier": "memory" }],
+  "views": [
+    {
+      "identifier": "memory"
+    }
+  ],
   "panels": [
     {
       "identifier": "memory",

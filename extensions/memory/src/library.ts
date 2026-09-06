@@ -73,7 +73,7 @@ export function kindOf(configuration: Configuration, path: string): MemoryKind {
   return isInside(trajectoryDirectory(configuration), path) ? "trajectory" : "memory";
 }
 
-/** Whether a path the host returned is somewhere this plugin is allowed to look. */
+/** Whether a path the host returned is somewhere this extension is allowed to look. */
 export function isGranted(configuration: Configuration, path: string): boolean {
   return configuration.memoryDirectory.length > 0 && isInside(configuration.memoryDirectory, path);
 }

@@ -1,7 +1,7 @@
-// Builds every plugin in `extensions/` into the single flat file AtAt evaluates.
+// Builds every extension in `extensions/` into the single flat file AtAt evaluates.
 //
-// This is the prototype of `atat plugin build`. The shape of the output is dictated by the
-// runtime, not by taste: JavaScriptCore has no module loader, so a plugin ships one CommonJS
+// This is the prototype of `atat extension build`. The shape of the output is dictated by the
+// runtime, not by taste: JavaScriptCore has no module loader, so a extension ships one CommonJS
 // file that assigns to `exports`, and `react` / `@atat/api` stay external because the host
 // vendors both and pins their versions.
 //
@@ -21,7 +21,7 @@ const EXTERNAL = ["react", "react/jsx-runtime", "react/jsx-dev-runtime", "@atat/
 
 /// Prepended to every bundle.
 ///
-/// The `require` line is what lets one file carry both a plugin's hooks and its panel. A
+/// The `require` line is what lets one file carry both a extension's hooks and its panel. A
 /// panel session has `require`, installed by the host's runtime blob before the bundle is
 /// evaluated; a hook invocation does not, because a hook has no React and no `@atat/api`. A
 /// bundle whose top-level `require("@atat/api")` threw would take every hook down with it, so
@@ -55,12 +55,12 @@ async function entryPoint(directory) {
 
 async function build(identifier) {
   const directory = join(extensionsRoot, identifier);
-  const manifestPath = join(directory, "plugin.json");
+  const manifestPath = join(directory, "extension.json");
   const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
   if (manifest.identifier !== identifier) {
     throw new Error(
-      `${identifier}/plugin.json declares the identifier "${manifest.identifier}". ` +
-        "A plugin's directory name is its identifier."
+      `${identifier}/extension.json declares the identifier "${manifest.identifier}". ` +
+        "A extension's directory name is its identifier."
     );
   }
 
@@ -84,7 +84,7 @@ async function build(identifier) {
   });
   const { output } = await bundle.generate({
     format: "cjs",
-    // Kept readable on purpose: a plugin's bundle is the thing a user is asked to trust at
+    // Kept readable on purpose: a extension's bundle is the thing a user is asked to trust at
     // install time, and a minified blob is not something anyone can read before agreeing.
     minify: false,
   });

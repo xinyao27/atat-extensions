@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "description": "The official directory of AtAt plugins.",
+  "description": "The official directory of AtAt extensions.",
   "scripts": {
     "new": "node scripts/new.mjs",
     "build": "node scripts/build.mjs",

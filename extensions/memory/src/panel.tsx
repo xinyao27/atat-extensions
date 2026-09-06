@@ -39,6 +39,7 @@ import {
   decodeText,
   flatten,
   joinPath,
+  parseNote,
   sortKey,
   titleOf,
   truncate,
@@ -156,7 +157,7 @@ async function search(configuration: Configuration, query: string): Promise<Pane
 
 // --------------------------------------------------------------------------- pages
 
-function NoteDetail(props: { path: string; words: Strings }): ReactElement {
+function NoteDetail(props: { path: string; title: string; words: Strings }): ReactElement {
   const note = usePromise<string, [string]>(
     async (path: string) => decodeText((await files.read(path)).base64),
     [props.path]
@@ -166,10 +167,13 @@ function NoteDetail(props: { path: string; words: Strings }): ReactElement {
     ? props.words.loading
     : note.error
       ? props.words.unreadableNote
-      : content;
+      // The front matter is bookkeeping: the title is already in the title bar, and the rest
+      // reads as a stray heading if it is handed to a markdown renderer.
+      : parseNote(content).body;
 
   return (
     <Detail
+      navigationTitle={props.title}
       markdown={markdown}
       actions={
         <ActionPanel>
@@ -251,7 +255,7 @@ export default function MemoryPanel(): ReactElement {
               <ActionPanel>
                 <Action.Push
                   title={words.preview}
-                  target={<NoteDetail path={row.path} words={words} />}
+                  target={<NoteDetail path={row.path} title={row.title} words={words} />}
                 />
                 <Action title={words.sendToComposer} onAction={() => send(row)} />
                 <Action.CopyToClipboard title={words.copyPath} content={row.path} />

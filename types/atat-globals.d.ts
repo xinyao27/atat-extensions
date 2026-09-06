@@ -1,11 +1,11 @@
-// The standard globals AtAt's plugin runtime installs on top of a bare JavaScriptCore
+// The standard globals AtAt's extension runtime installs on top of a bare JavaScriptCore
 // context, beyond the ES2023 built-ins TypeScript already knows about.
 //
-// The full list is in `PluginJavaScriptPrelude.swift`: timers, `sleep`, `URL`,
+// The full list is in `ExtensionJavaScriptPrelude.swift`: timers, `sleep`, `URL`,
 // `URLSearchParams`, `TextEncoder`, `TextDecoder`, `atob`, `btoa`, `structuredClone` and
 // `console`. Only the ones TypeScript's own libraries do not declare need to be here, and
 // `lib: ["ES2022"]` in `tsconfig.json` is what keeps DOM declarations from promising a
-// plugin things this runtime does not have.
+// extension things this runtime does not have.
 
 /** Resolves after `milliseconds`. Backed by the same host timer as `setTimeout`. */
 declare function sleep(milliseconds: number): Promise<void>;

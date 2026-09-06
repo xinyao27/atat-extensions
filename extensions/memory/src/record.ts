@@ -1,11 +1,11 @@
 // `response` — the trajectory.
 //
 // One markdown file per interaction, in `trajectory/` inside the granted folder. This is the
-// half of the plugin that depends on nothing: it keeps writing whether or not anything is
+// half of the extension that depends on nothing: it keeps writing whether or not anything is
 // searching, so recall that starts working next month finds a month of history already there.
 //
 // The consent is the switch. `recordsInteractions` is on by default and is the one thing in
-// this plugin's settings that answers a question a user actually has — “I don't want to be
+// this extension's settings that answers a question a user actually has — “I don't want to be
 // recorded” — so it is checked before anything is read, let alone written.
 
 import type { ContextItemSnapshot, HostContext, ResponseInput } from "@atat/api";

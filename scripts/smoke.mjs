@@ -7,10 +7,10 @@
 // scenario. Nothing here touches the real AtAt, the real filesystem outside the temporary
 // directory, or the network.
 //
-// It also enforces the host rules a plugin only discovers after installing: entitlement
+// It also enforces the host rules a extension only discovers after installing: entitlement
 // gates, the granted-directory boundary, the 10 MB read and 5 MB storage ceilings, the
 // exactly-one-of-text-and-filePaths shape of a context item, and the named-section limits.
-// A plugin that passes here is a plugin whose first run in AtAt is about behaviour rather
+// A extension that passes here is a extension whose first run in AtAt is about behaviour rather
 // than about contract violations.
 
 import { spawnSync } from "node:child_process";
@@ -22,7 +22,7 @@ import { dirname, join, relative, resolve } from "node:path";
 const ROOT = resolve(import.meta.dirname, "..");
 const EXTENSIONS = join(ROOT, "extensions");
 
-/// Per-plugin wall clock for each hook. Every plugin subscribed to one hook shares roughly
+/// Per-extension wall clock for each hook. Every extension subscribed to one hook shares roughly
 /// twice this, so a hook that spends its whole budget is a hook that starves its neighbours.
 const HOOK_BUDGET_MS = {
   clipboardIngest: 1000,
@@ -72,7 +72,7 @@ A scenario is one hook call or one action call, with the world it happens in:
 }
 
 {folder} is the granted folder, {input} the directory holding "inputFiles", {data} the
-plugin's own data directory. Every string in the scenario is substituted.
+extension's own data directory. Every string in the scenario is substituted.
 `;
 
 // --------------------------------------------------------------------------- utilities
@@ -105,7 +105,7 @@ function isInside(root, path) {
   return path === root || path.startsWith(`${root}/`);
 }
 
-/** `inbox/*.md`, `**\/*.png`. Enough to name a file a plugin was supposed to write. */
+/** `inbox/*.md`, `**\/*.png`. Enough to name a file a extension was supposed to write. */
 function globToRegExp(pattern) {
   let source = "";
   for (let index = 0; index < pattern.length; index += 1) {
@@ -140,7 +140,7 @@ async function walk(directory, prefix = "") {
   return found;
 }
 
-/** Every difference between what a scenario declared and what the plugin produced. */
+/** Every difference between what a scenario declared and what the extension produced. */
 function subsetErrors(actual, expected, path, errors) {
   if (expected === null || typeof expected !== "object") {
     if (actual !== expected) {
@@ -175,15 +175,15 @@ function subsetErrors(actual, expected, path, errors) {
 /**
  * The bundle, evaluated the way the runtime evaluates it.
  *
- * `@atat/api` is the only module a plugin may import. In a hook invocation the host's module
- * table carries `definePlugin` and nothing else — the panel half of a bundle resolves to
- * no-ops here, exactly as it does in a real hook context, so a plugin that carries a view
+ * `@atat/api` is the only module a extension may import. In a hook invocation the host's module
+ * table carries `defineExtension` and nothing else — the panel half of a bundle resolves to
+ * no-ops here, exactly as it does in a real hook context, so a extension that carries a view
  * still runs its hooks.
  */
 function loadDefinition(code, identifier) {
   const module = { exports: {} };
   const hostAPI = new Proxy(
-    { definePlugin: (definition) => definition },
+    { defineExtension: (definition) => definition },
     { get: (target, property) => target[property] ?? (() => undefined) }
   );
   const require = (specifier) => {
@@ -198,7 +198,7 @@ function loadDefinition(code, identifier) {
   Function("exports", "module", "require", "sleep", code)(module.exports, module, require, sleep);
   const definition = module.exports.default ?? module.exports;
   if (!definition || typeof definition !== "object") {
-    throw new Error(`${identifier}: main.js exports no plugin definition`);
+    throw new Error(`${identifier}: main.js exports no extension definition`);
   }
   return definition;
 }
@@ -211,7 +211,7 @@ function makeContext(manifest, scenario, roots, state) {
     if (!entitlements.has(entitlement)) {
       throw new Error(
         `${manifest.identifier} is not entitled to ${entitlement}. ` +
-          `Add "${entitlement}" to entitlements in plugin.json, or do without it.`
+          `Add "${entitlement}" to entitlements in extension.json, or do without it.`
       );
     }
   };
@@ -222,7 +222,7 @@ function makeContext(manifest, scenario, roots, state) {
     if (!allowed.some((root) => isInside(root, absolute))) {
       throw new Error(
         `files.${operation} refused ${absolute}: a path has to be one this call was handed, ` +
-          "inside the plugin's own data directory, or inside a granted folder."
+          "inside the extension's own data directory, or inside a granted folder."
       );
     }
     return absolute;
@@ -232,7 +232,7 @@ function makeContext(manifest, scenario, roots, state) {
   const grantedOnly = [roots.folder];
 
   return {
-    plugin: { identifier: manifest.identifier, version: manifest.version },
+    extension: { identifier: manifest.identifier, version: manifest.version },
     locale: scenario.locale ?? "en",
     options: scenario.options ?? {},
 
@@ -248,7 +248,7 @@ function makeContext(manifest, scenario, roots, state) {
         for (const entry of state.storage.values()) total += entry.length;
         if (total > MAXIMUM_STORAGE_BYTES) {
           state.storage.delete(String(key));
-          throw new Error("storage is limited to 5 MB per plugin; large data belongs in files");
+          throw new Error("storage is limited to 5 MB per extension; large data belongs in files");
         }
       },
       async remove(key) {
@@ -276,7 +276,7 @@ function makeContext(manifest, scenario, roots, state) {
       }
       if (target.protocol === "https:" && !networkHosts.has(target.hostname)) {
         throw new Error(
-          `fetch refused ${target.hostname}: add it to networkHosts in plugin.json`
+          `fetch refused ${target.hostname}: add it to networkHosts in extension.json`
         );
       }
       state.requests.push({ url: String(url), method: init?.method ?? "GET" });
@@ -428,7 +428,7 @@ function contractErrors(result, roots) {
       if (![roots.folder, roots.input, roots.data].some((root) => isInside(root, absolute))) {
         errors.push(
           `addItems[${index}]: ${absolute} is outside every path this call was handed, ` +
-            "the plugin's data directory and the granted folder — the host drops the item " +
+            "the extension's data directory and the granted folder — the host drops the item " +
             "and counts a failure"
         );
       }
@@ -597,7 +597,7 @@ async function runScenario(manifest, definition, scenarioPath) {
     return [
       `${label}: the call threw. ` +
         (call.hook
-          ? "A hook failure counts against this plugin, and three in a row pause it — catch " +
+          ? "A hook failure counts against this extension, and three in a row pause it — catch " +
             "the expected conditions, ctx.log them, and return nothing."
           : "An action that throws leaves the user with an error and no result — catch it and " +
             "ctx.notify what went wrong."),
@@ -655,7 +655,7 @@ if (!identifier || identifier === "--help") {
 
 const directory = join(EXTENSIONS, identifier);
 if (!existsSync(directory)) fail(`extensions/${identifier}/ does not exist`);
-const manifest = JSON.parse(await readFile(join(directory, "plugin.json"), "utf8"));
+const manifest = JSON.parse(await readFile(join(directory, "extension.json"), "utf8"));
 for (const entitlement of manifest.entitlements ?? []) {
   if (!ENTITLEMENTS.includes(entitlement)) fail(`unknown entitlement ${entitlement}`);
 }
@@ -694,7 +694,7 @@ const code = await readFile(bundlePath, "utf8");
 const failures = [];
 for (const scenarioPath of scenarioPaths) {
   // A fresh definition per scenario: the host discards the JavaScriptCore context after every
-  // call, so nothing a plugin leaves at module scope may carry from one scenario to the next.
+  // call, so nothing a extension leaves at module scope may carry from one scenario to the next.
   const definition = loadDefinition(code, identifier);
   failures.push(...(await runScenario(manifest, definition, scenarioPath)));
 }

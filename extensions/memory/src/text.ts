@@ -1,14 +1,14 @@
 // Every string a user can see, in the two languages AtAt ships.
 //
-// The host tells a plugin which language it is running in (`ctx.locale` in a hook,
-// `environment.locale` in a panel) and expects the plugin to localise its own output — a pill
-// label saying “Recorded” inside a Chinese interface is the plugin's bug, not the host's.
+// The host tells a extension which language it is running in (`ctx.locale` in a hook,
+// `environment.locale` in a panel) and expects the extension to localise its own output — a pill
+// label saying “Recorded” inside a Chinese interface is the extension's bug, not the host's.
 //
 // Nothing here is addressed to the agent. The `<memory>` section stays in English on purpose:
 // it is scaffolding around the user's own words, and the words carry their own language.
 
 export interface Strings {
-  /** Pill and row label for a note the plugin wrote by itself. */
+  /** Pill and row label for a note the extension wrote by itself. */
   trajectory: string;
   memory: string;
   saved: string;
@@ -74,7 +74,7 @@ const ZH: Strings = {
   savedFiles: (count) => "已存入 " + String(count) + " 个文件。",
   nothingToSave: "没有可存的内容。",
   saveFailed: (reason) => "没能存进记忆：" + reason,
-  noFolder: "先到 设置 → 插件 → 记忆 里选一个目录。",
+  noFolder: "先到 设置 → 扩展 → 记忆 里选一个目录。",
   deleted: "已删除",
   deleteFailed: (reason) => "没能删掉这篇笔记：" + reason,
   deleteTitle: "删除这篇笔记？",

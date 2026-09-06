@@ -1,7 +1,7 @@
 // Markdown notes, paths and base64.
 //
 // The memory folder is a folder of markdown files and nothing else — no database, no index of
-// this plugin's own. That is what makes the whole thing survive: the notes are readable in any
+// this extension's own. That is what makes the whole thing survive: the notes are readable in any
 // editor, syncable by iCloud, writable by a Shortcut on a phone, and indexable by the host's
 // own folder search. This module is the small amount of plumbing that requires.
 
@@ -253,8 +253,8 @@ export function isImagePath(path: string): boolean {
 /**
  * The relative image references in a piece of markdown.
  *
- * Only relative ones: an `http://` image is not a file this plugin could attach, and an
- * absolute path in someone else's note is not a path the plugin has any business resolving.
+ * Only relative ones: an `http://` image is not a file this extension could attach, and an
+ * absolute path in someone else's note is not a path the extension has any business resolving.
  */
 export function imageReferences(markdown: string): string[] {
   const text = String(markdown == null ? "" : markdown);

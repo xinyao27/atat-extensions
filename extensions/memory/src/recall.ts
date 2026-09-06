@@ -1,13 +1,13 @@
 // `contextAssembled` — recall.
 //
 // This runs inside every request the user makes, which is the only fact that matters about its
-// design. The hook's budget is 1.5 seconds for every plugin together, so recall is one
+// design. The hook's budget is 1.5 seconds for every extension together, so recall is one
 // `files.search` and a handful of reads, and anything that does not come back in time is the
 // same silent nothing as no match at all — logged, never shown. A memory that interrupts you
 // is worse than no memory.
 //
 // The search itself is the host's: `files.search` queries an index the host maintains over the
-// granted folder, so this plugin needs no index, no daemon and no network. What it returns is a
+// granted folder, so this extension needs no index, no daemon and no network. What it returns is a
 // pill per hit and one `<memory>` section. The pills are what make recall honest — the user
 // sees what was remembered and can delete it before the request goes out.
 
@@ -15,7 +15,7 @@ import type {
   ContextAssembledInput,
   ContextAssembledResult,
   HostContext,
-  PluginContextItem,
+  ExtensionContextItem,
 } from "@atat/api";
 import {
   isGranted,
@@ -83,7 +83,7 @@ export async function recall(
   await attachImages(recalled, ctx);
 
   const words = strings(ctx.locale);
-  const addItems: PluginContextItem[] = recalled.map((entry) => {
+  const addItems: ExtensionContextItem[] = recalled.map((entry) => {
     const label =
       (entry.kind === "trajectory" ? words.trajectory : words.memory) +
       " · " +
@@ -107,7 +107,7 @@ export async function recall(
  *
  * An index that is still building, a folder whose grant has gone, a query the index cannot
  * answer: all of them come back here as an empty list. Throwing would count as a hook failure
- * against this plugin and, three of those in a row, disable recall — for a condition that is
+ * against this extension and, three of those in a row, disable recall — for a condition that is
  * usually temporary and never the user's problem.
  */
 async function search(
@@ -165,7 +165,7 @@ async function readHits(
         const body = flatten(stripFrontMatterFence(content));
         if (body.length > 0) entry.excerpt = truncate(body, MAXIMUM_EXCERPT_CHARACTERS);
         const image = firstImageReference(content, hit.path);
-        // A `../../..` in someone's note is not a path this plugin has any business
+        // A `../../..` in someone's note is not a path this extension has any business
         // attaching, whatever the host would say about it.
         if (image && isGranted(configuration, image)) entry.imagePath = image;
       }

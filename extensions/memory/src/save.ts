@@ -2,7 +2,7 @@
 //
 // One declaration, three placements: selected text, a clipboard entry, a capture in Quick
 // Access. That is the dividend of converging capture surfaces on one representation — not a
-// selection plugin and a clipboard plugin and a screenshot plugin, it is a plugin that handles
+// selection extension and a clipboard extension and a screenshot extension, it is a extension that handles
 // text and files.
 //
 // What it writes is the same shape a phone Shortcut writes into `inbox/`: one markdown file

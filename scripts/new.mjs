@@ -72,7 +72,7 @@ const manifest = {
   name: { en: title, "zh-hans": title },
   description: {
     en: "One sentence about what this extension does, in the words a user would use.",
-    "zh-hans": "一句话说明这个插件做什么，用用户自己的说法。",
+    "zh-hans": "一句话说明这个扩展做什么，用用户自己的说法。",
   },
   version: "1.0.0",
   apiVersion: 1,
@@ -86,16 +86,16 @@ const storeMetadata = {
   releaseNotes: { en: "Initial release.", "zh-hans": "首个版本。" },
 };
 
-const entryPoint = `import { definePlugin } from "@atat/api";
-import type { PluginAction, PluginHooks } from "@atat/api";
+const entryPoint = `import { defineExtension } from "@atat/api";
+import type { ExtensionAction, ExtensionHooks } from "@atat/api";
 
-/** One member per hook declared in plugin.json. */
-const hooks: PluginHooks = {};
+/** One member per hook declared in extension.json. */
+const hooks: ExtensionHooks = {};
 
-/** One member per action declared in plugin.json that is not a URL template. */
-const actions: Record<string, PluginAction> = {};
+/** One member per action declared in extension.json that is not a URL template. */
+const actions: Record<string, ExtensionAction> = {};
 
-export default definePlugin({ hooks, actions });
+export default defineExtension({ hooks, actions });
 `;
 
 const readme = `# ${title}
@@ -113,7 +113,7 @@ needed. A extension with no entitlements says so — that is the interesting fac
 `;
 
 await mkdir(join(directory, "src"), { recursive: true });
-await writeFile(join(directory, "plugin.json"), `${JSON.stringify(manifest, null, 2)}\n`);
+await writeFile(join(directory, "extension.json"), `${JSON.stringify(manifest, null, 2)}\n`);
 await writeFile(join(directory, "store.json"), `${JSON.stringify(storeMetadata, null, 2)}\n`);
 await writeFile(join(directory, "src", "index.ts"), entryPoint);
 await writeFile(join(directory, "README.md"), readme);
@@ -121,13 +121,13 @@ await writeFile(join(directory, "README.md"), readme);
 process.stdout.write(
   [
     `Created extensions/${identifier}/`,
-    "  plugin.json   manifest — declare hooks, actions, options and views here",
+    "  extension.json   manifest — declare hooks, actions, options and views here",
     "  store.json    Store category, keywords and release notes",
     "  src/index.ts  the entry point, one member per declaration",
     "  README.md     what it does and what it touches",
     "",
     "Next:",
-    `  1. plugin.json — name, description (en + zh-hans), and the declarations`,
+    `  1. extension.json — name, description (en + zh-hans), and the declarations`,
     `  2. src/index.ts — a same-named member for each declaration`,
     `  3. pnpm validate ${identifier} && pnpm typecheck && pnpm build ${identifier}`,
     `  4. extensions/${identifier}/smoke/<name>.json, then pnpm smoke ${identifier}`,
