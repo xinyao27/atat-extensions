@@ -1,0 +1,43 @@
+{
+  "description": "Hermes keeps its memories in two files, one entry per section sign",
+  "options": {
+    "memoryFolder": "{folder}"
+  },
+  "reads": {
+    "hermes": {
+      "memories": {
+        "MEMORY.md": {
+          "text": "User's project is a Rust web service at ~/code/myapi using Axum and SQLx\n§\nThis machine runs macOS 26, with Docker and Podman installed\n§\nUser prefers concise responses. Long explanations get skimmed.\n",
+          "modifiedAt": "2026-06-02T08:00:00.000Z"
+        },
+        "USER.md": {
+          "text": "Xinyao ships a Mac app called @@ and writes the docs first.\n§\nWorks in Chinese with people and in English in code.\n",
+          "modifiedAt": "2026-06-03T08:00:00.000Z"
+        }
+      }
+    }
+  },
+  "call": {
+    "routine": "importFromAssistant",
+    "args": [
+      "hermes"
+    ]
+  },
+  "expect": {
+    "result": {
+      "brought": 5,
+      "skipped": 0
+    },
+    "files": [
+      {
+        "path": "inbox/*.md",
+        "count": 5,
+        "contains": [
+          "source: hermes",
+          "This machine runs macOS 26, with Docker and Podman installed",
+          "Works in Chinese with people and in English in code."
+        ]
+      }
+    ]
+  }
+}

@@ -15,6 +15,7 @@ import {
   assetsDirectory,
   inboxDirectory,
   readConfiguration,
+  sourceForSurface,
   type Configuration,
 } from "./library.js";
 import {
@@ -33,6 +34,8 @@ import { strings } from "./text.js";
 /** A click saves what the user pointed at, not a folder's worth of attachments. */
 const MAXIMUM_FILES = 4;
 const MAXIMUM_TEXT_CHARACTERS = 20000;
+/** A title is one line of a list row, so it is decided at 60 characters and not by the row. */
+const TITLE_LIMIT = 60;
 
 export async function saveToMemory(input: ActionInput, ctx: HostContext): Promise<void> {
   const words = strings(ctx.locale);
@@ -74,10 +77,10 @@ async function saveText(
   const name = at.compact + "-" + token() + ".md";
   const note = buildNote(
     {
-      date: at.iso,
-      sourceBundleID: input.sourceBundleID ?? undefined,
-      surface: input.surface,
       title: headline(text),
+      date: at.iso,
+      source: sourceForSurface(input.surface),
+      app: input.sourceBundleID ?? undefined,
     },
     truncate(text, MAXIMUM_TEXT_CHARACTERS)
   );
@@ -127,11 +130,11 @@ async function saveFiles(
     }
     const note = buildNote(
       {
+        title: recognized.length > 0 ? headline(recognized) : truncate(basename(path), TITLE_LIMIT),
         date: at.iso,
-        sourceBundleID: input.sourceBundleID ?? undefined,
-        surface: input.surface,
+        source: sourceForSurface(input.surface),
+        app: input.sourceBundleID ?? undefined,
         asset: ASSETS_DIRECTORY + "/" + assetName,
-        title: recognized.length > 0 ? headline(recognized) : basename(path),
       },
       body.join("\n")
     );
@@ -151,10 +154,17 @@ async function recognize(path: string, ctx: HostContext): Promise<string> {
   }
 }
 
+/**
+ * The title, decided here rather than by whoever draws the list later.
+ *
+ * A note carries its own title from the moment it is written, so the list never has to open
+ * a file to find out what to call a row. The first line the user can see is the title, which
+ * is what they would have typed if they had been asked.
+ */
 function headline(text: string): string {
   for (const line of text.split(/\r?\n/)) {
-    const value = line.trim();
-    if (value.length > 0) return truncate(value, 100);
+    const value = line.replace(/^#{1,6}\s+/, "").trim();
+    if (value.length > 0) return truncate(value, TITLE_LIMIT);
   }
   return "Memory";
 }

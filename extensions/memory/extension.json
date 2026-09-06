@@ -5,8 +5,8 @@
     "zh-hans": "记忆"
   },
   "description": {
-    "en": "Keeps a folder of notes about what you do, and brings the right ones back when you ask.",
-    "zh-hans": "把你做过的事记成一篇篇笔记，需要的时候再帮你找回来。"
+    "en": "Keeps the things you tell @@ to remember, and brings them back when they fit.",
+    "zh-hans": "把你让 @@ 记住的东西存成笔记，用得上的时候再拿出来。"
   },
   "version": "1.1.0",
   "apiVersion": 1,
@@ -22,31 +22,15 @@
         "zh-hans": "记忆目录"
       },
       "description": {
-        "en": "Where your notes are kept. Put it in iCloud Drive and your phone can add to it too.",
-        "zh-hans": "笔记存放的位置。放在 iCloud Drive 里，手机也能往里加。"
+        "en": "Where your notes are kept. It starts in iCloud Drive, so your phone can add to it too.",
+        "zh-hans": "笔记存放的位置。默认在 iCloud Drive 里，手机也能往里存。"
       },
-      "defaultPath": "icloud"
-    },
-    {
-      "identifier": "recordsInteractions",
-      "type": "boolean",
-      "label": {
-        "en": "Record my interactions",
-        "zh-hans": "自动记录交互"
-      },
-      "description": {
-        "en": "Saves a note after each question: what you asked, the answer, and what came with it.",
-        "zh-hans": "每问一次就写一篇笔记：你问了什么、回答是什么、带上了哪些内容。"
-      },
-      "defaultValue": true
+      "defaultPath": "shortcuts"
     }
   ],
   "hooks": [
     {
       "hook": "contextAssembled"
-    },
-    {
-      "hook": "response"
     }
   ],
   "actions": [
@@ -77,6 +61,72 @@
       "title": {
         "en": "Memory",
         "zh-hans": "记忆"
+      }
+    }
+  ],
+  "reads": [
+    {
+      "identifier": "claude-code",
+      "paths": ["~/.claude/projects/*/memory"],
+      "title": {
+        "en": "What Claude Code remembers",
+        "zh-hans": "Claude Code 记住的东西"
+      }
+    },
+    {
+      "identifier": "codex",
+      "paths": ["~/.codex/memories"],
+      "title": {
+        "en": "What Codex remembers",
+        "zh-hans": "Codex 记住的东西"
+      }
+    },
+    {
+      "identifier": "hermes",
+      "paths": ["~/.hermes/memories", "~/.hermes/profiles/*/memories"],
+      "title": {
+        "en": "What Hermes remembers",
+        "zh-hans": "Hermes 记住的东西"
+      }
+    },
+    {
+      "identifier": "openclaw",
+      "paths": ["~/.openclaw/workspace"],
+      "title": {
+        "en": "What OpenClaw remembers",
+        "zh-hans": "OpenClaw 记住的东西"
+      }
+    },
+    {
+      "identifier": "gemini-cli",
+      "paths": ["~/.gemini/tmp/*/memory"],
+      "title": {
+        "en": "What Gemini CLI remembers",
+        "zh-hans": "Gemini CLI 记住的东西"
+      }
+    },
+    {
+      "identifier": "qwen-code",
+      "paths": ["~/.qwen/memories", "~/.qwen/projects/*/memory"],
+      "title": {
+        "en": "What Qwen Code remembers",
+        "zh-hans": "Qwen Code 记住的东西"
+      }
+    },
+    {
+      "identifier": "trae",
+      "paths": ["~/.trae/memory", "~/.trae-cn/memory"],
+      "title": {
+        "en": "What Trae remembers",
+        "zh-hans": "Trae 记住的东西"
+      }
+    },
+    {
+      "identifier": "goose",
+      "paths": ["~/.config/goose/memory"],
+      "title": {
+        "en": "What Goose remembers",
+        "zh-hans": "Goose 记住的东西"
       }
     }
   ]

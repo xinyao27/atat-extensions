@@ -1,0 +1,47 @@
+{
+  "description": "Codex's handbook is split at its headings, and its pipeline leftovers are left alone",
+  "options": {
+    "memoryFolder": "{folder}"
+  },
+  "reads": {
+    "codex": {
+      "memories": {
+        "MEMORY.md": {
+          "text": "# Handbook\n\n## Build and test\n\nRun `pnpm verify` before opening a pull request.\n\n## Release\n\nReleases ship from the tag, and the tap is updated by hand.\n",
+          "modifiedAt": "2026-05-20T07:00:00.000Z"
+        },
+        "memory_summary.md": "v1\nA navigational summary, not a memory.\n",
+        "raw_memories.md": "Transient input for the next consolidation run.\n",
+        "phase2_workspace_diff.md": "Transient diff.\n",
+        "rollout_summaries/2026-05-19-importer.md": {
+          "text": "# Importer session\n\nWorked out how the memories directory is laid out.\n",
+          "modifiedAt": "2026-05-19T07:00:00.000Z"
+        },
+        "skills/deploy/SKILL.md": "A procedure, not a memory.\n"
+      }
+    }
+  },
+  "call": {
+    "routine": "importFromAssistant",
+    "args": [
+      "codex"
+    ]
+  },
+  "expect": {
+    "result": {
+      "brought": 3,
+      "skipped": 0
+    },
+    "files": [
+      {
+        "path": "inbox/*.md",
+        "count": 3,
+        "contains": [
+          "title: Build and test",
+          "title: Importer session",
+          "source: codex"
+        ]
+      }
+    ]
+  }
+}

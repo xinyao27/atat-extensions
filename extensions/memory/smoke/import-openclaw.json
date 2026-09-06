@@ -1,0 +1,49 @@
+{
+  "description": "OpenClaw's dated entries come over, and the ones it retired do not",
+  "options": {
+    "memoryFolder": "{folder}"
+  },
+  "reads": {
+    "openclaw": {
+      "workspace": {
+        "USER.md": {
+          "text": "<!-- observed: 2026-08-14 | status: active -->\n- Prefers short progress updates over long summaries\n\n<!-- observed: 2026-05-02 | status: superseded -->\n- Prefers long narrative summaries with every detail\n\n<!-- observed: 2026-08-20 | status: active -->\n- Reviews pull requests in the morning, before anything else\n",
+          "modifiedAt": "2026-08-21T08:00:00.000Z"
+        },
+        "MEMORY.md": {
+          "text": "# Durable facts\n\n## Machines\n\nOne Mac Studio and one MacBook, both on macOS 26.\n\n## Deploys\n\nEverything ships through Cloudflare Workers.\n",
+          "modifiedAt": "2026-08-22T08:00:00.000Z"
+        },
+        "AGENTS.md": "Rules for the agent, not memories about the user.\n",
+        "memory/2026-08-14.md": {
+          "text": "# Thursday\n\nSpent the afternoon on the importer and settled the note format.\n",
+          "modifiedAt": "2026-08-14T22:00:00.000Z"
+        },
+        "memory/imports/claude/reply-in-chinese.md": "---\nname: reply-in-chinese\n---\n\nAlready brought over from Claude Code itself.\n"
+      }
+    }
+  },
+  "call": {
+    "routine": "importFromAssistant",
+    "args": [
+      "openclaw"
+    ]
+  },
+  "expect": {
+    "result": {
+      "brought": 5,
+      "skipped": 0
+    },
+    "files": [
+      {
+        "path": "inbox/*.md",
+        "count": 5,
+        "contains": [
+          "Prefers short progress updates over long summaries",
+          "title: Machines",
+          "Spent the afternoon on the importer"
+        ]
+      }
+    ]
+  }
+}

@@ -34,6 +34,11 @@ const ACTION_FIELDS = new Set([
   "url",
   "requiresApp",
 ]);
+const READ_FIELDS = new Set(["identifier", "paths", "title"]);
+/// Directories the host refuses whatever a extension says it wants them for: the home folder
+/// and `~/Library` are not a folder but every folder, and the rest hold credentials.
+const REFUSED_READ_PATHS = new Set(["~", "~/library"]);
+const REFUSED_READ_TREES = ["~/.ssh", "~/.gnupg", "~/.aws", "~/library/keychains"];
 const ROOT_FIELDS = new Set([
   "identifier",
   "name",
@@ -49,6 +54,7 @@ const ROOT_FIELDS = new Set([
   "options",
   "views",
   "panels",
+  "reads",
 ]);
 const STORE_CATEGORIES = new Set([
   "productivity",
@@ -136,6 +142,56 @@ function requirements(value, field) {
     for (const [key, expected] of Object.entries(object(condition.optionEquals, `${field}.optionEquals`))) {
       string(key, `${field}.optionEquals key`);
       string(expected, `${field}.optionEquals.${key}`);
+    }
+  }
+}
+
+/**
+ * One `reads` declaration: somebody else's directory, read-only, agreed to once at install.
+ *
+ * Narrow or refused, with nothing in between. A whole segment may be a star, so a declaration
+ * can name the memory folder inside every Claude Code project without naming the folder that
+ * holds the conversations too; a partial wildcard would glob names rather than walk a level,
+ * and nothing needs it. The paths are shown to the user verbatim in the install
+ * confirmation, so a path that means something else once resolved is a path that lied.
+ */
+function validateReads(value, identifier) {
+  const declarations = array(value ?? [], `${identifier}.reads`);
+  const seen = new Set();
+  for (const [index, entry] of declarations.entries()) {
+    const field = `${identifier}.reads[${index}]`;
+    const declaration = object(entry, field);
+    for (const key of Object.keys(declaration)) {
+      if (!READ_FIELDS.has(key)) fail(`${identifier}: unsupported reads field ${key}`);
+    }
+    const name = string(declaration.identifier, `${field}.identifier`);
+    if (!IDENTIFIER.test(name)) fail(`${field}.identifier must be kebab-case`);
+    if (seen.has(name)) fail(`${identifier}: duplicate reads declaration ${name}`);
+    seen.add(name);
+    localizable(declaration.title, `${field}.title`);
+
+    const paths = uniqueStrings(declaration.paths, `${field}.paths`);
+    if (paths.length === 0) fail(`${field}.paths must name at least one directory`);
+    for (const declared of paths) {
+      const path = declared.replace(/\/+$/, "");
+      if (!path.startsWith("~/")) fail(`${field}.paths: ${declared} must start with "~/"`);
+      const segments = path.split("/");
+      if (segments.some((segment) => segment === "." || segment === "..")) {
+        fail(`${field}.paths: ${declared} must name where it goes, not walk there`);
+      }
+      if (segments.some((segment) => segment !== "*" && segment.includes("*"))) {
+        fail(`${field}.paths: ${declared} may use * only as a whole segment`);
+      }
+      const lowered = path.toLowerCase();
+      // `~/Library/*` reaches every folder in `~/Library`, so it is the same request as
+      // `~/Library` with an extra character.
+      const withoutWildcards = lowered.replace(/(?:\/\*)+$/, "");
+      for (const candidate of [lowered, withoutWildcards]) {
+        if (REFUSED_READ_PATHS.has(candidate)) fail(`${field}.paths: ${declared} is too wide`);
+        if (REFUSED_READ_TREES.some((tree) => candidate === tree || candidate.startsWith(`${tree}/`))) {
+          fail(`${field}.paths: ${declared} names somewhere credentials live`);
+        }
+      }
     }
   }
 }
@@ -247,6 +303,8 @@ function validateManifest(manifest, directoryName) {
       if (!FOLDER_DEFAULT_PATHS.has(option.defaultPath)) fail(`${identifier}: unsupported defaultPath ${option.defaultPath}`);
     }
   }
+
+  validateReads(value.reads, identifier);
 
   const panels = array(value.panels ?? [], `${identifier}.panels`);
   if (panels.length > 1) fail(`${identifier}: API v1 allows one panel`);

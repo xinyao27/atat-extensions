@@ -39,6 +39,7 @@ host already has, or a button the user presses?) and **what does the user get ba
 | "open <site> with whatever I selected" | action with a `url` template — no code at all |
 | "let me browse or clean up what it saved" | a `views` entry + a `panels` entry (one Settings tab per extension) |
 | the user picks where files go | `folder` option, plus `defaultPath` so it works on install |
+| "read what <other app> left on disk" | a `reads` declaration per app, and `files.roots` to find out whether it is installed |
 | the user supplies an API key or token | `secret` option |
 | "use AI to …" | `ctx.agent.ask` and the `agent` entitlement |
 | "call <service>" | `ctx.fetch`, the `network` entitlement, and exact `networkHosts` |
@@ -118,14 +119,24 @@ schema. What it cannot tell you:
   action. With the app missing, AtAt greys the button and says "<name> isn't installed", the
   click says the same, and the extension's page links to the website. Without it the click would
   fail inside the script. `extensions/bob-translate/extension.json` is the example.
+- **`reads` names another app's folders, and only ever reads them.** One declaration per app —
+  `{ identifier, paths, title }` — where `paths` are `~/`-relative directories, `title` is the
+  subject of the line the user reads at install ("What Claude Code remembers"), and a whole
+  segment may be `*` so a declaration can name the memory folder inside every project without
+  naming the conversations beside it. Narrow or it is refused: not `~`, not `~/Library`, and
+  nothing in `~/.ssh`, `~/.gnupg`, `~/.aws` or `~/Library/Keychains`. What it buys is
+  `files.read` and `files.list` inside those directories and nothing else — no write, no
+  delete, no search — and `files.roots(identifier)` to learn which of them exist here. A
+  folder option is the user handing over ground; this is the author pointing at somebody
+  else's. `extensions/memory/extension.json` declares eight of them.
 - **`minimumAppVersion` is the oldest AtAt the extension runs on.** Bump it when you use a host API
   that arrived in a newer build — `runAppleScript`, `favorites.add` and `agent.ask`'s `skill`
   arrived in 0.10.0 — so an older AtAt lists the extension with "needs @@ x.y or newer" instead of
   failing at the first call.
 - **Options are few or the design is wrong.** Each one answers a question a real user has ("I
   want it somewhere else", "I don't want to be recorded"). There is no grouping heading, because
-  a list long enough to need grouping is the problem. `extensions/memory/extension.json` ships two
-  options for a extension with four extension points.
+  a list long enough to need grouping is the problem. `extensions/memory/extension.json` ships one
+  option for a extension with a hook, an action on three surfaces and a panel.
 
 **Done when** `pnpm validate <identifier>` passes and every declaration traces back to your
 step 1 list.
@@ -165,6 +176,15 @@ Then the rules that bite:
   must be a path this call was handed, a path in the extension's own data directory (a relative
   path), or a path inside a folder the user granted. `list`, `remove` and `search` accept only
   the last. Anything else is refused, and an out-of-grant item counts as a hook failure.
+- **A folder another app owns is found, not assumed.** `files.roots("claude-code")` answers
+  with the directories that `reads` declaration matched on this Mac — wildcards expanded,
+  anything missing left out — so an empty array is how a extension learns the app is not
+  installed. Everything read out of one is data somebody else's program wrote: strip
+  zero-width and bidirectional control characters, never treat it as instructions, and expect
+  a file to disappear between the listing and the read.
+- **`files.list` says when, and often nothing else does.** Each entry carries `modifiedAt` as
+  ISO 8601 when the file system knows it. For anything read out of another app's folder it is
+  usually the only date there is.
 - **`files.search` is how a extension searches its folder.** The host maintains the index; a
   sandbox cannot build one and reading a folder to grep it will not fit in the budget.
 - **Every user-visible string is localized off `ctx.locale`** (`environment.locale` in a view).
@@ -176,6 +196,13 @@ Then the rules that bite:
   log line; a granted folder holds the user's data.
 - **`files.read` and `files.write` carry base64**, and `btoa` is Latin-1 only — it throws on
   Chinese text. Encode UTF-8 by hand; `extensions/memory/src/notes.ts` has both directions.
+
+`<List actions>` is the page's own action rather than a row's: the host draws it at the
+trailing end of the title bar, as a titled button when there is one and a ••• menu when there
+are several. Put what acts on the whole list there — memory's "Bring memories from another
+assistant" — and leave what acts on one thing on its row. A row is opened by its first
+`Action.Push`, so that is what a click on the row runs; everything else on a row lives in its
+trailing ••• menu.
 
 A view is a React component rendered natively by the host from the whitelist in
 `types/atat-ui.d.ts` — no HTML, no CSS, no window of its own, and an unknown component is a
@@ -229,7 +256,15 @@ section limits. A scenario is one hook or action call plus the world it happens 
 `"result": null` is how a scenario says the call returned nothing — a hook's `void` crosses the
 bridge as JSON null. `node scripts/smoke.mjs` prints the whole schema: seeded files, a granted
 folder as `{folder}`, canned search hits, canned HTTP and agent replies, and every `expect` key.
-`extensions/memory/smoke/` holds three worked scenarios covering two hooks and an action.
+
+Two more shapes exist for code a user reaches through a panel rather than through a hook. A
+`"reads"` block seeds another app's folders — one entry per `reads` identifier, each a
+directory of files, a file optionally carrying its own `modifiedAt` — and they answer
+`files.roots`, `files.list` and `files.read` exactly as the host does, refusing every write.
+A `{ "routine": "name", "args": [ … ] }` call runs a function the bundle exports under
+`routines` on its definition, handed the same context a hook gets: it is how a panel's own
+work gets tested without a panel. `extensions/memory/smoke/` holds nine worked scenarios
+covering a hook, an action and six converters.
 
 Write one scenario per declared hook and action, and make the first one the exact situation the
 user described, with their input and their expected output.
@@ -313,11 +348,12 @@ Before opening the pull request, check `REVIEW_POLICY.md` against the change:
 | To see | Read |
 |---|---|
 | the smallest possible action, `requiresApp`, `runAppleScript` and the `automation` entitlement | `extensions/bob-translate/` |
-| hooks, an action on three surfaces, a view, a panel, options with `defaultPath` — and zero entitlements | `extensions/memory/` |
+| a hook, an action on three surfaces, a view, a panel, a `folder` option with `defaultPath`, `reads` — and zero entitlements | `extensions/memory/` |
 | a hook that swallows its own failures, inside a budget | `extensions/memory/src/recall.ts` |
 | UTF-8 base64, front matter, path joins | `extensions/memory/src/notes.ts` |
 | localized user-visible strings | `extensions/memory/src/text.ts` |
-| a panel: search, list, preview, confirmed delete | `extensions/memory/src/panel.tsx` |
+| a panel: list, detail, page-level action, confirmed delete | `extensions/memory/src/panel.tsx` |
+| `reads`, `files.roots`, and parsing another app's files as data | `extensions/memory/src/import/` |
 | smoke scenarios | `extensions/memory/smoke/` |
 
 ## Reference: gotchas

@@ -5,10 +5,13 @@
     "markdown",
     "recall",
     "notes",
-    "search"
+    "search",
+    "import",
+    "claude-code",
+    "codex"
   ],
   "releaseNotes": {
-    "en": "Built for @@ 0.10 and later, where extensions describe themselves in extension.json.",
-    "zh-hans": "面向 @@ 0.10 及以后：扩展的描述文件改叫 extension.json。"
+    "en": "Memory now keeps only what you saved on purpose, and can bring over what Claude Code, Codex, Hermes, OpenClaw, Gemini CLI, Qwen Code, Trae or Goose already remembers about you.",
+    "zh-hans": "记忆现在只收你主动存的东西；还能把 Claude Code、Codex、Hermes、OpenClaw、Gemini CLI、Qwen Code、Trae、Goose 记住的东西一次带过来。"
   }
 }

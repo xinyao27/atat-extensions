@@ -17,19 +17,13 @@ import type {
   HostContext,
   ExtensionContextItem,
 } from "@atat/api";
-import {
-  isGranted,
-  kindOf,
-  readConfiguration,
-  type Configuration,
-  type MemoryKind,
-} from "./library.js";
+import { isGranted, readConfiguration, type Configuration } from "./library.js";
 import {
   basename,
   decodeText,
   flatten,
   imageReferences,
-  joinPath,
+  resolveRelative,
   titleOf,
   truncate,
 } from "./notes.js";
@@ -55,7 +49,6 @@ const MINIMUM_QUERY_CHARACTERS = 3;
 
 interface Recalled {
   path: string;
-  kind: MemoryKind;
   title: string;
   excerpt: string;
   /** A relative image reference from the note, resolved and confirmed to exist. */
@@ -84,10 +77,7 @@ export async function recall(
 
   const words = strings(ctx.locale);
   const addItems: ExtensionContextItem[] = recalled.map((entry) => {
-    const label =
-      (entry.kind === "trajectory" ? words.trajectory : words.memory) +
-      " · " +
-      truncate(entry.title, 60);
+    const label = words.memory + " · " + truncate(entry.title, 60);
     // An image-bearing note travels as its image: a pill carries text or files, never both,
     // and the picture is the part a model cannot reconstruct from the excerpt. The excerpt
     // itself is still in the section below, so nothing is lost by choosing the file here.
@@ -154,7 +144,6 @@ async function readHits(
     const snippet = truncate(flatten(hit.snippet), MAXIMUM_EXCERPT_CHARACTERS);
     const entry: Recalled = {
       path: hit.path,
-      kind: kindOf(configuration, hit.path),
       title: fallbackTitle,
       excerpt: snippet.length > 0 ? snippet : fallbackTitle,
     };
@@ -194,15 +183,14 @@ function stripFrontMatterFence(content: string): string {
 function firstImageReference(content: string, notePath: string): string | null {
   const first = imageReferences(content)[0];
   if (!first) return null;
-  return normalizeRelative(notePath.slice(0, notePath.lastIndexOf("/")), first);
+  return resolveRelative(notePath.slice(0, notePath.lastIndexOf("/")), first);
 }
 
 function section(recalled: Recalled[]): string {
   const parts: string[] = [];
   let used = 0;
   for (const entry of recalled) {
-    const heading =
-      "## " + (entry.kind === "trajectory" ? "Trajectory" : "Memory") + ": " + entry.title;
+    const heading = "## Memory: " + entry.title;
     const block = [heading, "", entry.excerpt].join("\n");
     if (used + block.length > MAXIMUM_SECTION_CHARACTERS) {
       parts.push("_(further matches omitted)_");
@@ -250,23 +238,6 @@ async function attachImages(recalled: Recalled[], ctx: HostContext): Promise<voi
     }
     if (!listed[directory]?.[name]) entry.imagePath = undefined;
   }
-}
-
-/** Joins a relative reference onto a directory, resolving `.` and `..` rather than passing it on. */
-function normalizeRelative(directory: string, reference: string): string | null {
-  const segments = joinPath(directory, reference).split("/");
-  const resolved: string[] = [];
-  for (const segment of segments) {
-    if (segment === ".") continue;
-    if (segment === "..") {
-      if (resolved.length <= 1) return null;
-      resolved.pop();
-      continue;
-    }
-    resolved.push(segment);
-  }
-  const path = resolved.join("/");
-  return path.charAt(0) === "/" ? path : null;
 }
 
 function messageOf(error: unknown): string {

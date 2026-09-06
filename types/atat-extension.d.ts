@@ -104,6 +104,13 @@ declare module "@atat/api" {
         query: string,
         opts?: { limit?: number }
       ): Promise<FileSearchHit[]>;
+      /**
+       * The directories one `reads` declaration found on this Mac: wildcard segments
+       * expanded against the disk, anything that is not there left out. An empty array is
+       * how a extension learns another app is not installed, without listing the folder
+       * above it — and the only paths in it are ones `read` and `list` will accept.
+       */
+      roots(identifier: string): Promise<string[]>;
     };
 
     ocr(filePath: string): Promise<string>;

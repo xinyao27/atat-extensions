@@ -1,14 +1,13 @@
 // The “Memory” panel: a tab in AtAt's Settings, rendered natively from this React tree.
 //
-// It is where a user uses their memory — search it, read one, send one on, delete one. It is
-// not a second settings page: the memory folder and the recording switch are manifest options
-// the host renders in its own panel, and echoing them here would be a row that looks like a
-// control and is not. So there are no status rows, no preferences and no folder paths on
-// display; there is a search field and a list.
+// It is where a user uses their memory — read one, ask about one, forget one, and bring over
+// what another assistant already remembers. It is not a second settings page: the memory
+// folder is a manifest option the host renders in its own panel above this one, and echoing
+// it here would be a row that looks like a control and is not.
 //
-// It is a plain display layer by contract: no pills, no prompt, nothing but the host APIs a
-// hook would have. Every write it does goes through the same gates, and the destructive one is
-// confirmed by AtAt rather than by anything drawn here.
+// A row is a memory rather than a file: the glyph says where it came from, the title was
+// decided when it was written, the line under it is how the note starts, and the grey word on
+// the right is when. Clicking it opens the note. Nothing here shows a path.
 
 import { useState } from "react";
 import type { ReactElement } from "react";
@@ -23,46 +22,58 @@ import {
   options,
   sendToComposer,
   showToast,
+  storage,
+  useNavigation,
   usePromise,
 } from "@atat/api";
 import {
   INBOX_DIRECTORY,
-  TRAJECTORY_DIRECTORY,
+  iconForSource,
   isGranted,
-  kindOf,
   readConfiguration,
   type Configuration,
-  type MemoryKind,
 } from "./library.js";
+import { assistantName, isAssistantSource } from "./import/catalog.js";
+import type { MemoryHost } from "./import/host.js";
+import {
+  detectAssistants,
+  forgetImported,
+  importFromAssistant,
+  type AssistantMemories,
+} from "./import/run.js";
 import {
   basename,
+  collapseBlankLines,
   decodeText,
   flatten,
+  imageReferences,
   joinPath,
   parseNote,
+  resolveRelative,
   sortKey,
-  titleOf,
   truncate,
 } from "./notes.js";
-import { strings, type Strings } from "./text.js";
+import { relativeDay, strings, type Strings } from "./text.js";
 
-/** The list is virtualised by the host, but the bridge still carries every row. */
-const MAXIMUM_ROWS = 200;
-/**
- * How many of the newest notes get their real title.
- *
- * A title lives in a note's front matter, so reading it means reading the file. Two hundred
- * reads to draw one list is not a trade worth making; the newest few get their titles and the
- * rest are named by their file, which is a date and therefore never meaningless.
- */
-const TITLE_BUDGET = 25;
+/** The list is virtualised by the host, but every row still costs one read of its note. */
+const MAXIMUM_ROWS = 120;
 const SEARCH_LIMIT = 20;
+/** One line under the title. Longer than this is a paragraph, and the row has one line. */
+const EXCERPT_LIMIT = 140;
+
+/** The same capabilities a hook gets, handed to the import routine as one object. */
+const host: MemoryHost = { files, storage, options, log };
 
 interface Row {
   path: string;
   title: string;
-  subtitle: string;
-  kind: MemoryKind;
+  excerpt: string;
+  when: string;
+  icon: string;
+  /** The assistant this memory was brought from, written under the title. */
+  from: string;
+  /** Where it was read from, when it came from another assistant. */
+  origin: string;
 }
 
 interface PanelData {
@@ -73,70 +84,70 @@ interface PanelData {
 
 // ------------------------------------------------------------------------- loading
 
-/**
- * The whole folder, newest first: `inbox/` and `trajectory/` read together and merged.
- *
- * Neither directory has to exist — nothing creates them until the first write — so a failed
- * listing is an empty one rather than an error. A user who has never saved anything and turned
- * recording off should see “no memories yet”, not a broken panel.
- */
-async function browse(configuration: Configuration): Promise<PanelData> {
-  const found: { path: string; name: string; kind: MemoryKind }[] = [];
-  for (const subfolder of [INBOX_DIRECTORY, TRAJECTORY_DIRECTORY]) {
-    const directory = joinPath(configuration.memoryDirectory, subfolder);
-    let entries: { name: string; isDirectory: boolean }[] = [];
-    try {
-      entries = await files.list(directory);
-    } catch {
-      continue;
-    }
-    for (const entry of entries) {
-      if (entry.isDirectory || !/\.md$/i.test(entry.name)) continue;
-      const path = joinPath(directory, entry.name);
-      found.push({ path, name: entry.name, kind: kindOf(configuration, path) });
-    }
-  }
-
-  // Names begin with a timestamp, so sorting on that is newest-first across both folders.
-  found.sort((left, right) => {
-    const compared = sortKey(right.name).localeCompare(sortKey(left.name));
-    return compared !== 0 ? compared : right.name.localeCompare(left.name);
-  });
-
-  const shown = found.slice(0, MAXIMUM_ROWS);
-  const titled = await Promise.all(
-    shown.slice(0, TITLE_BUDGET).map(async (entry) => {
-      try {
-        return titleOf(decodeText((await files.read(entry.path)).base64), stem(entry.name));
-      } catch {
-        return stem(entry.name);
-      }
-    })
-  );
-
-  const rows: Row[] = shown.map((entry, index) => ({
-    path: entry.path,
-    title: titled[index] ?? stem(entry.name),
-    subtitle: describeDate(entry.name),
-    kind: entry.kind,
-  }));
-  return { rows, mode: "browse", truncated: found.length > shown.length };
+function rowFor(path: string, content: string, excerpt: string, words: Strings): Row {
+  const note = parseNote(content);
+  const source = note.fields["source"] ?? "";
+  return {
+    path,
+    title: note.fields["title"] ?? stem(basename(path)),
+    excerpt: excerpt.length > 0 ? excerpt : firstParagraph(note.body),
+    when: relativeDay(note.fields["date"], new Date(), words),
+    icon: iconForSource(source),
+    from: isAssistantSource(source) ? assistantName(source) : "",
+    origin: note.fields["origin"] ?? "",
+  };
 }
 
 /**
- * The host's index answers the search.
+ * The folder, newest first.
  *
- * `files.search` covers the granted folder recursively, so one call reaches saved memories and
- * recorded trajectories alike — which is why there is no “also search the trajectory” switch
- * to hide behind.
+ * File names begin with the moment the memory was made — including the ones brought over,
+ * which are named for the day the other assistant learned them — so sorting on the name is
+ * sorting by when, without asking the file system anything.
  */
-async function search(configuration: Configuration, query: string): Promise<PanelData> {
+async function browse(configuration: Configuration, words: Strings): Promise<PanelData> {
+  const directory = joinPath(configuration.memoryDirectory, INBOX_DIRECTORY);
+  let entries: { name: string; isDirectory: boolean }[] = [];
+  try {
+    entries = await files.list(directory);
+  } catch {
+    // Nothing creates the folder until the first save, so an empty list is the normal
+    // answer for someone who has not saved anything yet.
+    return { rows: [], mode: "browse", truncated: false };
+  }
+
+  const found = entries
+    .filter((entry) => !entry.isDirectory && /\.md$/i.test(entry.name))
+    .sort((left, right) => {
+      const compared = sortKey(right.name).localeCompare(sortKey(left.name));
+      return compared !== 0 ? compared : right.name.localeCompare(left.name);
+    });
+
+  const shown = found.slice(0, MAXIMUM_ROWS);
+  const rows = await Promise.all(
+    shown.map(async (entry) => {
+      const path = joinPath(directory, entry.name);
+      const content = await read(path);
+      return content === null
+        ? { path, title: stem(entry.name), excerpt: "", when: "", icon: "note", from: "", origin: "" }
+        : rowFor(path, content, "", words);
+    })
+  );
+  return { rows, mode: "browse", truncated: found.length > shown.length };
+}
+
+/** The host's index answers the search; the row keeps its shape and shows the hit instead. */
+async function search(
+  configuration: Configuration,
+  query: string,
+  words: Strings
+): Promise<PanelData> {
   let hits: { path: string; snippet: string; score: number }[] = [];
   try {
     hits = await files.search(configuration.memoryDirectory, query, { limit: SEARCH_LIMIT });
   } catch (error) {
-    // An index that is still building is not a broken panel. No result reads better here than
-    // an error a user can do nothing about.
+    // An index that is still building is not a broken panel. No result reads better here
+    // than an error a user can do nothing about.
     log("panel search unavailable: " + messageOf(error));
   }
   const rows: Row[] = [];
@@ -145,31 +156,48 @@ async function search(configuration: Configuration, query: string): Promise<Pane
     const path = String(hit?.path ?? "");
     if (!isGranted(configuration, path) || seen[path]) continue;
     seen[path] = true;
-    rows.push({
-      path,
-      title: stem(basename(path)),
-      subtitle: truncate(flatten(String(hit?.snippet ?? "")), 140),
-      kind: kindOf(configuration, path),
-    });
+    const snippet = truncate(flatten(String(hit?.snippet ?? "")), EXCERPT_LIMIT);
+    const content = await read(path);
+    rows.push(
+      content === null
+        ? {
+            path,
+            title: stem(basename(path)),
+            excerpt: snippet,
+            when: "",
+            icon: "note",
+            from: "",
+            origin: "",
+          }
+        : rowFor(path, content, snippet, words)
+    );
   }
   return { rows, mode: "search", truncated: false };
 }
 
+async function read(path: string): Promise<string | null> {
+  try {
+    return decodeText((await files.read(path)).base64);
+  } catch {
+    return null;
+  }
+}
+
 // --------------------------------------------------------------------------- pages
 
+/** One memory, as it was written: the words, the picture, and none of the bookkeeping. */
 function NoteDetail(props: { path: string; title: string; words: Strings }): ReactElement {
   const note = usePromise<string, [string]>(
     async (path: string) => decodeText((await files.read(path)).base64),
     [props.path]
   );
   const content = note.data ?? "";
+  const body = parseNote(content).body;
   const markdown = note.isLoading
     ? props.words.loading
     : note.error
       ? props.words.unreadableNote
-      // The front matter is bookkeeping: the title is already in the title bar, and the rest
-      // reads as a stray heading if it is handed to a markdown renderer.
-      : parseNote(content).body;
+      : withResolvedImages(body, props.path);
 
   return (
     <Detail
@@ -178,15 +206,84 @@ function NoteDetail(props: { path: string; title: string; words: Strings }): Rea
       actions={
         <ActionPanel>
           <Action.SendToComposer
-            title={props.words.sendToComposer}
+            title={props.words.ask}
             content={content}
-            label={props.words.memory + " · " + basename(props.path)}
+            label={props.words.memory + " · " + props.title}
           />
-          <Action.CopyToClipboard title={props.words.copyNote} content={content} />
-          <Action.CopyToClipboard title={props.words.copyPath} content={props.path} />
         </ActionPanel>
       }
     />
+  );
+}
+
+/**
+ * The assistants that have something to hand over, and the press that brings it.
+ *
+ * Only assistants with memories on this Mac appear, because a list of things the user does
+ * not have is a list of things they cannot do. There is nothing to choose beyond which
+ * assistant: no ticks, no preview, no options. Pressing again later brings only what is new.
+ */
+function AssistantsPage(props: { words: Strings; onFinished: () => void }): ReactElement {
+  const navigation = useNavigation();
+  const [busy, setBusy] = useState<{ identifier: string; done: number; total: number } | null>(
+    null
+  );
+  const state = usePromise<AssistantMemories[], []>(async () => await detectAssistants(host), []);
+  const found = state.data ?? [];
+
+  const bring = (assistant: AssistantMemories) => {
+    if (readConfiguration(options).memoryDirectory.length === 0) {
+      showToast({ title: props.words.noFolder });
+      return;
+    }
+    setBusy({ identifier: assistant.identifier, done: 0, total: assistant.count });
+    importFromAssistant(host, assistant.identifier, (done, total) => {
+      setBusy({ identifier: assistant.identifier, done, total });
+    })
+      .then((outcome) => {
+        setBusy(null);
+        showToast({ title: props.words.brought(outcome.brought, outcome.skipped) });
+        props.onFinished();
+        navigation.pop();
+      })
+      .catch((error: unknown) => {
+        setBusy(null);
+        showToast({ title: props.words.bringFailed(messageOf(error)) });
+      });
+  };
+
+  return (
+    <List
+      navigationTitle={props.words.otherAssistants}
+      isLoading={state.isLoading}
+      emptyTitle={state.isLoading ? props.words.looking : props.words.nothingDetected}
+    >
+      {found.map((assistant) => (
+        <List.Item
+          key={assistant.identifier}
+          icon="bubble-chat"
+          title={assistant.name}
+          subtitle={
+            busy && busy.identifier === assistant.identifier
+              ? props.words.bringing(busy.done, busy.total)
+              : props.words.assistantSubtitle(
+                  assistant.count,
+                  relativeDay(assistant.latest ?? undefined, new Date(), props.words)
+                )
+          }
+          accessories={
+            assistant.brought > 0
+              ? [{ text: props.words.broughtOver(assistant.brought) }]
+              : undefined
+          }
+          actions={
+            <ActionPanel>
+              <Action title={props.words.bringThese} onAction={() => bring(assistant)} />
+            </ActionPanel>
+          }
+        />
+      ))}
+    </List>
   );
 }
 
@@ -195,6 +292,7 @@ function NoteDetail(props: { path: string; title: string; words: Strings }): Rea
 export default function MemoryPanel(): ReactElement {
   const words = strings(environment.locale);
   const configuration = readConfiguration(options);
+  const navigation = useNavigation();
   const [query, setQuery] = useState("");
 
   const state = usePromise<PanelData, [string]>(
@@ -204,8 +302,8 @@ export default function MemoryPanel(): ReactElement {
       }
       const trimmed = text.trim();
       return trimmed.length === 0
-        ? await browse(configuration)
-        : await search(configuration, trimmed);
+        ? await browse(configuration, words)
+        : await search(configuration, trimmed, words);
     },
     [query]
   );
@@ -213,19 +311,18 @@ export default function MemoryPanel(): ReactElement {
   const data = state.data;
   const rows = data?.rows ?? [];
 
-  const remove = (row: Row) => {
-    files
-      .remove(row.path)
+  const forget = (row: Row) => {
+    forgetNote(configuration, row)
       .then(() => {
-        showToast({ title: words.deleted, message: basename(row.path) });
+        showToast({ title: words.forgotten, message: row.title });
         state.revalidate();
       })
       .catch((error: unknown) => {
-        showToast({ title: words.deleteFailed(messageOf(error)) });
+        showToast({ title: words.forgetFailed(messageOf(error)) });
       });
   };
 
-  const send = (row: Row) => {
+  const ask = (row: Row) => {
     files
       .read(row.path)
       .then((payload: { base64: string }) =>
@@ -233,7 +330,7 @@ export default function MemoryPanel(): ReactElement {
       )
       .catch((error: unknown) => {
         log("panel could not send a note: " + messageOf(error));
-        showToast({ title: words.sendFailed(messageOf(error)) });
+        showToast({ title: words.askFailed(messageOf(error)) });
       });
   };
 
@@ -243,32 +340,45 @@ export default function MemoryPanel(): ReactElement {
       onSearchTextChange={setQuery}
       isLoading={state.isLoading}
       emptyTitle={emptyTitle(configuration, query, data, state.error, words)}
+      actions={
+        <ActionPanel>
+          <Action
+            title={words.bringOver}
+            onAction={() =>
+              navigation.push(
+                <AssistantsPage words={words} onFinished={() => state.revalidate()} />
+              )
+            }
+          />
+        </ActionPanel>
+      }
     >
       <List.Section title={sectionTitle(data, rows.length, words)}>
         {rows.map((row) => (
           <List.Item
             key={row.path}
+            icon={row.icon}
             title={row.title}
-            subtitle={row.subtitle}
-            accessories={row.kind === "trajectory" ? [{ text: words.trajectory }] : undefined}
+            subtitle={row.from.length > 0 ? row.from + " · " + row.excerpt : row.excerpt}
+            accessories={row.when.length > 0 ? [{ text: row.when }] : undefined}
             actions={
               <ActionPanel>
+                {/* The row itself opens the note: the first push action is what a click runs. */}
                 <Action.Push
-                  title={words.preview}
+                  title={words.open}
                   target={<NoteDetail path={row.path} title={row.title} words={words} />}
                 />
-                <Action title={words.sendToComposer} onAction={() => send(row)} />
-                <Action.CopyToClipboard title={words.copyPath} content={row.path} />
+                <Action title={words.ask} onAction={() => ask(row)} />
                 {/*
                   A destructive action is put through `confirmAlert` by the runtime before the
                   handler runs, so the confirmation is AtAt's own dialog and cannot be skipped.
                 */}
                 <Action
-                  title={words.delete}
+                  title={words.forget}
                   style={Action.Style.Destructive}
-                  confirmTitle={words.deleteTitle}
-                  confirmMessage={words.deleteMessage(basename(row.path))}
-                  onAction={() => remove(row)}
+                  confirmTitle={words.forgetTitle}
+                  confirmMessage={words.forgetMessage(row.title)}
+                  onAction={() => forget(row)}
                 />
               </ActionPanel>
             }
@@ -277,6 +387,47 @@ export default function MemoryPanel(): ReactElement {
       </List.Section>
     </List>
   );
+}
+
+// ------------------------------------------------------------------------ forgetting
+
+/**
+ * Forgetting is the note, its picture, and the promise not to bring it back.
+ *
+ * A memory that came from another assistant is on that assistant's disk as well as ours, so
+ * deleting the note is only half of it: without the second half the next press of “bring
+ * these over” would hand back the thing the user just threw away.
+ */
+async function forgetNote(configuration: Configuration, row: Row): Promise<void> {
+  const content = await read(row.path);
+  const note = content === null ? { fields: {}, body: "" } : parseNote(content);
+  const directory = row.path.slice(0, row.path.lastIndexOf("/"));
+
+  const assets: string[] = [];
+  const declared = note.fields["asset"];
+  if (declared) {
+    const path = resolveRelative(configuration.memoryDirectory, declared);
+    if (path) assets.push(path);
+  }
+  for (const reference of imageReferences(note.body)) {
+    const path = resolveRelative(directory, reference);
+    if (path && assets.indexOf(path) < 0) assets.push(path);
+  }
+
+  await files.remove(row.path);
+  for (const asset of assets) {
+    if (!isGranted(configuration, asset)) continue;
+    try {
+      await files.remove(asset);
+    } catch (error) {
+      // The note is gone, which is what the user asked for. An image that was already
+      // deleted, or that another note also points at, is not worth an error message.
+      log("could not delete an image beside a note: " + messageOf(error));
+    }
+  }
+  if (row.origin.length > 0) {
+    await forgetImported(host, row.origin, note.body);
+  }
 }
 
 // --------------------------------------------------------------------------- copy
@@ -301,15 +452,47 @@ function emptyTitle(
   return words.empty;
 }
 
-function stem(name: string): string {
-  return name.replace(/\.md$/i, "");
+/** How a note starts, as one line: the first paragraph, without its heading or its picture. */
+function firstParagraph(body: string): string {
+  const paragraph: string[] = [];
+  for (const line of collapseBlankLines(body).split("\n")) {
+    const text = line.trim();
+    if (text.length === 0) {
+      if (paragraph.length > 0) break;
+      continue;
+    }
+    if (/^#{1,6}\s/.test(text) || /^!\[/.test(text)) {
+      if (paragraph.length > 0) break;
+      continue;
+    }
+    paragraph.push(text.replace(/^\s*[-*+]\s+/, ""));
+  }
+  return truncate(flatten(paragraph.join(" ")), EXCERPT_LIMIT);
 }
 
-/** `20260824-011500-ab12` → `2026-08-24 01:15`. Anything else keeps its name. */
-function describeDate(name: string): string {
-  const match = /^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})/.exec(name);
-  if (!match) return stem(name);
-  return match[1] + "-" + match[2] + "-" + match[3] + " " + match[4] + ":" + match[5];
+/** A picture a note points at is beside it on disk; the renderer needs the whole path. */
+function withResolvedImages(body: string, notePath: string): string {
+  const directory = notePath.slice(0, notePath.lastIndexOf("/"));
+  return body.replace(
+    /(!\[[^\]]*\]\()([^)\s]+)(\))/g,
+    (match: string, open: string, target: string, close: string) => {
+      if (/^[a-z][a-z0-9+.-]*:/i.test(target) || target.charAt(0) === "/") return match;
+      const resolved = resolveRelative(directory, decodeSafely(target));
+      return resolved === null ? match : open + resolved + close;
+    }
+  );
+}
+
+function decodeSafely(text: string): string {
+  try {
+    return decodeURIComponent(text);
+  } catch {
+    return text;
+  }
+}
+
+function stem(name: string): string {
+  return name.replace(/\.md$/i, "");
 }
 
 function messageOf(error: unknown): string {

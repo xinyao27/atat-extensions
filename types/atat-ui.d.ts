@@ -248,6 +248,12 @@ declare module "@atat/api" {
       dirPath: string
     ): Promise<{ name: string; isDirectory: boolean; modifiedAt?: string }[]>;
     remove(path: string): Promise<void>;
+    /**
+     * The directories one `reads` declaration found on this Mac, wildcards expanded and
+     * anything absent left out. An empty array is how a extension learns the other app is not
+     * installed, without listing the folder above it.
+     */
+    roots(identifier: string): Promise<string[]>;
     /** The host's index over a granted directory. Same call a hook's `ctx.files` has. */
     search(
       dirPath: string,

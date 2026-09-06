@@ -1,48 +1,36 @@
-// The memory folder: what the user's two options mean, and where things go inside it.
+// The memory folder: what the user's one option means, and where things go inside it.
 //
-// One granted directory, three subfolders. `inbox/` is what was kept on purpose — the “Save to
-// memory” action and whatever a phone Shortcut appends; `assets/` holds the images those notes
-// point at; `trajectory/` is what AtAt wrote down by itself, one note per interaction. The
-// trajectory is a subfolder rather than a second grant because one grant is one question asked
-// of the user, and there is no version of “yes” that means one of these and not the other.
+// One granted directory, two subfolders. `inbox/` holds every memory — the ones saved with
+// “Save to memory”, the ones a phone Shortcut drops in, and the ones brought over from
+// another assistant; `assets/` holds the images those notes point at. Nothing else is kept
+// here, because memory is what the user decided to keep and nothing else.
 //
-// None of the three has to exist. `files.write` creates the directories on the way to the file,
-// so the first save is what brings `inbox/` into being.
+// Neither subfolder has to exist. `files.write` creates the directories on the way to the
+// file, so the first save is what brings `inbox/` into being.
 
+import { isAssistantSource } from "./import/catalog.js";
 import { isInside, joinPath } from "./notes.js";
 
 /** Where a memory lands: the same folder a phone Shortcut appends to. */
 export const INBOX_DIRECTORY = "inbox";
 /** Where a captured image lands, referenced from the note beside it. */
 export const ASSETS_DIRECTORY = "assets";
-/** Where the `response` hook writes, one note per interaction. */
-export const TRAJECTORY_DIRECTORY = "trajectory";
 
 export const OPTION_MEMORY_FOLDER = "memoryFolder";
-export const OPTION_RECORDS = "recordsInteractions";
-
-/** Which half of the folder a note came from. Trajectory notes are labelled as such. */
-export type MemoryKind = "memory" | "trajectory";
 
 export interface Configuration {
   /**
    * The granted folder, or empty.
    *
-   * The manifest declares `defaultPath: "icloud"`, so the host creates and grants this at
+   * The manifest declares `defaultPath: "shortcuts"`, so the host creates and grants this at
    * install time and it is normally set. Empty still has to be handled: a user may point the
    * option somewhere else, and a folder can be moved out from under a grant.
    */
   memoryDirectory: string;
-  recordsInteractions: boolean;
 }
 
 export function readConfiguration(options: Record<string, string | boolean>): Configuration {
-  return {
-    memoryDirectory: readPath(options[OPTION_MEMORY_FOLDER]),
-    // Absent means on: the manifest's default is `true`, and a missing value should not be the
-    // difference between recording and not.
-    recordsInteractions: options[OPTION_RECORDS] !== false,
-  };
+  return { memoryDirectory: readPath(options[OPTION_MEMORY_FOLDER]) };
 }
 
 function readPath(value: string | boolean | undefined): string {
@@ -59,21 +47,32 @@ export function assetsDirectory(configuration: Configuration): string {
   return joinPath(configuration.memoryDirectory, ASSETS_DIRECTORY);
 }
 
-export function trajectoryDirectory(configuration: Configuration): string {
-  return joinPath(configuration.memoryDirectory, TRAJECTORY_DIRECTORY);
-}
-
-/**
- * Whether a path the host returned is a trajectory note or a memory.
- *
- * Anything under `trajectory/` is the former; everything else in the folder — `inbox/`, a
- * markdown file the user dropped at the top level, a folder of their own — is the latter.
- */
-export function kindOf(configuration: Configuration, path: string): MemoryKind {
-  return isInside(trajectoryDirectory(configuration), path) ? "trajectory" : "memory";
-}
-
 /** Whether a path the host returned is somewhere this extension is allowed to look. */
 export function isGranted(configuration: Configuration, path: string): boolean {
   return configuration.memoryDirectory.length > 0 && isInside(configuration.memoryDirectory, path);
+}
+
+/**
+ * Where a memory came from, written into every note as `source`.
+ *
+ * The three Mac surfaces, the phone, and — for a memory brought over — the assistant that
+ * remembered it first. Old notes carry whatever they carried; nothing here is required to
+ * read one.
+ */
+export function sourceForSurface(surface: string): string {
+  if (surface === "clipboardHistory") return "clipboard";
+  if (surface === "captureQuickAccess") return "capture";
+  return "selection";
+}
+
+/** The row glyph for a note, by where it came from. Host icon names, not files. */
+export function iconForSource(source: string): string {
+  if (source === "clipboard") return "clipboard";
+  if (source === "capture") return "camera01";
+  if (source === "phone") return "share08";
+  if (source === "selection") return "text";
+  // Everything brought over from another assistant shares one glyph; the row's subtitle is
+  // where the assistant's name is written.
+  if (isAssistantSource(source)) return "bubble-chat";
+  return "note";
 }

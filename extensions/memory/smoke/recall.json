@@ -1,9 +1,9 @@
 {
   "description": "contextAssembled turns folder search hits into pills plus one memory section",
-  "options": { "memoryFolder": "{folder}", "recordsInteractions": true },
+  "options": { "memoryFolder": "{folder}" },
   "files": {
-    "inbox/20260824-011500-a3f9.md": "---\ndate: 2026-08-24T01:15:00+08:00\ntitle: Why the deploy failed on Friday\n---\n\n# Why the deploy failed on Friday\n\nThe release job ran against the old worker binding, so the deploy went out with last week's routes.\n",
-    "trajectory/20260825-090000-bb01.md": "---\ndate: 2026-08-25T09:00:00+08:00\ninteractionSource: composer\ntitle: Rolling back a bad deploy\n---\n\n# Rolling back a bad deploy\n\nRoll back by re-running the previous release tag; the branch name is not what ships.\n"
+    "inbox/20260824-011500-a3f9.md": "---\ntitle: Why the deploy failed on Friday\ndate: 2026-08-24T01:15:00+08:00\nsource: selection\n---\n\nThe release job ran against the old worker binding, so the deploy went out with last week's routes.\n",
+    "inbox/20260825-090000-bb01.md": "---\ntitle: Rolling back a bad deploy\ndate: 2026-08-25T09:00:00+08:00\nsource: claude-code\norigin: /Users/someone/.claude/projects/atat/memory/rollback.md\n---\n\nRoll back by re-running the previous release tag; the branch name is not what ships.\n"
   },
   "search": [
     {
@@ -12,7 +12,7 @@
       "score": 0.91
     },
     {
-      "path": "{folder}/trajectory/20260825-090000-bb01.md",
+      "path": "{folder}/inbox/20260825-090000-bb01.md",
       "snippet": "Roll back by re-running the previous release tag",
       "score": 0.74
     }
@@ -29,7 +29,7 @@
     "result": {
       "addItems": [
         { "label": "Memory · Why the deploy failed on Friday" },
-        { "label": "Recorded · Rolling back a bad deploy" }
+        { "label": "Memory · Rolling back a bad deploy" }
       ],
       "promptSections": [{ "name": "memory" }]
     },

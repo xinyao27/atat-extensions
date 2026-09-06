@@ -15,7 +15,7 @@
 
 import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import { mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, stat, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 
@@ -52,15 +52,27 @@ A scenario is one hook call or one action call, with the world it happens in:
   "files":  { "inbox/note.md": "text seeded into the granted folder" },
   "inputFiles": { "shot.png": "bytes as text" },  // reachable as {input}/shot.png
   "search": [ { "path": "{folder}/inbox/note.md", "snippet": "…", "score": 0.9 } ],
+  "reads":  {                                     // the folders the manifest's reads block names,
+    "claude-code": {                              // as they would be found on this Mac
+      "projects/atat/memory": {
+        "MEMORY.md": "- [A title](note.md) — a summary",
+        "note.md": { "text": "---\nname: note\n---\n\nwords", "modifiedAt": "2026-08-18T16:56:00+08:00" }
+      }
+    }
+  },
   "fetch":  { "https://host/path": { "status": 200, "body": "…" } },  // or "*" for any URL
   "agent":  "the reply agent.ask returns",        // or { "substring of prompt": "reply" }
   "appleScript": "the text runAppleScript returns", // default null
   "ocr":    "the text ocr() returns",
-  "call":   { "hook": "contextAssembled", "input": { … } },   // or { "action": "name", … }
+  "call":   { "hook": "contextAssembled", "input": { … } },   // or { "action": "name", … },
+                                                              // or { "routine": "name", "args": [ … ] }
+                                                              // for a routine the bundle exports
+                                                              // under routines — a panel's own
+                                                              // code, called with (ctx, …args)
   "expect": {
     "result":        { "addItems": [ { "label": "Memory · …" } ] },  // deep subset, null = nothing
     "contains":      ["substring of the returned JSON"],
-    "files":         [ { "path": "inbox/*.md", "count": 1, "contains": ["## Request"] } ],
+    "files":         [ { "path": "inbox/*.md", "count": 1, "contains": ["source: selection"] } ],
     "notifications": ["substring of a ctx.notify message"],
     "log":           ["substring of a ctx.log message"],
     "copied":        ["substring of ctx.clipboard.copy"],
@@ -72,7 +84,11 @@ A scenario is one hook call or one action call, with the world it happens in:
 }
 
 {folder} is the granted folder, {input} the directory holding "inputFiles", {data} the
-extension's own data directory. Every string in the scenario is substituted.
+extension's own data directory, {reads} the directory the "reads" fixtures live under. Every
+string in the scenario is substituted.
+
+A reads directory is read-only exactly as the host makes it: files.roots, files.list and
+files.read reach it, and files.write, files.remove and files.search refuse it.
 `;
 
 // --------------------------------------------------------------------------- utilities
@@ -93,8 +109,10 @@ function substitute(value, replacements) {
   if (Array.isArray(value)) return value.map((entry) => substitute(entry, replacements));
   if (value && typeof value === "object") {
     const result = {};
+    // Keys as well as values: a scenario names a seeded storage record by the absolute path
+    // it came from, and that path only exists once the temporary directories do.
     for (const [key, entry] of Object.entries(value)) {
-      result[key] = substitute(entry, replacements);
+      result[substitute(key, replacements)] = substitute(entry, replacements);
     }
     return result;
   }
@@ -228,7 +246,14 @@ function makeContext(manifest, scenario, roots, state) {
     return absolute;
   };
 
-  const readable = [roots.folder, roots.input, roots.data];
+  // What `reads` declared, resolved the way the host resolves it: directories another app
+  // keeps, reachable by `read` and `list` and by nothing else.
+  const readRoots = state.readRoots;
+  const everyReadRoot = Object.values(readRoots).flat();
+  // What this call was handed plus what it was granted: everything but somebody else's
+  // folder, which is the difference between reading a file and writing one.
+  const handed = [roots.folder, roots.input, roots.data];
+  const readable = [...handed, ...everyReadRoot];
   const grantedOnly = [roots.folder];
 
   return {
@@ -329,15 +354,33 @@ function makeContext(manifest, scenario, roots, state) {
         return { base64: (await readFile(absolute)).toString("base64") };
       },
       async write(path, data) {
-        const absolute = resolvePath(path, "write", readable);
+        const absolute = resolvePath(path, "write", handed);
         await mkdir(dirname(absolute), { recursive: true });
         await writeFile(absolute, Buffer.from(String(data?.base64 ?? ""), "base64"));
         state.written.add(absolute);
       },
       async list(dirPath) {
-        const absolute = resolvePath(dirPath, "list", grantedOnly);
+        const absolute = resolvePath(dirPath, "list", [...grantedOnly, ...everyReadRoot]);
         const entries = await readdir(absolute, { withFileTypes: true });
-        return entries.map((entry) => ({ name: entry.name, isDirectory: entry.isDirectory() }));
+        return await Promise.all(
+          entries.map(async (entry) => {
+            const info = await stat(join(absolute, entry.name)).catch(() => null);
+            return {
+              name: entry.name,
+              isDirectory: entry.isDirectory(),
+              modifiedAt: info ? info.mtime.toISOString() : undefined,
+            };
+          })
+        );
+      },
+      async roots(identifier) {
+        const found = readRoots[String(identifier)] ?? [];
+        if (!(manifest.reads ?? []).some((entry) => entry.identifier === String(identifier))) {
+          throw new Error(
+            `files.roots refused ${identifier}: declare it in reads in extension.json`
+          );
+        }
+        return found;
       },
       async remove(path) {
         const absolute = resolvePath(path, "remove", grantedOnly);
@@ -353,7 +396,7 @@ function makeContext(manifest, scenario, roots, state) {
     },
 
     async ocr(path) {
-      resolvePath(path, "read", readable);
+      resolvePath(path, "read", handed);
       if (scenario.ocr === undefined) {
         throw new Error('no canned text for ocr(): add "ocr" to the scenario');
       }
@@ -520,10 +563,12 @@ async function runScenario(manifest, definition, scenarioPath) {
     folder: join(temporaryRoot, "folder"),
     input: join(temporaryRoot, "input"),
     data: join(temporaryRoot, "data"),
+    reads: join(temporaryRoot, "reads"),
   };
   await mkdir(roots.folder, { recursive: true });
   await mkdir(roots.input, { recursive: true });
   await mkdir(roots.data, { recursive: true });
+  await mkdir(roots.reads, { recursive: true });
 
   const scenario = substitute(raw, roots);
   for (const [path, content] of Object.entries(scenario.files ?? {})) {
@@ -537,7 +582,32 @@ async function runScenario(manifest, definition, scenarioPath) {
     await writeFile(absolute, String(content), "utf8");
   }
 
+  // Another app's folders, as `files.roots` will report them. A file may carry its own
+  // `modifiedAt`, because for most assistants the modification time is the only date a
+  // memory has and a converter that reads it has to be tested against a real one.
+  const readRoots = {};
+  for (const [identifier, directories] of Object.entries(scenario.reads ?? {})) {
+    readRoots[identifier] = [];
+    for (const [directory, entries] of Object.entries(directories ?? {})) {
+      const absolute = join(roots.reads, identifier, directory);
+      await mkdir(absolute, { recursive: true });
+      readRoots[identifier].push(absolute);
+      for (const [name, value] of Object.entries(entries ?? {})) {
+        const file = join(absolute, name);
+        const text = typeof value === "string" ? value : String(value?.text ?? "");
+        const modifiedAt = typeof value === "string" ? undefined : value?.modifiedAt;
+        await mkdir(dirname(file), { recursive: true });
+        await writeFile(file, text, "utf8");
+        if (modifiedAt) {
+          const when = new Date(String(modifiedAt));
+          await utimes(file, when, when);
+        }
+      }
+    }
+  }
+
   const state = {
+    readRoots,
     storage: new Map(
       Object.entries(scenario.storage ?? {}).map(([key, value]) => [key, JSON.stringify(value)])
     ),
@@ -569,7 +639,16 @@ async function runScenario(manifest, definition, scenarioPath) {
   const call = scenario.call ?? {};
   let invoke;
   let budget;
-  if (call.hook) {
+  let routine;
+  if (call.routine) {
+    // A routine is code the panel runs: not a hook, not an action, and otherwise reachable
+    // only by opening Settings. The bundle exports them under `routines`, and they take the
+    // same context a hook does, so they can be run here against a folder of fixtures.
+    routine = definition.routines?.[call.routine];
+    if (typeof routine !== "function") {
+      return [`${label}: the bundle exports no routine "${call.routine}"`];
+    }
+  } else if (call.hook) {
     invoke = definition.hooks?.[call.hook];
     budget = HOOK_BUDGET_MS[call.hook];
     if (typeof invoke !== "function") {
@@ -591,7 +670,9 @@ async function runScenario(manifest, definition, scenarioPath) {
   const started = Date.now();
   let result;
   try {
-    result = await invoke(input, context);
+    result = routine
+      ? await routine(context, ...(call.args ?? []))
+      : await invoke(input, context);
   } catch (error) {
     process.stdout.write(`  threw: ${error?.message ?? String(error)}\n`);
     return [
@@ -599,8 +680,11 @@ async function runScenario(manifest, definition, scenarioPath) {
         (call.hook
           ? "A hook failure counts against this extension, and three in a row pause it — catch " +
             "the expected conditions, ctx.log them, and return nothing."
-          : "An action that throws leaves the user with an error and no result — catch it and " +
-            "ctx.notify what went wrong."),
+          : call.routine
+            ? "A routine that throws is an error in a panel the user is looking at — catch what " +
+              "can go wrong and show it, or let the caller show it."
+            : "An action that throws leaves the user with an error and no result — catch it and " +
+              "ctx.notify what went wrong."),
     ];
   }
   const elapsed = Date.now() - started;

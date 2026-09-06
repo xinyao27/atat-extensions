@@ -1,0 +1,59 @@
+{
+  "description": "Claude Code's memories come over with the index's titles, and its project notes stay behind",
+  "options": {
+    "memoryFolder": "{folder}"
+  },
+  "reads": {
+    "claude-code": {
+      "projects/atat/memory": {
+        "MEMORY.md": "- [对话用中文](reply-in-chinese.md) — 汇报用中文\n- [Deploy runbook](deploy.md) — how a deploy goes out\n- [Sprint status](sprint.md) — this week's progress\n",
+        "reply-in-chinese.md": {
+          "text": "---\nname: reply-in-chinese\ndescription: 用户要求对话回复用中文\nmetadata:\n  node_type: memory\n  type: feedback\n  modified: 2026-08-18T16:56:00.000Z\n---\n\n汇报和提问用中文，代码与文档的语言不变。\n",
+          "modifiedAt": "2026-09-01T10:00:00.000Z"
+        },
+        "deploy.md": {
+          "text": "---\nname: deploy-runbook\ndescription: How a deploy goes out\ntype: reference\n---\n\nDeploys ship the release tag, not the branch. [[Release process]] has the rest.\n",
+          "modifiedAt": "2026-07-01T09:30:00.000Z"
+        },
+        "sprint.md": {
+          "text": "---\nname: sprint-status\ndescription: Where the sprint is\nmetadata:\n  type: project\n---\n\nThe importer work is half done and the review is on Friday.\n",
+          "modifiedAt": "2026-09-05T09:30:00.000Z"
+        },
+        "response_to_alice.md": {
+          "text": "---\nname: response_to_alice\nmetadata:\n  type: message\n  to: dm_usr_agent_7\n---\n\nPicked up your note, running the build now.\n",
+          "modifiedAt": "2026-09-05T09:31:00.000Z"
+        },
+        "blank.md": {
+          "text": "---\nname: blank\n---\n",
+          "modifiedAt": "2026-09-05T09:32:00.000Z"
+        }
+      }
+    }
+  },
+  "call": {
+    "routine": "importFromAssistant",
+    "args": [
+      "claude-code"
+    ]
+  },
+  "expect": {
+    "result": {
+      "brought": 2,
+      "skipped": 0
+    },
+    "files": [
+      {
+        "path": "inbox/*.md",
+        "count": 2,
+        "contains": [
+          "title: \"对话用中文\"",
+          "source: claude-code",
+          "origin: \"{reads}/claude-code/projects/atat/memory/reply-in-chinese.md\"",
+          "date: 2026-08-1",
+          "title: Deploy runbook",
+          "Deploys ship the release tag, not the branch. Release process has the rest."
+        ]
+      }
+    ]
+  }
+}

@@ -18,7 +18,7 @@ export function encodeText(text: string): string {
   return encodeBytes(new TextEncoder().encode(String(text == null ? "" : text)));
 }
 
-export function encodeBytes(bytes: Uint8Array): string {
+function encodeBytes(bytes: Uint8Array): string {
   let output = "";
   for (let index = 0; index < bytes.length; index += 3) {
     const first = bytes[index] ?? 0;
@@ -271,10 +271,113 @@ export function imageReferences(markdown: string): string[] {
   return found;
 }
 
+/**
+ * Joins a relative reference onto a directory, resolving `.` and `..` rather than passing
+ * them on. A reference that climbs out of the folder resolves to nothing.
+ */
+export function resolveRelative(directory: string, reference: string): string | null {
+  const segments = joinPath(directory, reference).split("/");
+  const resolved: string[] = [];
+  for (const segment of segments) {
+    if (segment === ".") continue;
+    if (segment === "..") {
+      if (resolved.length <= 1) return null;
+      resolved.pop();
+      continue;
+    }
+    resolved.push(segment);
+  }
+  const path = resolved.join("/");
+  return path.charAt(0) === "/" ? path : null;
+}
+
 function decodeURIComponentSafely(text: string): string {
   try {
     return decodeURIComponent(text);
   } catch {
     return text;
   }
+}
+
+// --------------------------------------------------------------- imported text
+
+/**
+ * Text from somebody else's file, made safe to look at.
+ *
+ * Everything read out of another app's folder is data: it was written by an agent, out of a
+ * conversation, and it can carry characters that change what the rest of a line appears to
+ * say. Zero-width and bidirectional control characters go, line endings become `\n`, and
+ * nothing else about the words is touched.
+ */
+export function sanitizeText(text: string): string {
+  return String(text == null ? "" : text)
+    .replace(/\r\n?/g, "\n")
+    .replace(/^\uFEFF/, "")
+    .replace(/[\u200B-\u200F\u202A-\u202E\u2060-\u2064\u2066-\u2069\uFEFF]/g, "");
+}
+
+/** `[[Note|label]]` and `[[Note]]` become the words they show. */
+export function stripWikilinks(text: string): string {
+  return String(text == null ? "" : text).replace(
+    /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g,
+    (_match, target: string, label?: string) => (label ?? target).trim()
+  );
+}
+
+/** Three blank lines in a row are two more than anyone meant. */
+export function collapseBlankLines(text: string): string {
+  return String(text == null ? "" : text).replace(/\n{3,}/g, "\n\n");
+}
+
+/** A line that only points at another file — an index entry, not something to remember. */
+export function isIndexLine(line: string): boolean {
+  return /^\s*[-*+]\s*\[[^\]]+\]\([^)\s]+\.(?:md|markdown|txt)\)/i.test(line);
+}
+
+/** The first sentence or line, which is what a memory without a title of its own is called. */
+export function firstSentence(text: string, limit: number): string {
+  for (const line of String(text == null ? "" : text).split("\n")) {
+    const value = line.replace(/^#{1,6}\s+/, "").replace(/^\s*[-*+]\s+/, "").trim();
+    if (value.length === 0) continue;
+    const sentence = /^(.*?[。！？!?.])\s/.exec(value + " ");
+    return truncate((sentence?.[1] ?? value).trim(), limit);
+  }
+  return "";
+}
+
+/**
+ * A short, stable fingerprint of a piece of text.
+ *
+ * It answers one question — has this changed since it was brought over — so it is a hash in
+ * the plain sense and not a cryptographic one. Two passes with different seeds, because one
+ * 32-bit pass over a whole note collides more often than is comfortable.
+ */
+export function hashOf(text: string): string {
+  const value = String(text == null ? "" : text);
+  let first = 2166136261;
+  let second = 16777619;
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    first = Math.imul(first ^ code, 16777619) >>> 0;
+    second = Math.imul(second ^ (code + index), 2166136261) >>> 0;
+  }
+  return first.toString(16) + second.toString(16) + value.length.toString(16);
+}
+
+/** An ISO 8601 date, or `null` when the text is not one. */
+export function parseDate(value: string | undefined): Date | null {
+  if (typeof value !== "string" || value.trim().length === 0) return null;
+  const time = Date.parse(value.trim());
+  if (!Number.isFinite(time)) return null;
+  const date = new Date(time);
+  // A date in the far future is a parse that went wrong, and a note dated 2087 would sit at
+  // the top of the list forever.
+  return date.getFullYear() > 1990 && date.getFullYear() < 2200 ? date : null;
+}
+
+/** `2026-08-24` anywhere in a file name, which is how daily notes carry their date. */
+export function dateInName(name: string): Date | null {
+  const match = /(\d{4})-(\d{2})-(\d{2})/.exec(String(name == null ? "" : name));
+  if (!match) return null;
+  return parseDate(match[1] + "-" + match[2] + "-" + match[3] + "T12:00:00");
 }

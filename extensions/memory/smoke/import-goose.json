@@ -1,0 +1,43 @@
+{
+  "description": "Goose keeps text files, one memory per blank line, filed under the file's own name",
+  "options": {
+    "memoryFolder": "{folder}"
+  },
+  "reads": {
+    "goose": {
+      "memory": {
+        "development.txt": {
+          "text": "# tooling pnpm\nThe repo uses pnpm, never npm.\n\nTests run with vitest and the whole suite takes under a minute.\n",
+          "modifiedAt": "2026-04-10T12:00:00.000Z"
+        },
+        "personal.txt": {
+          "text": "Prefers to be told what changed before why it changed.\n",
+          "modifiedAt": "2026-04-11T12:00:00.000Z"
+        }
+      }
+    }
+  },
+  "call": {
+    "routine": "importFromAssistant",
+    "args": [
+      "goose"
+    ]
+  },
+  "expect": {
+    "result": {
+      "brought": 3,
+      "skipped": 0
+    },
+    "files": [
+      {
+        "path": "inbox/*.md",
+        "count": 3,
+        "contains": [
+          "title: \"Development · The repo uses pnpm, never npm.\"",
+          "source: goose",
+          "Tests run with vitest"
+        ]
+      }
+    ]
+  }
+}
