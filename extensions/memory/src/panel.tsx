@@ -315,21 +315,32 @@ export default function MemoryPanel(): ReactElement {
     rows.find((row) => row.path === path)?.title ?? stem(basename(path));
 
   /**
-   * One note or a selection of them: the same words go to the composer, one pill each.
+   * One note or a selection of them: one Composer interaction, one pill per note.
    *
-   * `sendToComposer` carries one note per call, so a selection is a sequence of them — the
-   * pills belong to one interaction, and the first note is what opens it.
+   * Every note is read before anything is sent, so a selection arrives as a single call with
+   * an item for each — the user gets one conversation about the lot rather than one per note.
+   * A note that has gone missing is left out instead of taking the rest of them down.
    */
   const ask = async (paths: string[]): Promise<void> => {
+    const items: { text: string; label: string }[] = [];
     for (const path of paths) {
-      try {
-        const payload = await files.read(path);
-        await sendToComposer(decodeText(payload.base64), words.memory + " · " + titleOfPath(path));
-      } catch (error) {
-        log("panel could not send a note: " + messageOf(error));
-        showToast({ title: words.askFailed(messageOf(error)) });
-        return;
+      const content = await read(path);
+      if (content === null) {
+        log("panel skipped a note it could not read: " + path);
+        continue;
       }
+      items.push({ text: content, label: words.memory + " · " + titleOfPath(path) });
+    }
+    if (items.length === 0) {
+      showToast({ title: words.askFailed(words.unreadableNote) });
+      return;
+    }
+    const [only] = items;
+    try {
+      await sendToComposer(items.length === 1 && only ? only : items);
+    } catch (error) {
+      log("panel could not send a note: " + messageOf(error));
+      showToast({ title: words.askFailed(messageOf(error)) });
     }
   };
 

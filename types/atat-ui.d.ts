@@ -342,6 +342,16 @@ declare module "@atat/api" {
         }
   ): Promise<boolean>;
 
-  /** What `<Action.SendToComposer>` calls. */
-  export function sendToComposer(content: string, label?: string): Promise<void>;
+  /** One pill in the Composer: the words, and what the pill is called. */
+  export interface ComposerItem {
+    text: string;
+    label?: string;
+  }
+
+  /**
+   * What `<Action.SendToComposer>` calls. One item opens a Composer interaction carrying one
+   * pill; an array opens one interaction carrying a pill for each, which is what a batch
+   * action sends.
+   */
+  export function sendToComposer(item: ComposerItem | ComposerItem[]): Promise<void>;
 }
