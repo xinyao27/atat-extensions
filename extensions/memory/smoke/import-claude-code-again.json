@@ -1,5 +1,5 @@
 {
-  "description": "Pressing again brings only what changed, and leaves a forgotten memory forgotten",
+  "description": "Pressing again brings only what changed, and brings back a memory the user forgot",
   "options": {
     "memoryFolder": "{folder}"
   },
@@ -38,10 +38,7 @@
           "file": "20260701-093000-seed.md",
           "assistant": "claude-code"
         }
-      },
-      "forgotten": [
-        "{reads}/claude-code/projects/atat/memory/reply-in-chinese.md"
-      ]
+      }
     }
   },
   "call": {
@@ -52,13 +49,13 @@
   },
   "expect": {
     "result": {
-      "brought": 1,
-      "skipped": 1
+      "brought": 2,
+      "skipped": 0
     },
     "files": [
       {
         "path": "inbox/*.md",
-        "count": 1
+        "count": 2
       },
       {
         "path": "inbox/20260701-093000-seed.md",

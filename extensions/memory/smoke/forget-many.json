@@ -1,5 +1,5 @@
 {
-  "description": "Forgetting several memories at once takes their screenshots too, and a brought-over one never comes back",
+  "description": "Forgetting several memories at once takes their screenshots too, and drops a brought-over one from the ledger so it can come back",
   "options": {
     "memoryFolder": "{folder}"
   },
@@ -17,8 +17,7 @@
           "file": "20260819-005600-wfha.md",
           "assistant": "claude-code"
         }
-      },
-      "forgotten": []
+      }
     }
   },
   "call": {
@@ -50,9 +49,7 @@
     ],
     "storage": {
       "brought": {
-        "forgotten": [
-          "/Users/someone/.claude/projects/-Users-someone-work-atat/memory/reply-in-chinese.md"
-        ]
+        "records": {}
       }
     }
   }

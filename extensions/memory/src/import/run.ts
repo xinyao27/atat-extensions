@@ -46,8 +46,6 @@ interface Record_ {
 
 interface Ledger {
   records: Record<string, Record_>;
-  /** Keys the user forgot in the panel. Bringing one of those back would be an argument. */
-  forgotten: string[];
 }
 
 /**
@@ -129,9 +127,9 @@ async function entriesFor(host: MemoryHost, identifier: string): Promise<Importe
  * Writes one assistant's memories into `inbox/`, and says what it did.
  *
  * A memory already brought over is left alone; one whose words have changed replaces the
- * note it produced last time; one the user has forgotten stays forgotten. So the count in
- * the toast is honest about the second press as well as the first: nothing new, nothing
- * written.
+ * note it produced last time; one the user forgot in the panel comes back — pressing the
+ * button is asking for it. So the count in the toast is honest about the second press as
+ * well as the first: nothing new, nothing written.
  */
 export async function importFromAssistant(
   host: MemoryHost,
@@ -144,7 +142,6 @@ export async function importFromAssistant(
   }
   const entries = await entriesFor(host, identifier);
   const ledger = await readLedger(host);
-  const forgotten = new Set(ledger.forgotten);
 
   let brought = 0;
   let skipped = 0;
@@ -155,7 +152,7 @@ export async function importFromAssistant(
     const key = keyOf(entry);
     done += 1;
     const known = ledger.records[key];
-    if (forgotten.has(key) || (known && known.hash === keyHash(entry))) {
+    if (known && known.hash === keyHash(entry)) {
       skipped += 1;
       onProgress?.(done, entries.length);
       continue;
@@ -225,11 +222,10 @@ async function readLedger(host: MemoryHost): Promise<Ledger> {
     const records = stored?.records;
     return {
       records: records && typeof records === "object" ? (records as Ledger["records"]) : {},
-      forgotten: Array.isArray(stored?.forgotten) ? stored.forgotten.map(String) : [],
     };
   } catch (error) {
     host.log("could not read what was brought over before: " + messageOf(error));
-    return { records: {}, forgotten: [] };
+    return { records: {} };
   }
 }
 
@@ -243,22 +239,20 @@ async function writeLedger(host: MemoryHost, ledger: Ledger): Promise<void> {
     if (record) trimmed[key] = record;
   }
   try {
-    await host.storage.set(STORAGE_KEY, {
-      records: trimmed,
-      forgotten: ledger.forgotten.slice(-MAXIMUM_RECORDS),
-    });
+    await host.storage.set(STORAGE_KEY, { records: trimmed });
   } catch (error) {
     host.log("could not remember what was brought over: " + messageOf(error));
   }
 }
 
 /**
- * Marks a brought-over memory as one not to bring again.
+ * Forgetting a brought-over memory takes it out of the ledger.
  *
- * Called when the user forgets a note that came from another assistant. Without it the next
- * press would hand back the thing they just deleted, and the button would stop being safe to
- * press. Both spellings of the key are retired — the one a whole file gets and the one a
- * single entry inside a file gets — because the note on disk cannot say which it was.
+ * Deleting the note is all the user asked for. The next press of the button brings it back,
+ * because pressing the button is asking for it; a hidden list of things that never return
+ * would make a delete look like a failure the next time. Both spellings of the key go — the
+ * one a whole file gets and the one a single entry inside a file gets — because the note on
+ * disk cannot say which it was.
  */
 export async function forgetImported(
   host: MemoryHost,
@@ -271,9 +265,12 @@ export async function forgetImported(
   const base = hash > 0 ? value.slice(0, hash) : value;
   const keys = [value, base + "#" + hashOf(String(noteBody ?? "").trim())];
   const ledger = await readLedger(host);
+  let changed = false;
   for (const key of keys) {
-    delete ledger.records[key];
-    if (ledger.forgotten.indexOf(key) < 0) ledger.forgotten.push(key);
+    if (key in ledger.records) {
+      delete ledger.records[key];
+      changed = true;
+    }
   }
-  await writeLedger(host, ledger);
+  if (changed) await writeLedger(host, ledger);
 }
