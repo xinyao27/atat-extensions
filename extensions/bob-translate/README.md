@@ -20,7 +20,7 @@ end atatSelection
 
 ## What it touches
 
-- **Bob has to be installed.** Without it the button is greyed out, and the plugin's page in
+- **Bob has to be installed.** Without it the button is greyed out, and the extension's page in
   Settings links to Bob's website.
 - **`automation`** is the one entitlement, for running that AppleScript. The first time it runs,
   macOS asks whether @@ may control Bob.
@@ -29,4 +29,4 @@ end atatSelection
 ## 中文
 
 选中文字，点「用 Bob 翻译」，Bob 弹出译文；剪贴板历史里的文字条目也有同一个按钮。
-没装 Bob 时按钮是灰的，插件页里有 Bob 官网链接。第一次运行 macOS 会问是否允许 @@ 控制 Bob。
+没装 Bob 时按钮是灰的，扩展页里有 Bob 官网链接。第一次运行 macOS 会问是否允许 @@ 控制 Bob。

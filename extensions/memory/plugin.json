@@ -8,7 +8,7 @@
     "en": "Keeps a folder of notes about what you do, and brings the right ones back when you ask.",
     "zh-hans": "把你做过的事记成一篇篇笔记，需要的时候再帮你找回来。"
   },
-  "version": "1.0.2",
+  "version": "1.0.3",
   "apiVersion": 1,
   "minimumAppVersion": "0.10.0",
   "author": "@@",

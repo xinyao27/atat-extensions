@@ -7,7 +7,7 @@
     "applescript"
   ],
   "releaseNotes": {
-    "en": "First release. Select text, click Translate with Bob, and Bob opens with the translation.",
-    "zh-hans": "首个版本。选中文字，点「用 Bob 翻译」，Bob 弹出译文。"
+    "en": "Wording: the settings pages are called Extensions now.",
+    "zh-hans": "文案：设置页现在叫「扩展」。"
   }
 }

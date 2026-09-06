@@ -1,17 +1,17 @@
 ---
-name: atat-plugin
-description: Write an AtAt plugin in this repository — pick its extension points, scaffold it, implement it, build, smoke-test, install and open a pull request. Use when asked to write or create an AtAt plugin, to add an action, hook, view or panel to an existing one, or to debug a plugin that fails or gets paused inside AtAt.
+name: atat-extension
+description: Write an AtAt extension in this repository — pick its extension points, scaffold it, implement it, build, smoke-test, install and open a pull request. Use when asked to write or create an AtAt extension, to add an action, hook, view or panel to an existing one, or to debug a extension that fails or gets paused inside AtAt.
 ---
 
-# Writing an AtAt plugin
+# Writing an AtAt extension
 
 AtAt collects context on a Mac — a text selection, a clipboard entry, a screen capture — turns
 each piece into a **pill**, assembles the pills into a prompt, and sends it to whichever coding
-agent the user already pays for. A plugin taps that pipeline at one of its stations: it can
+agent the user already pays for. A extension taps that pipeline at one of its stations: it can
 transform what is collected, put a button on a **surface**, contribute context to a request, or
 read the answer afterwards.
 
-The runtime is JavaScriptCore with zero capability by default. A plugin is one manifest plus one
+The runtime is JavaScriptCore with zero capability by default. A extension is one manifest plus one
 bundled JavaScript file that imports exactly one module, `@atat/api`. Everything it can do
 beyond computing arrives in the `HostContext` it is handed, and the powerful parts of that
 context are gated by **entitlements** the user confirms once, at install.
@@ -37,7 +37,7 @@ host already has, or a button the user presses?) and **what does the user get ba
 | "…and copy it" / "…just show it" | `after: "copy"` / `after: "show"` |
 | "…and let me keep talking to the agent about it" | `after: "composer"` |
 | "open <site> with whatever I selected" | action with a `url` template — no code at all |
-| "let me browse or clean up what it saved" | a `views` entry + a `panels` entry (one Settings tab per plugin) |
+| "let me browse or clean up what it saved" | a `views` entry + a `panels` entry (one Settings tab per extension) |
 | the user picks where files go | `folder` option, plus `defaultPath` so it works on install |
 | the user supplies an API key or token | `secret` option |
 | "use AI to …" | `ctx.agent.ask` and the `agent` entitlement |
@@ -49,12 +49,12 @@ host already has, or a button the user presses?) and **what does the user get ba
 | remember a few kilobytes between runs | `ctx.storage` — no entitlement |
 | keep the user's own documents | a `folder` option and `ctx.files` — no entitlement |
 
-Zero entitlements is the default and the strong position: `memory`, the largest plugin here,
+Zero entitlements is the default and the strong position: `memory`, the largest extension here,
 declares none. Reach for one only when the request cannot be served without it, and expect to
 justify it in review.
 
 One constraint reshapes designs at this step rather than later: `networkHosts` is a list of
-exact hostnames fixed in the manifest, with no wildcards, so a plugin can call hosts that are
+exact hostnames fixed in the manifest, with no wildcards, so a extension can call hosts that are
 the same for everyone (an API's own domain, `127.0.0.1` for a service the user runs) and cannot
 call a host each user configures for themselves — their own Jira site, their own server. When a
 request implies one of those, say so and pick the design that works without it.
@@ -69,7 +69,7 @@ words in the request that force each one.
 pnpm new <identifier>
 ```
 
-The identifier is the directory name *and* the plugin's id *and* the manifest's `identifier`
+The identifier is the directory name *and* the extension's id *and* the manifest's `identifier`
 field: lowercase letters, digits and hyphens. Name it after what the user gets — `clean-links`,
 `save-capture` — rather than after the mechanism.
 
@@ -93,8 +93,8 @@ schema. What it cannot tell you:
   简体中文像系统设置的中文：短句、直说，引用用「」，避免「该/此/进行/相关」的公文腔，
   不为对齐英文硬塞从句。Read each string aloud as if it sat on an Apple settings screen;
   if it would not be there, rewrite it.
-- **The plugin works the moment it is installed.** Every option either has a `defaultValue` or
-  leaves the plugin gracefully doing nothing when it is empty. `folder` and `secret` take no
+- **The extension works the moment it is installed.** Every option either has a `defaultValue` or
+  leaves the extension gracefully doing nothing when it is empty. `folder` and `secret` take no
   `defaultValue`: a folder declares `defaultPath: "icloud"` (or `"documents"`) and the host
   creates and grants that directory as part of the install confirmation, and a `secret` is the
   one thing a user must supply by hand.
@@ -109,23 +109,23 @@ schema. What it cannot tell you:
 - **`entitlements` and `networkHosts` are a pair.** Exact lowercase hostnames, each one the code
   actually calls. Anything aspirational is a review finding.
 - **Every selection-bar action names an `icon`.** The bar is icon-only; the tooltip shows the
-  action's title and the plugin's name, but the glyph is what the user reads first. Use a name
+  action's title and the extension's name, but the glyph is what the user reads first. Use a name
   from the bar's own set — `note`, `bookmark`, `translate`, `search`, `copy`, `download`,
   `pin`, `star`, `tag`, `summarize`, `explain`, `link`, `globe`, `mail`, `code`, `image`… — and
-  anything else falls back to the generic plugin glyph. `pnpm validate` refuses a
+  anything else falls back to the generic extension glyph. `pnpm validate` refuses a
   `selectionBar` action without one.
 - **`requiresApp` names the app an action drives.** `{ name, bundleIdentifiers, website? }` on the
   action. With the app missing, AtAt greys the button and says "<name> isn't installed", the
-  click says the same, and the plugin's page links to the website. Without it the click would
+  click says the same, and the extension's page links to the website. Without it the click would
   fail inside the script. `extensions/bob-translate/plugin.json` is the example.
-- **`minimumAppVersion` is the oldest AtAt the plugin runs on.** Bump it when you use a host API
+- **`minimumAppVersion` is the oldest AtAt the extension runs on.** Bump it when you use a host API
   that arrived in a newer build — `runAppleScript`, `favorites.add` and `agent.ask`'s `skill`
-  arrived in 0.10.0 — so an older AtAt lists the plugin with "needs @@ x.y or newer" instead of
+  arrived in 0.10.0 — so an older AtAt lists the extension with "needs @@ x.y or newer" instead of
   failing at the first call.
 - **Options are few or the design is wrong.** Each one answers a question a real user has ("I
   want it somewhere else", "I don't want to be recorded"). There is no grouping heading, because
   a list long enough to need grouping is the problem. `extensions/memory/plugin.json` ships two
-  options for a plugin with four extension points.
+  options for a extension with four extension points.
 
 **Done when** `pnpm validate <identifier>` passes and every declaration traces back to your
 step 1 list.
@@ -139,7 +139,7 @@ import type { PluginAction, PluginHooks } from "@atat/api";
 export default definePlugin({ hooks, actions, views });
 ```
 
-`@atat/api` is the only module a plugin imports; a view additionally gets JSX, with `react`
+`@atat/api` is the only module a extension imports; a view additionally gets JSX, with `react`
 supplied by the host. Every exact shape is in `types/atat-plugin.d.ts` (hook inputs and results,
 `ActionInput`, `HostContext`) and `types/atat-ui.d.ts` (view components, and the same host
 capabilities as named imports). Read them rather than guessing — they are short and they are the
@@ -149,10 +149,10 @@ Then the rules that bite:
 
 - **A hook swallows its own failures.** No match, an index still building, a file that moved, a
   grant that has gone: catch it, `ctx.log()` a metadata-only line, return nothing. Three
-  consecutive throws and AtAt pauses the plugin, so a temporary condition raised as an error
+  consecutive throws and AtAt pauses the extension, so a temporary condition raised as an error
   costs the user the whole feature. `extensions/memory/src/recall.ts` is the worked example.
-- **Budgets are shared with every other plugin on the same hook.** Per plugin: `clipboardIngest`
-  1s, `contextAssembled` 1.5s, `capture` 5s, `response` 10s. For every plugin on one hook
+- **Budgets are shared with every other extension on the same hook.** Per extension: `clipboardIngest`
+  1s, `contextAssembled` 1.5s, `capture` 5s, `response` 10s. For every extension on one hook
   together: 2s, 3s and 8s respectively, `response` being fire and forget with no total. When the
   budget runs out the pipeline moves on without you. Spend it on one search and a handful of
   reads, not on a crawl. Actions are user-initiated and have no timeout.
@@ -162,17 +162,17 @@ Then the rules that bite:
   call, 16,000 characters together, name matching `[a-z0-9-]{1,32}` — so it wraps content the
   pills already show rather than carrying content of its own.
 - **File paths stay inside a grant.** `filePaths` on an item, and anything `ctx.files` touches,
-  must be a path this call was handed, a path in the plugin's own data directory (a relative
+  must be a path this call was handed, a path in the extension's own data directory (a relative
   path), or a path inside a folder the user granted. `list`, `remove` and `search` accept only
   the last. Anything else is refused, and an out-of-grant item counts as a hook failure.
-- **`files.search` is how a plugin searches its folder.** The host maintains the index; a
+- **`files.search` is how a extension searches its folder.** The host maintains the index; a
   sandbox cannot build one and reading a folder to grep it will not fit in the budget.
 - **Every user-visible string is localized off `ctx.locale`** (`environment.locale` in a view).
   English and Simplified Chinese, each written natively. `extensions/memory/src/text.ts` is the
   pattern: one strings table, one lookup. Text addressed to the *agent* stays in English.
 - **Nothing survives a call.** Each hook and action call gets a fresh JavaScriptCore context, so
   module-level state is gone by the next one. `ctx.storage` holds settings and small indexes up
-  to the host's per-plugin storage budget — `set` rejects past it, and the host says so in its
+  to the host's per-extension storage budget — `set` rejects past it, and the host says so in its
   log line; a granted folder holds the user's data.
 - **`files.read` and `files.write` carry base64**, and `btoa` is Latin-1 only — it throws on
   Chinese text. Encode UTF-8 by hand; `extensions/memory/src/notes.ts` has both directions.
@@ -184,7 +184,7 @@ session that stops making progress, and names it in its log line — React state
 anything that must persist goes through `storage` or `files`. A panel is where a user *uses*
 the feature, not a second settings page: the manifest's options are already rendered natively
 above it. Credential and folder input
-never appear in a panel — a plugin cannot draw a trustworthy password field, so those stay in
+never appear in a panel — a extension cannot draw a trustworthy password field, so those stay in
 the host's own option panel.
 
 **Done when** `pnpm typecheck` is clean and every hook, action and view named in `plugin.json`
@@ -248,32 +248,32 @@ cp extensions/<identifier>/plugin.json \
    ~/Library/Application\ Support/AtAt/Extensions/<identifier>/
 ```
 
-AtAt watches that directory and picks the plugin up without a restart: copy the files again after
+AtAt watches that directory and picks the extension up without a restart: copy the files again after
 a rebuild and the change is live. That is the whole development loop.
 
 Or skip the copy: **Settings → Extensions → Install…** takes the extension directory itself, and so
 does dropping it onto that page.
 
-What the user sees next, in AtAt: **Settings → Extensions** lists the plugin under **Installed** —
-name, the one-line description, an Enabled switch, Open — and the plugin gets a page of its own
+What the user sees next, in AtAt: **Settings → Extensions** lists the extension under **Installed** —
+name, the one-line description, an Enabled switch, Open — and the extension gets a page of its own
 under Extensions in the sidebar, holding the manifest's options, any app it needs, Uninstall, and
-its panel as the first segment when it declares one. The moment AtAt sees a plugin that carries
+its panel as the first segment when it declares one. The moment AtAt sees a extension that carries
 code or an entitlement it raises the confirmation dialog, listing in plain language the hooks it
 will run, the surfaces it appears on, the entitlements it wants, and any folder it will create.
-Accepting the dialog is the grant — and a plugin that later asks for more is asked again. If a
-folder option has no `defaultPath`, the user chooses the directory on the plugin's page before
+Accepting the dialog is the grant — and a extension that later asks for more is asked again. If a
+folder option has no `defaultPath`, the user chooses the directory on the extension's page before
 anything can be written.
 
 Watch what it does — and write `/usr/bin/log`, because plain `log` is a zsh builtin that exits
 silently with no output:
 
 ```sh
-/usr/bin/log stream --predicate 'subsystem == "com.atat.app" AND category BEGINSWITH "plugin"' --info
+/usr/bin/log stream --predicate 'subsystem == "com.atat.app" AND category BEGINSWITH "extension"' --info
 ```
 
 Then trigger the scenario by hand: copy the link, select the text, take the capture.
 
-When a plugin misbehaves, the shape of the symptom names the cause:
+When a extension misbehaves, the shape of the symptom names the cause:
 
 - **The row says it was paused** — three consecutive hook failures. The log stream names the hook
   and the error; encode that input as a smoke scenario and it will throw there too.
@@ -281,17 +281,17 @@ When a plugin misbehaves, the shape of the symptom names the cause:
   a different surface than the one being looked at.
 - **An item never became a pill** — it carried both `text` and `filePaths`, or neither, or a path
   outside every grant.
-- **Nothing is logged at all** — the plugin is disabled, the manifest never declared that hook,
+- **Nothing is logged at all** — the extension is disabled, the manifest never declared that hook,
   or `log` resolved to the zsh builtin.
 
-**Done when** the plugin's own log line for the request's scenario appears in the stream, and
+**Done when** the extension's own log line for the request's scenario appears in the stream, and
 what the user sees in AtAt is what the request asked for.
 
 ## Step 8 — Store metadata, README, and the review checklist
 
 `store.json` carries the Store listing: one `category` from the set `scripts/validate.mjs`
 allows, 1–12 lowercase keywords, and `releaseNotes` in both languages describing *this* version.
-`README.md` says what the plugin does and what it touches — a plugin is a manifest, a bundle and
+`README.md` says what the extension does and what it touches — a extension is a manifest, a bundle and
 its documentation, and a package never asks a user to run a script.
 
 Before opening the pull request, check `REVIEW_POLICY.md` against the change:
@@ -308,7 +308,7 @@ Before opening the pull request, check `REVIEW_POLICY.md` against the change:
 
 **Done when** every box is checked and `pnpm verify` is clean on the branch.
 
-## Reference: which plugin demonstrates what
+## Reference: which extension demonstrates what
 
 | To see | Read |
 |---|---|
@@ -329,13 +329,13 @@ Before opening the pull request, check `REVIEW_POLICY.md` against the change:
   install directory. Renaming means all three, and `pnpm validate` fails until they agree.
 - `after: "paste"` degrades to a copy plus a toast when the selection snapshot has expired.
   `ctx.paste` works only inside an action, only with a live selection.
-- Several plugins on one hook run in install order, and a transforming hook's output is the next
-  plugin's input. Return `{ action: "ignore" }` from `clipboardIngest` and the entry is dropped
+- Several extensions on one hook run in install order, and a transforming hook's output is the next
+  extension's input. Return `{ action: "ignore" }` from `clipboardIngest` and the entry is dropped
   and the rest of the chain skipped.
-- `ctx.clipboard.copy` is registered with the host first, so a plugin's own write never
+- `ctx.clipboard.copy` is registered with the host first, so a extension's own write never
   re-triggers its own `clipboardIngest`.
 - Sensitive clipboard types and secure-input selections are filtered by AtAt before any hook
-  runs. A plugin never sees them and needs no guard of its own.
+  runs. A extension never sees them and needs no guard of its own.
 - `capture` transforms by writing the new file to `input.outputPath` and returning
   `{ action: "replace" }`; the original is left alone otherwise.
 - `ctx.ocr` accepts only a path this call was handed.
@@ -343,15 +343,15 @@ Before opening the pull request, check `REVIEW_POLICY.md` against the change:
   code calls — and `pnpm smoke` enforces it. The app itself enforces `https` everywhere, plus
   plain `http` to `127.0.0.1` and `localhost` for a service the user runs themselves.
 - `ctx.runAppleScript(source, input?)` is the Text Selection AppleScript action reached from a
-  plugin: with `input` the host calls the script's `on atatSelection(selectedText)` handler, so
+  extension: with `input` the host calls the script's `on atatSelection(selectedText)` handler, so
   the same script works in both places; without it the script runs top to bottom. Source is
   capped at 64 KB, the result comes back as text, and a script that never returns cannot be
   cancelled — keep it short and let the target app do the waiting.
 - `ctx.favorites.add(text)` needs no entitlement; the Favorite is attributed to AtAt, not to
   the app the text came from.
 - `ctx.agent.ask` borrows the user's own configured agent — hosted or CLI, no key of the
-  plugin's own — carries none of the request's context items, and is limited to 10 calls a
-  minute per plugin. `{ skill: "name" }` makes the agent follow one of the user's installed
+  extension's own — carries none of the request's context items, and is limited to 10 calls a
+  minute per extension. `{ skill: "name" }` makes the agent follow one of the user's installed
   skills, expanded exactly as the selection bar's skill action expands it; a skill that is not
   installed rejects by name.
 - The runtime is ES2023 plus `setTimeout`, `sleep`, `URL`, `URLSearchParams`, `TextEncoder`,
@@ -359,7 +359,7 @@ Before opening the pull request, check `REVIEW_POLICY.md` against the change:
   `require`, `XMLHttpRequest` or DOM; `tsconfig.json` sets `lib: ["ES2022"]` so the type checker
   refuses to promise otherwise.
 - `pnpm validate` refuses `eval`, `new Function`, dynamic `import()` and `WebAssembly` anywhere
-  in a plugin's source. A plugin computes over data it was given.
+  in a extension's source. A extension computes over data it was given.
 - Calls that need an entitlement the manifest never declared reject at call time with a message
   naming it — they do not fail at import, so a missing entitlement looks like a runtime error in
-  one code path rather than a broken plugin.
+  one code path rather than a broken extension.

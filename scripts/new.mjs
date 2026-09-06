@@ -2,8 +2,8 @@
 //
 // The scaffold is the smallest thing `pnpm validate` already accepts — a manifest with no
 // hooks, no actions and no entitlements, and an entry point that exports an empty definition.
-// Everything a plugin does is added on purpose from there, which is the point: zero
-// entitlements is where every plugin starts, and the scaffold should not hand out capability
+// Everything a extension does is added on purpose from there, which is the point: zero
+// entitlements is where every extension starts, and the scaffold should not hand out capability
 // an author did not ask for.
 
 import { access, mkdir, writeFile } from "node:fs/promises";
@@ -43,10 +43,10 @@ if (!identifier || identifier === "--help") {
       "usage: pnpm new <identifier>",
       "",
       "Creates extensions/<identifier>/ with a valid manifest, Store metadata, an entry",
-      "point and a README. The identifier is the directory name and the plugin's id:",
+      "point and a README. The identifier is the directory name and the extension's id:",
       "lowercase letters, digits and hyphens, 1–64 characters.",
       "",
-      "Then follow skills/atat-plugin/SKILL.md from step 3.",
+      "Then follow skills/atat-extension/SKILL.md from step 3.",
       "",
     ].join("\n")
   );
@@ -71,7 +71,7 @@ const manifest = {
   identifier,
   name: { en: title, "zh-hans": title },
   description: {
-    en: "One sentence about what this plugin does, in the words a user would use.",
+    en: "One sentence about what this extension does, in the words a user would use.",
     "zh-hans": "一句话说明这个插件做什么，用用户自己的说法。",
   },
   version: "1.0.0",
@@ -100,7 +100,7 @@ export default definePlugin({ hooks, actions });
 
 const readme = `# ${title}
 
-One sentence about what this plugin does, in the words a user would use.
+One sentence about what this extension does, in the words a user would use.
 
 ## What it does
 
@@ -109,7 +109,7 @@ What the user sees: each action and where it appears, each hook and when it runs
 ## What it touches
 
 The folder it reads or writes, the hosts it calls, and why each declared entitlement is
-needed. A plugin with no entitlements says so — that is the interesting fact about it.
+needed. A extension with no entitlements says so — that is the interesting fact about it.
 `;
 
 await mkdir(join(directory, "src"), { recursive: true });
@@ -132,7 +132,7 @@ process.stdout.write(
     `  3. pnpm validate ${identifier} && pnpm typecheck && pnpm build ${identifier}`,
     `  4. extensions/${identifier}/smoke/<name>.json, then pnpm smoke ${identifier}`,
     "",
-    "skills/atat-plugin/SKILL.md carries the rules for each of those steps.",
+    "skills/atat-extension/SKILL.md carries the rules for each of those steps.",
     "",
   ].join("\n")
 );

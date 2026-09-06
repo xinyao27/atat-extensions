@@ -54,7 +54,7 @@ try {
     const source = join(EXTENSIONS, identifier);
     const manifest = JSON.parse(await readFile(join(source, "plugin.json"), "utf8"));
     const store = JSON.parse(await readFile(join(source, "store.json"), "utf8"));
-    const packageName = `${identifier}.atatplugin`;
+    const packageName = identifier;
     const stagingRoot = join(DIST, "staging");
     const packageDirectory = join(stagingRoot, packageName);
     await mkdir(packageDirectory, { recursive: true });

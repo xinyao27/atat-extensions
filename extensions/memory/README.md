@@ -13,7 +13,7 @@ attaches up to five notes that fit. Each one shows up as a pill you can delete b
 send. If there is nothing relevant, nothing is attached and your question goes out as usual.
 
 **Records what you do.** After each answer, Memory writes one note: what you asked, what
-came back, and what was attached. One switch in the plugin's settings turns this off.
+came back, and what was attached. One switch in the extension's settings turns this off.
 
 **Saves what you point at.** A "Save to memory" button appears when you select text, on a
 clipboard entry, and on a screenshot in Quick Access. Text becomes a note. A screenshot is

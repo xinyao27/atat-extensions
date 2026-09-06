@@ -8,7 +8,7 @@
     "search"
   ],
   "releaseNotes": {
-    "en": "The folder hint now points at Settings → Extensions → Memory.",
-    "zh-hans": "目录提示改为指向「设置 → 扩展 → 记忆」。"
+    "en": "Wording: the settings pages are called Extensions now.",
+    "zh-hans": "文案：设置页现在叫「扩展」。"
   }
 }

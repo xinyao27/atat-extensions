@@ -8,7 +8,7 @@
     "en": "Sends the selected text to Bob for translation.",
     "zh-hans": "把选中的文字交给 Bob 翻译。"
   },
-  "version": "1.0.0",
+  "version": "1.0.1",
   "apiVersion": 1,
   "minimumAppVersion": "0.10.0",
   "author": "@@",
