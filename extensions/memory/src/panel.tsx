@@ -16,6 +16,7 @@ import {
   ActionPanel,
   Detail,
   List,
+  confirmAlert,
   environment,
   files,
   log,
@@ -33,11 +34,11 @@ import {
   readConfiguration,
   type Configuration,
 } from "./library.js";
+import { forgetNotes } from "./forget.js";
 import { assistantName, isAssistantSource } from "./import/catalog.js";
 import type { MemoryHost } from "./import/host.js";
 import {
   detectAssistants,
-  forgetImported,
   importFromAssistant,
   type AssistantMemories,
 } from "./import/run.js";
@@ -46,7 +47,6 @@ import {
   collapseBlankLines,
   decodeText,
   flatten,
-  imageReferences,
   joinPath,
   parseNote,
   resolveRelative,
@@ -311,27 +311,57 @@ export default function MemoryPanel(): ReactElement {
   const data = state.data;
   const rows = data?.rows ?? [];
 
-  const forget = (row: Row) => {
-    forgetNote(configuration, row)
-      .then(() => {
-        showToast({ title: words.forgotten, message: row.title });
-        state.revalidate();
-      })
-      .catch((error: unknown) => {
-        showToast({ title: words.forgetFailed(messageOf(error)) });
-      });
-  };
+  const titleOfPath = (path: string): string =>
+    rows.find((row) => row.path === path)?.title ?? stem(basename(path));
 
-  const ask = (row: Row) => {
-    files
-      .read(row.path)
-      .then((payload: { base64: string }) =>
-        sendToComposer(decodeText(payload.base64), words.memory + " · " + row.title)
-      )
-      .catch((error: unknown) => {
+  /**
+   * One note or a selection of them: the same words go to the composer, one pill each.
+   *
+   * `sendToComposer` carries one note per call, so a selection is a sequence of them — the
+   * pills belong to one interaction, and the first note is what opens it.
+   */
+  const ask = async (paths: string[]): Promise<void> => {
+    for (const path of paths) {
+      try {
+        const payload = await files.read(path);
+        await sendToComposer(decodeText(payload.base64), words.memory + " · " + titleOfPath(path));
+      } catch (error) {
         log("panel could not send a note: " + messageOf(error));
         showToast({ title: words.askFailed(messageOf(error)) });
-      });
+        return;
+      }
+    }
+  };
+
+  const forget = async (paths: string[]): Promise<void> => {
+    try {
+      const forgotten = await forgetNotes(host, paths);
+      showToast(
+        paths.length === 1
+          ? { title: words.forgotten, message: titleOfPath(paths[0] ?? "") }
+          : { title: words.forgotMany(forgotten.count, forgotten.trashed) }
+      );
+    } catch (error) {
+      showToast({ title: words.forgetFailed(messageOf(error)) });
+    }
+    state.revalidate();
+  };
+
+  /**
+   * The batch is the row's own two actions, asked once about several things.
+   *
+   * The host confirms a destructive row action by itself; a batch it cannot, because only the
+   * extension knows how many were picked. So this one asks, in the same words, with the count.
+   */
+  const forgetSelected = async (ids: string[]): Promise<void> => {
+    if (ids.length === 0) return;
+    const isConfirmed = await confirmAlert({
+      title: words.forgetManyTitle(ids.length),
+      message: words.forgetManyMessage,
+      primaryAction: { title: words.forget, style: Action.Style.Destructive },
+    });
+    if (!isConfirmed) return;
+    await forget(ids);
   };
 
   return (
@@ -340,10 +370,20 @@ export default function MemoryPanel(): ReactElement {
       onSearchTextChange={setQuery}
       isLoading={state.isLoading}
       emptyTitle={emptyTitle(configuration, query, data, state.error, words)}
+      selection={
+        <ActionPanel>
+          <Action title={words.ask} onAction={(ids) => ask(ids ?? [])} />
+          <Action
+            title={words.forget}
+            style={Action.Style.Destructive}
+            onAction={(ids) => forgetSelected(ids ?? [])}
+          />
+        </ActionPanel>
+      }
       actions={
         <ActionPanel>
           <Action
-            title={words.bringOver}
+            title={words.otherAssistants}
             onAction={() =>
               navigation.push(
                 <AssistantsPage words={words} onFinished={() => state.revalidate()} />
@@ -357,6 +397,7 @@ export default function MemoryPanel(): ReactElement {
         {rows.map((row) => (
           <List.Item
             key={row.path}
+            id={row.path}
             icon={row.icon}
             title={row.title}
             subtitle={row.from.length > 0 ? row.from + " · " + row.excerpt : row.excerpt}
@@ -368,7 +409,7 @@ export default function MemoryPanel(): ReactElement {
                   title={words.open}
                   target={<NoteDetail path={row.path} title={row.title} words={words} />}
                 />
-                <Action title={words.ask} onAction={() => ask(row)} />
+                <Action title={words.ask} onAction={() => ask([row.path])} />
                 {/*
                   A destructive action is put through `confirmAlert` by the runtime before the
                   handler runs, so the confirmation is AtAt's own dialog and cannot be skipped.
@@ -378,7 +419,7 @@ export default function MemoryPanel(): ReactElement {
                   style={Action.Style.Destructive}
                   confirmTitle={words.forgetTitle}
                   confirmMessage={words.forgetMessage(row.title)}
-                  onAction={() => forget(row)}
+                  onAction={() => forget([row.path])}
                 />
               </ActionPanel>
             }
@@ -387,47 +428,6 @@ export default function MemoryPanel(): ReactElement {
       </List.Section>
     </List>
   );
-}
-
-// ------------------------------------------------------------------------ forgetting
-
-/**
- * Forgetting is the note, its picture, and the promise not to bring it back.
- *
- * A memory that came from another assistant is on that assistant's disk as well as ours, so
- * deleting the note is only half of it: without the second half the next press of “bring
- * these over” would hand back the thing the user just threw away.
- */
-async function forgetNote(configuration: Configuration, row: Row): Promise<void> {
-  const content = await read(row.path);
-  const note = content === null ? { fields: {}, body: "" } : parseNote(content);
-  const directory = row.path.slice(0, row.path.lastIndexOf("/"));
-
-  const assets: string[] = [];
-  const declared = note.fields["asset"];
-  if (declared) {
-    const path = resolveRelative(configuration.memoryDirectory, declared);
-    if (path) assets.push(path);
-  }
-  for (const reference of imageReferences(note.body)) {
-    const path = resolveRelative(directory, reference);
-    if (path && assets.indexOf(path) < 0) assets.push(path);
-  }
-
-  await files.remove(row.path);
-  for (const asset of assets) {
-    if (!isGranted(configuration, asset)) continue;
-    try {
-      await files.remove(asset);
-    } catch (error) {
-      // The note is gone, which is what the user asked for. An image that was already
-      // deleted, or that another note also points at, is not worth an error message.
-      log("could not delete an image beside a note: " + messageOf(error));
-    }
-  }
-  if (row.origin.length > 0) {
-    await forgetImported(host, row.origin, note.body);
-  }
 }
 
 // --------------------------------------------------------------------------- copy

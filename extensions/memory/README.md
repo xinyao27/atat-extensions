@@ -27,6 +27,9 @@ that; see below.
 
 **Gives you a place to look.** The Memory tab in Settings lists every memory — where it came
 from, its title, how it starts, and when. Open one to read it, ask @@ about it, or forget it.
+Pick several — hover a row and click the circle, or ⌘-click, or ⌘A — and the same two actions
+apply to all of them at once. Forgetting moves the files to the Trash, so a mistake is
+recoverable.
 
 ## Where your notes live
 
@@ -58,8 +61,8 @@ you to your other Macs.
 
 ## Bringing memories from another assistant
 
-In the Memory tab, **Bring memories from another assistant** lists the ones that have
-memories on this Mac and how many. Pick one and it reads them, rewrites each as a note in
+In the Memory tab, **Other assistants** lists the ones that have memories on this Mac and
+how many. Pick one and it reads them, rewrites each as a note in
 `inbox/`, and dates it the day the memory was made — so it lands in your list where it
 belongs rather than at the top. Press it again whenever you like: it brings only what is new,
 replaces anything that changed, and never brings back something you forgot.

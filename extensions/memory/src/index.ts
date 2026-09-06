@@ -12,7 +12,8 @@
 
 import { defineExtension } from "@atat/api";
 import type { ExtensionAction, ExtensionHooks } from "@atat/api";
-import { detectAssistants, forgetImported, importFromAssistant } from "./import/run.js";
+import { detectAssistants, importFromAssistant } from "./import/run.js";
+import { forgetNotes } from "./forget.js";
 import MemoryPanel from "./panel.js";
 import { recall } from "./recall.js";
 import { saveToMemory } from "./save.js";
@@ -29,5 +30,5 @@ export default defineExtension({
   hooks,
   actions,
   views: { memory: MemoryPanel },
-  routines: { detectAssistants, importFromAssistant, forgetImported },
+  routines: { detectAssistants, importFromAssistant, forgetNotes },
 });

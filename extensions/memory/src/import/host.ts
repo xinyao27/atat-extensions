@@ -23,6 +23,8 @@ export interface MemoryHost {
     read(path: string): Promise<{ base64: string }>;
     write(path: string, data: { base64: string }): Promise<void>;
     list(dirPath: string): Promise<DirectoryEntry[]>;
+    /** Moves the file to the Trash; `trashed` is false when it had to be deleted outright. */
+    remove(path: string): Promise<{ trashed: boolean }>;
     /** The directories one `reads` declaration found on this Mac. Empty means “not here”. */
     roots(identifier: string): Promise<string[]>;
   };

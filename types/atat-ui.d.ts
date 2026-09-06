@@ -68,6 +68,16 @@ declare module "@atat/api" {
      * into a ••• menu. A row's own actions stay on the row.
      */
     actions?: ReactNode;
+    /**
+     * The actions a selection of rows can be put through — and the thing that makes a list
+     * selectable at all. The host owns the whole selection, and there is no selection mode to
+     * enter: a circle appears in front of the row under the pointer, ⌘-click and ⇧-click and
+     * ⌘A do what they do everywhere else, and once anything is selected a small floating bar
+     * at the foot of the list carries these actions with the count. Each `<Action>` in here is
+     * handed the `id` of every selected row, and the host clears the selection and reloads the
+     * list once the action's promise settles.
+     */
+    selection?: ReactNode;
   }
 
   export interface ListSectionProps {
@@ -81,6 +91,8 @@ declare module "@atat/api" {
   }
 
   export interface ListItemProps {
+    /** What a selection reports this row as. Defaults to the row's `key`. */
+    id?: string;
     title: string;
     subtitle?: string;
     accessories?: ListAccessory[];
@@ -173,7 +185,12 @@ declare module "@atat/api" {
     /** Overrides the confirmation's title. Defaults to the action's own title. */
     confirmTitle?: string;
     confirmMessage?: string;
-    onAction?: () => void;
+    /**
+     * A batch action inside `<List selection>` is handed the selected rows' ids; anywhere
+     * else it is handed nothing. Return a promise and the host waits for it before leaving
+     * selection mode.
+     */
+    onAction?: (ids?: string[]) => void | Promise<void>;
   }
 
   export const Action: {
@@ -247,7 +264,12 @@ declare module "@atat/api" {
     list(
       dirPath: string
     ): Promise<{ name: string; isDirectory: boolean; modifiedAt?: string }[]>;
-    remove(path: string): Promise<void>;
+    /**
+     * Moves the file to the Trash, which is the only undo a delete has. `trashed` is false
+     * when the file could not go there and was deleted outright — say so before promising a
+     * user they can get it back.
+     */
+    remove(path: string): Promise<{ trashed: boolean }>;
     /**
      * The directories one `reads` declaration found on this Mac, wildcards expanded and
      * anything absent left out. An empty array is how a extension learns the other app is not

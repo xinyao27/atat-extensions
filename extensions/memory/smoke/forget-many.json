@@ -1,0 +1,59 @@
+{
+  "description": "Forgetting several memories at once takes their screenshots too, and a brought-over one never comes back",
+  "options": {
+    "memoryFolder": "{folder}"
+  },
+  "files": {
+    "inbox/20260824-011500-a3f9.md": "---\ntitle: Why the deploy failed on Friday\ndate: 2026-08-24T01:15:00+08:00\nsource: capture\nasset: assets/20260824-011500-a3f9.png\n---\n\n![shot](../assets/20260824-011500-a3f9.png)\n\nThe release job ran against the old worker binding.\n",
+    "inbox/20260819-005600-wfha.md": "---\ntitle: \"对话用中文\"\ndate: 2026-08-19T00:56:00+08:00\nsource: claude-code\norigin: \"/Users/someone/.claude/projects/-Users-someone-work-atat/memory/reply-in-chinese.md\"\n---\n汇报和提问用中文，代码与文档的语言不变。\n",
+    "inbox/20260901-120000-keep.md": "---\ntitle: Kept\ndate: 2026-09-01T12:00:00+08:00\nsource: selection\n---\n\nThis one was not selected, so it stays.\n",
+    "assets/20260824-011500-a3f9.png": "not really a png"
+  },
+  "storage": {
+    "brought": {
+      "records": {
+        "/Users/someone/.claude/projects/-Users-someone-work-atat/memory/reply-in-chinese.md": {
+          "hash": "whatever",
+          "file": "20260819-005600-wfha.md",
+          "assistant": "claude-code"
+        }
+      },
+      "forgotten": []
+    }
+  },
+  "call": {
+    "routine": "forgetNotes",
+    "args": [
+      [
+        "{folder}/inbox/20260824-011500-a3f9.md",
+        "{folder}/inbox/20260819-005600-wfha.md"
+      ]
+    ]
+  },
+  "expect": {
+    "result": {
+      "count": 2,
+      "trashed": false
+    },
+    "files": [
+      {
+        "path": "inbox/*.md",
+        "count": 1,
+        "contains": [
+          "title: Kept"
+        ]
+      },
+      {
+        "path": "assets/*.png",
+        "count": 0
+      }
+    ],
+    "storage": {
+      "brought": {
+        "forgotten": [
+          "/Users/someone/.claude/projects/-Users-someone-work-atat/memory/reply-in-chinese.md"
+        ]
+      }
+    }
+  }
+}

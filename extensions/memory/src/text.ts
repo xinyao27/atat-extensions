@@ -35,11 +35,13 @@ export interface Strings {
   forgetMessage: (title: string) => string;
   forgotten: string;
   forgetFailed: (reason: string) => string;
+  forgetManyTitle: (count: number) => string;
+  forgetManyMessage: string;
+  forgotMany: (count: number, trashed: boolean) => string;
   today: string;
   yesterday: string;
   daysAgo: (days: number) => string;
-  /** The page-level action, and the same sentence in the empty state. */
-  bringOver: string;
+  /** The page-level action, named after the page it opens. */
   otherAssistants: string;
   looking: string;
   assistantSubtitle: (count: number, latest: string) => string;
@@ -77,10 +79,15 @@ const EN: Strings = {
   forgetMessage: (title) => "“" + title + "” will be deleted. You can’t undo this.",
   forgotten: "Forgotten",
   forgetFailed: (reason) => "Couldn’t delete that note: " + reason,
+  forgetManyTitle: (count) => "Forget these " + String(count) + " memories?",
+  forgetManyMessage: "Their screenshots go too. You can get them back from the Trash.",
+  forgotMany: (count, trashed) =>
+    trashed
+      ? "Forgot " + String(count) + ". They’re in the Trash."
+      : "Forgot " + String(count) + ".",
   today: "Today",
   yesterday: "Yesterday",
   daysAgo: (days) => String(days) + " days ago",
-  bringOver: "Bring memories from another assistant",
   otherAssistants: "Other assistants",
   looking: "Looking…",
   assistantSubtitle: (count, latest) => {
@@ -125,10 +132,13 @@ const ZH: Strings = {
   forgetMessage: (title) => "「" + title + "」会被删掉，撤销不了。",
   forgotten: "已忘掉",
   forgetFailed: (reason) => "没能删掉这篇笔记：" + reason,
+  forgetManyTitle: (count) => "忘掉这 " + String(count) + " 条记忆？",
+  forgetManyMessage: "截图也会一起删，可以在废纸篓找回。",
+  forgotMany: (count, trashed) =>
+    trashed ? "忘掉了 " + String(count) + " 条，可以在废纸篓找回。" : "忘掉了 " + String(count) + " 条。",
   today: "今天",
   yesterday: "昨天",
   daysAgo: (days) => String(days) + " 天前",
-  bringOver: "从其他助手带过来",
   otherAssistants: "其他助手",
   looking: "正在查找…",
   assistantSubtitle: (count, latest) =>

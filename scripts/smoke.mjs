@@ -386,6 +386,10 @@ function makeContext(manifest, scenario, roots, state) {
         const absolute = resolvePath(path, "remove", grantedOnly);
         await rm(absolute, { force: true });
         state.removed.push(absolute);
+        // The real host moves the file to the Trash and says so. A temporary directory has
+        // no Trash, so this answers the way the host answers when a file cannot go there —
+        // which is the branch a extension is most likely to get wrong.
+        return { trashed: false };
       },
       async search(dirPath, query, opts) {
         const absolute = resolvePath(dirPath, "search", grantedOnly);
@@ -509,12 +513,16 @@ async function expectationErrors(expected, result, state, roots) {
   for (const rule of expected.files ?? []) {
     const pattern = globToRegExp(String(rule.path));
     const matches = written.filter((path) => pattern.test(path));
-    if (rule.count !== undefined && matches.length !== rule.count) {
-      errors.push(
-        `files ${rule.path}: expected ${rule.count}, found ${matches.length}` +
-          (written.length > 0 ? ` (folder holds ${written.join(", ")})` : " (folder is empty)")
-      );
-      continue;
+    if (rule.count !== undefined) {
+      if (matches.length !== rule.count) {
+        errors.push(
+          `files ${rule.path}: expected ${rule.count}, found ${matches.length}` +
+            (written.length > 0 ? ` (folder holds ${written.join(", ")})` : " (folder is empty)")
+        );
+      }
+      // A declared count of zero is a scenario saying nothing was written there, which is
+      // not the same as a rule that matched nothing by accident.
+      if (rule.count === 0 || matches.length !== rule.count) continue;
     }
     if (matches.length === 0) {
       errors.push(`files ${rule.path}: nothing matched` + (written.length > 0 ? ` (folder holds ${written.join(", ")})` : " (folder is empty)"));

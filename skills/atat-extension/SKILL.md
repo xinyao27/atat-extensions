@@ -197,6 +197,15 @@ Then the rules that bite:
 - **`files.read` and `files.write` carry base64**, and `btoa` is Latin-1 only — it throws on
   Chinese text. Encode UTF-8 by hand; `extensions/memory/src/notes.ts` has both directions.
 
+`<List selection>` is what makes a list multi-selectable: each `<Action>` inside it is a batch
+action, handed the `id` of every selected row (`<List.Item id>`, defaulting to the row's key).
+The host owns the whole selection — the circle that appears in front of a hovered row,
+⌘-click, ⇧-click, ⌘A, and the floating bar at the foot of the list that carries these actions
+with the count — and it clears the selection and reloads the list once the action's promise
+settles. A destructive batch action still raises its own `confirmAlert`, because only the
+extension knows how many things were picked; `files.remove` moves a file to the Trash, and
+its `trashed` is what says whether promising the user it can be got back is true.
+
 `<List actions>` is the page's own action rather than a row's: the host draws it at the
 trailing end of the title bar, as a titled button when there is one and a ••• menu when there
 are several. Put what acts on the whole list there — memory's "Bring memories from another

@@ -93,7 +93,12 @@ declare module "@atat/api" {
       read(path: string): Promise<{ base64: string }>;
       write(path: string, data: { base64: string }): Promise<void>;
       list(dirPath: string): Promise<DirectoryEntry[]>;
-      remove(path: string): Promise<void>;
+      /**
+       * Moves the file to the Trash, which is the only undo a delete has. `trashed` is false
+       * when the file could not go there and was deleted outright — say so before promising
+       * a user they can get it back.
+       */
+      remove(path: string): Promise<{ trashed: boolean }>;
       /**
        * The host's own index over a granted directory: markdown and text, recursive, lexical
        * and semantic together. It is the way a extension searches its files — a JavaScript
