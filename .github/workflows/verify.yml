@@ -1,0 +1,26 @@
+name: Verify
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  verify:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm verify
+      - name: Smoke every extension
+        run: |
+          for directory in extensions/*/; do
+            identifier="$(basename "$directory")"
+            pnpm build "$identifier"
+            if [ -d "$directory/smoke" ]; then pnpm smoke "$identifier"; fi
+          done
