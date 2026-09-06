@@ -27,6 +27,11 @@ declare module "@atat/api" {
   export interface DirectoryEntry {
     name: string;
     isDirectory: boolean;
+    /**
+     * When the entry last changed, as ISO 8601 with the Mac's own offset
+     * (`2026-08-24T01:15:00+08:00`). Absent when the file system does not say.
+     */
+    modifiedAt?: string;
   }
 
   /**
@@ -77,7 +82,9 @@ declare module "@atat/api" {
     /**
      * A relative path resolves inside the extension's own data directory. An absolute one has
      * to be a path this call was handed, or one inside a folder the user granted through a
-     * `folder` option — `list`, `remove` and `search` accept only the latter.
+     * `folder` option — `remove` and `search` accept only the latter, and `list` accepts it
+     * plus the directories the manifest's `reads` named. `read` is the widest of the four;
+     * nothing writes anywhere but a granted folder and this call's own output path.
      *
      * `write` creates the directories on the way to the file, so a extension's own layout inside
      * a granted folder comes into being on first write.

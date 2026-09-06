@@ -52,7 +52,7 @@
   "actions": [
     {
       "identifier": "saveToMemory",
-      "icon": "note",
+      "icon": "brain",
       "title": {
         "en": "Save to memory",
         "zh-hans": "存入记忆"

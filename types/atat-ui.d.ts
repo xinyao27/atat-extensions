@@ -62,6 +62,12 @@ declare module "@atat/api" {
     isLoading?: boolean;
     /** Shown under an empty list. */
     emptyTitle?: string;
+    /**
+     * Drawn at the trailing end of the title bar, because they act on the whole list rather
+     * than on any one row. One action is a button with its own name on it; several collapse
+     * into a ••• menu. A row's own actions stay on the row.
+     */
+    actions?: ReactNode;
   }
 
   export interface ListSectionProps {
@@ -238,7 +244,9 @@ declare module "@atat/api" {
   export const files: {
     read(path: string): Promise<{ base64: string }>;
     write(path: string, data: { base64: string }): Promise<void>;
-    list(dirPath: string): Promise<{ name: string; isDirectory: boolean }[]>;
+    list(
+      dirPath: string
+    ): Promise<{ name: string; isDirectory: boolean; modifiedAt?: string }[]>;
     remove(path: string): Promise<void>;
     /** The host's index over a granted directory. Same call a hook's `ctx.files` has. */
     search(
