@@ -144,8 +144,27 @@ async function translateWithGoogle(
 }
 
 function googleLanguage(language: TargetLanguage): string {
-  return language === "zh-Hans" ? "zh-CN" : "en";
+  return GOOGLE_LANGUAGES[language];
 }
+
+/// Google's own codes: the Chinese scripts carry the region, everything else is the bare
+/// language.
+const GOOGLE_LANGUAGES: Record<TargetLanguage, string> = {
+  en: "en",
+  "zh-Hans": "zh-CN",
+  "zh-Hant": "zh-TW",
+  ja: "ja",
+  ko: "ko",
+  fr: "fr",
+  ru: "ru",
+  de: "de",
+  es: "es",
+  it: "it",
+  pt: "pt",
+  pl: "pl",
+  nl: "nl",
+  ar: "ar",
+};
 
 /// `[[["译文","source",…],["…","…"]],null,"en",…]`: every segment's first cell is a piece
 /// of the answer, joining them back is the whole parse, and the third cell of the root is
@@ -240,9 +259,9 @@ async function translateWithDeepL(
   const endpoint = key.endsWith(":fx") ? DEEPL_FREE_ENDPOINT : DEEPL_PRO_ENDPOINT;
   const body: { text: string[]; target_lang: string; source_lang?: string } = {
     text: [text],
-    target_lang: language === "zh-Hans" ? "ZH" : "EN-US",
+    target_lang: DEEPL_TARGET_LANGUAGES[language],
   };
-  if (source !== undefined) body.source_lang = source === "zh-Hans" ? "ZH" : "EN";
+  if (source !== undefined) body.source_lang = DEEPL_SOURCE_LANGUAGES[source];
   const response = await capabilities.fetch(endpoint, {
     method: "POST",
     headers: {
@@ -260,6 +279,43 @@ async function translateWithDeepL(
   if (!result.text) throw new TranslateError("failed");
   return result;
 }
+
+/// DeepL's own codes. Its target side names regional variants — American English,
+/// European Portuguese, both Chinese scripts — and its source side takes the bare
+/// language, because a text being read is not assumed to belong to one variant.
+const DEEPL_TARGET_LANGUAGES: Record<TargetLanguage, string> = {
+  en: "EN-US",
+  "zh-Hans": "ZH-HANS",
+  "zh-Hant": "ZH-HANT",
+  ja: "JA",
+  ko: "KO",
+  fr: "FR",
+  ru: "RU",
+  de: "DE",
+  es: "ES",
+  it: "IT",
+  pt: "PT-PT",
+  pl: "PL",
+  nl: "NL",
+  ar: "AR",
+};
+
+const DEEPL_SOURCE_LANGUAGES: Record<TargetLanguage, string> = {
+  en: "EN",
+  "zh-Hans": "ZH",
+  "zh-Hant": "ZH",
+  ja: "JA",
+  ko: "KO",
+  fr: "FR",
+  ru: "RU",
+  de: "DE",
+  es: "ES",
+  it: "IT",
+  pt: "PT",
+  pl: "PL",
+  nl: "NL",
+  ar: "AR",
+};
 
 /// `{"translations":[{"detected_source_language":"EN","text":"…"}]}`.
 function parseDeepL(payload: unknown): ProviderResult {

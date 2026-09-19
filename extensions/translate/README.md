@@ -23,6 +23,8 @@ Translates the text you point at, right where you pointed at it.
   (Auto Detect by default) and what it is being translated into, with a swap button between
   them. The target starts at Automatic: translations go into your primary language, and
   text already in it goes into your second language, both set on the extension's page.
+- English, Simplified and Traditional Chinese, Japanese, Korean, French, Russian, German,
+  Spanish, Italian, Portuguese, Polish, Dutch and Arabic are all offered on both sides.
 - **Speak** reads the original or any translation aloud with the Mac's own voice, in that
   language's voice. Click again to stop.
 - **Favorite** keeps a translation in Clipboard History's Favorites, where you can find it
@@ -55,6 +57,8 @@ Translates the text you point at, right where you pointed at it.
 - 原文下方一行选两侧语言：从哪种语言（默认自动检测）、译成哪种语言，中间可以一键交换。
   目标语言默认是「自动」：译成你的主要语言，原文已经是主要语言时译成第二语言，两个语言
   在扩展的设置页里选。
+- 英语、简体中文、繁体中文、日语、韩语、法语、俄语、德语、西班牙语、意大利语、葡萄牙语、
+  波兰语、荷兰语和阿拉伯语，两侧都能选。
 - **朗读**用 Mac 自带的语音读出原文或任一译文，并自动选对应语言的嗓音；再点一下停止。
 - **收藏**把译文存进剪贴板历史的「收藏」，之后还能找到。
 - 标题栏的图钉让窗口不再自动消失：钉住后点别处、滚动或切换应用都不会关掉它，Esc 或关闭按钮

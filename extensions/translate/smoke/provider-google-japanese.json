@@ -1,0 +1,22 @@
+{
+  "description": "A language outside the first release reaches Google in Google's own code",
+  "locale": "en",
+  "options": { "useGoogle": true },
+  "fetch": {
+    "https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=ja&dt=t&q=Hello%20world": {
+      "json": [[["こんにちは、世界", "Hello world", null, null, 10]], null, "en"]
+    }
+  },
+  "call": {
+    "routine": "translate",
+    "args": ["google", "Hello world", "ja"]
+  },
+  "expect": {
+    "result": {
+      "source": "Hello world",
+      "translation": "こんにちは、世界",
+      "detected": "en",
+      "language": "ja"
+    }
+  }
+}

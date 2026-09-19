@@ -11,7 +11,7 @@
     "google"
   ],
   "releaseNotes": {
-    "en": "Each service answers in its own collapsible card, and you can correct the language your text was recognized as.",
-    "zh-hans": "每个服务各成一张可折叠的卡片，识别出的语言也能点开改。"
+    "en": "Each service answers in its own collapsible card, fourteen languages are offered on both sides, and you can correct the language your text was recognized as.",
+    "zh-hans": "每个服务各成一张可折叠的卡片，两侧都能选十四种语言，识别出的语言也能点开改。"
   }
 }

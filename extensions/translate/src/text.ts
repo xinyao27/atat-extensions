@@ -4,6 +4,8 @@
 // `environment.locale`, so the view does not ask per string and a missing translation is a
 // type error rather than an English word in a Chinese window.
 
+import type { TargetLanguage } from "./translation.js";
+
 export type Language = "en" | "zh-Hans";
 
 export interface Strings {
@@ -13,8 +15,8 @@ export interface Strings {
   /// The target-language picker.
   language: string;
   auto: string;
-  chinese: string;
-  english: string;
+  /// The languages the panel offers, each under the name this window shows it in.
+  languageNames: Record<TargetLanguage, string>;
   /// The badge that names the language the text was recognised as.
   recognizedAs: string;
   /// What clicking that badge does.
@@ -22,6 +24,8 @@ export interface Strings {
   swap: string;
   translation: string;
   copy: string;
+  /// The copy button's own mark, while its check shows.
+  copied: string;
   replace: string;
   refresh: string;
   collapse: string;
@@ -49,13 +53,28 @@ const EN: Strings = {
   sourceLanguage: "From",
   language: "Translate into",
   auto: "Auto Detect",
-  chinese: "Simplified Chinese",
-  english: "English",
+  languageNames: {
+    en: "English",
+    "zh-Hans": "Simplified Chinese",
+    "zh-Hant": "Traditional Chinese",
+    ja: "Japanese",
+    ko: "Korean",
+    fr: "French",
+    ru: "Russian",
+    de: "German",
+    es: "Spanish",
+    it: "Italian",
+    pt: "Portuguese",
+    pl: "Polish",
+    nl: "Dutch",
+    ar: "Arabic",
+  },
   recognizedAs: "Recognized as",
   adjustRecognition: "Click to correct the recognized language.",
   swap: "Swap languages",
   translation: "Translation",
   copy: "Copy",
+  copied: "Copied",
   replace: "Replace",
   refresh: "Translate again",
   collapse: "Collapse",
@@ -83,13 +102,28 @@ const ZH_HANS: Strings = {
   sourceLanguage: "源语言",
   language: "翻译成",
   auto: "自动检测",
-  chinese: "简体中文",
-  english: "英文",
+  languageNames: {
+    en: "英语",
+    "zh-Hans": "简体中文",
+    "zh-Hant": "繁体中文",
+    ja: "日语",
+    ko: "韩语",
+    fr: "法语",
+    ru: "俄语",
+    de: "德语",
+    es: "西班牙语",
+    it: "意大利语",
+    pt: "葡萄牙语",
+    pl: "波兰语",
+    nl: "荷兰语",
+    ar: "阿拉伯语",
+  },
   recognizedAs: "识别为",
   adjustRecognition: "点一下就能改识别出的语言。",
   swap: "交换语言",
   translation: "译文",
   copy: "复制",
+  copied: "已复制",
   replace: "替换",
   refresh: "重新翻译",
   collapse: "收起",

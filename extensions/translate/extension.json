@@ -46,17 +46,101 @@
           }
         },
         {
+          "value": "en",
+          "title": {
+            "en": "English",
+            "zh-hans": "英语"
+          }
+        },
+        {
           "value": "zh-Hans",
           "title": {
-            "en": "Chinese (Simplified)",
+            "en": "Simplified Chinese",
             "zh-hans": "简体中文"
           }
         },
         {
-          "value": "en",
+          "value": "zh-Hant",
           "title": {
-            "en": "English",
-            "zh-hans": "英文"
+            "en": "Traditional Chinese",
+            "zh-hans": "繁体中文"
+          }
+        },
+        {
+          "value": "ja",
+          "title": {
+            "en": "Japanese",
+            "zh-hans": "日语"
+          }
+        },
+        {
+          "value": "ko",
+          "title": {
+            "en": "Korean",
+            "zh-hans": "韩语"
+          }
+        },
+        {
+          "value": "fr",
+          "title": {
+            "en": "French",
+            "zh-hans": "法语"
+          }
+        },
+        {
+          "value": "ru",
+          "title": {
+            "en": "Russian",
+            "zh-hans": "俄语"
+          }
+        },
+        {
+          "value": "de",
+          "title": {
+            "en": "German",
+            "zh-hans": "德语"
+          }
+        },
+        {
+          "value": "es",
+          "title": {
+            "en": "Spanish",
+            "zh-hans": "西班牙语"
+          }
+        },
+        {
+          "value": "it",
+          "title": {
+            "en": "Italian",
+            "zh-hans": "意大利语"
+          }
+        },
+        {
+          "value": "pt",
+          "title": {
+            "en": "Portuguese",
+            "zh-hans": "葡萄牙语"
+          }
+        },
+        {
+          "value": "pl",
+          "title": {
+            "en": "Polish",
+            "zh-hans": "波兰语"
+          }
+        },
+        {
+          "value": "nl",
+          "title": {
+            "en": "Dutch",
+            "zh-hans": "荷兰语"
+          }
+        },
+        {
+          "value": "ar",
+          "title": {
+            "en": "Arabic",
+            "zh-hans": "阿拉伯语"
           }
         }
       ]
@@ -82,17 +166,101 @@
           }
         },
         {
+          "value": "en",
+          "title": {
+            "en": "English",
+            "zh-hans": "英语"
+          }
+        },
+        {
           "value": "zh-Hans",
           "title": {
-            "en": "Chinese (Simplified)",
+            "en": "Simplified Chinese",
             "zh-hans": "简体中文"
           }
         },
         {
-          "value": "en",
+          "value": "zh-Hant",
           "title": {
-            "en": "English",
-            "zh-hans": "英文"
+            "en": "Traditional Chinese",
+            "zh-hans": "繁体中文"
+          }
+        },
+        {
+          "value": "ja",
+          "title": {
+            "en": "Japanese",
+            "zh-hans": "日语"
+          }
+        },
+        {
+          "value": "ko",
+          "title": {
+            "en": "Korean",
+            "zh-hans": "韩语"
+          }
+        },
+        {
+          "value": "fr",
+          "title": {
+            "en": "French",
+            "zh-hans": "法语"
+          }
+        },
+        {
+          "value": "ru",
+          "title": {
+            "en": "Russian",
+            "zh-hans": "俄语"
+          }
+        },
+        {
+          "value": "de",
+          "title": {
+            "en": "German",
+            "zh-hans": "德语"
+          }
+        },
+        {
+          "value": "es",
+          "title": {
+            "en": "Spanish",
+            "zh-hans": "西班牙语"
+          }
+        },
+        {
+          "value": "it",
+          "title": {
+            "en": "Italian",
+            "zh-hans": "意大利语"
+          }
+        },
+        {
+          "value": "pt",
+          "title": {
+            "en": "Portuguese",
+            "zh-hans": "葡萄牙语"
+          }
+        },
+        {
+          "value": "pl",
+          "title": {
+            "en": "Polish",
+            "zh-hans": "波兰语"
+          }
+        },
+        {
+          "value": "nl",
+          "title": {
+            "en": "Dutch",
+            "zh-hans": "荷兰语"
+          }
+        },
+        {
+          "value": "ar",
+          "title": {
+            "en": "Arabic",
+            "zh-hans": "阿拉伯语"
           }
         }
       ]

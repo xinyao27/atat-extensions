@@ -37,6 +37,7 @@ import type { ActionInput, HostContext, ViewProps } from "@atat/api";
 import { stringsFor } from "./text.js";
 import type { Strings } from "./text.js";
 import {
+  LANGUAGES,
   TranslateError,
   counterpart,
   detectedLanguage,
@@ -94,6 +95,10 @@ function TranslationView({ input }: ViewProps<ActionInput>): ReactElement {
   /// Which text is being read aloud right now. One at a time, because speaking a new one
   /// interrupts the old one, and the promise each click returns is what clears this.
   const [speaking, setSpeaking] = useState<ProviderId | "source" | null>(null);
+  /// The action that just finished, keyed by the row it belongs to. Its glyph turns into a
+  /// check for a moment: a copy or a favorite answers in place, because the row of icons is
+  /// where the hand already is, and a toast about a click the user just made is noise.
+  const [acknowledged, setAcknowledged] = useState<string | null>(null);
 
   // The same calls a hook context gets off `ctx`, taken from the panel's own imports. A
   // provider only sees these while it runs, and nothing here calls one by itself.
@@ -249,15 +254,27 @@ function TranslationView({ input }: ViewProps<ActionInput>): ReactElement {
 
   /// The two languages as the user reads them, for the badge that names one of them.
   function languageLabel(language: TargetLanguage): string {
-    return language === "zh-Hans" ? copy.chinese : copy.english;
+    return copy.languageNames[language];
+  }
+
+  /// Mark one action as done, and let the mark fade on its own. A later action replaces
+  /// it; the older wait checks it is still the current one before clearing, so a quick
+  /// second click cannot blank the newer check.
+  async function acknowledge(key: string) {
+    setAcknowledged(key);
+    await sleep(1_400);
+    setAcknowledged((current) => (current === key ? null : current));
   }
 
   /// Keep a text in Clipboard History's Favorites, with a word about where it went. The
   /// store owns duplicates; a refusal is worth saying out loud rather than swallowing.
-  function addFavorite(text: string) {
+  function addFavorite(text: string, key: string) {
     favorites
       .add(text)
-      .then(() => showToast({ title: copy.favorited }))
+      .then(() => {
+        void acknowledge(key);
+        return showToast({ title: copy.favorited });
+      })
       .catch(() => showToast({ title: copy.favoriteFailed }));
   }
 
@@ -307,6 +324,8 @@ function TranslationView({ input }: ViewProps<ActionInput>): ReactElement {
         ? failure.kind
         : "failed"
       : undefined;
+    const favoriteKey = `${provider}-favorite`;
+    const copyKey = `${provider}-copy`;
 
     return (
       <Panel.Section
@@ -338,8 +357,17 @@ function TranslationView({ input }: ViewProps<ActionInput>): ReactElement {
               icon={speaking === provider ? "stop" : "volume-high"}
               onAction={() => toggleSpeak(provider, text, target)}
             />
-            <Action title={copy.favorite} icon="star" onAction={() => addFavorite(text)} />
-            <Action.CopyToClipboard title={copy.copy} icon="copy01" content={text} />
+            <Action
+              title={acknowledged === favoriteKey ? copy.favorited : copy.favorite}
+              icon={acknowledged === favoriteKey ? "check" : "star"}
+              onAction={() => addFavorite(text, favoriteKey)}
+            />
+            <Action.CopyToClipboard
+              title={acknowledged === copyKey ? copy.copied : copy.copy}
+              icon={acknowledged === copyKey ? "check" : "copy01"}
+              content={text}
+              onCopy={() => void acknowledge(copyKey)}
+            />
             {/* Only the Selection entry has somewhere to write back to; the host does not
                 draw this action in a clipboard or capture window. */}
             <Action.ReplaceSelection title={copy.replace} icon="check" content={text} />
@@ -370,11 +398,16 @@ function TranslationView({ input }: ViewProps<ActionInput>): ReactElement {
             }
           />
           <Action
-            title={copy.favorite}
-            icon="star"
-            onAction={() => addFavorite(original)}
+            title={acknowledged === "source-favorite" ? copy.favorited : copy.favorite}
+            icon={acknowledged === "source-favorite" ? "check" : "star"}
+            onAction={() => addFavorite(original, "source-favorite")}
           />
-          <Action.CopyToClipboard title={copy.copy} icon="copy01" content={original} />
+          <Action.CopyToClipboard
+            title={acknowledged === "source-copy" ? copy.copied : copy.copy}
+            icon={acknowledged === "source-copy" ? "check" : "copy01"}
+            content={original}
+            onCopy={() => void acknowledge("source-copy")}
+          />
         </ActionPanel>
         {recognized ? (
           <Panel.Badge
@@ -384,8 +417,13 @@ function TranslationView({ input }: ViewProps<ActionInput>): ReactElement {
             onChange={chooseSource}
           >
             <Form.Dropdown.Item value="auto" title={copy.auto} />
-            <Form.Dropdown.Item value="zh-Hans" title={copy.chinese} />
-            <Form.Dropdown.Item value="en" title={copy.english} />
+            {LANGUAGES.map((language) => (
+              <Form.Dropdown.Item
+                key={language}
+                value={language}
+                title={languageLabel(language)}
+              />
+            ))}
           </Panel.Badge>
         ) : null}
       </Panel.Section>
@@ -400,8 +438,13 @@ function TranslationView({ input }: ViewProps<ActionInput>): ReactElement {
           onChange={chooseSource}
         >
           <Form.Dropdown.Item value="auto" title={copy.auto} />
-          <Form.Dropdown.Item value="zh-Hans" title={copy.chinese} />
-          <Form.Dropdown.Item value="en" title={copy.english} />
+          {LANGUAGES.map((language) => (
+            <Form.Dropdown.Item
+              key={language}
+              value={language}
+              title={languageLabel(language)}
+            />
+          ))}
         </Form.Dropdown>
         <ActionPanel>
           <Action
@@ -417,8 +460,13 @@ function TranslationView({ input }: ViewProps<ActionInput>): ReactElement {
           onChange={chooseTarget}
         >
           <Form.Dropdown.Item value="auto" title={copy.auto} />
-          <Form.Dropdown.Item value="zh-Hans" title={copy.chinese} />
-          <Form.Dropdown.Item value="en" title={copy.english} />
+          {LANGUAGES.map((language) => (
+            <Form.Dropdown.Item
+              key={language}
+              value={language}
+              title={languageLabel(language)}
+            />
+          ))}
         </Form.Dropdown>
         <ActionPanel>
           <Action title={copy.refresh} icon="refresh" onAction={translateAgain} />
