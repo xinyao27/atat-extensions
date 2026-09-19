@@ -1,0 +1,37 @@
+{
+  "identifier": "format-json",
+  "name": {
+    "en": "Format JSON",
+    "zh-hans": "JSON 格式化"
+  },
+  "description": {
+    "en": "Turns a wall of JSON into readable, two-space indentation.",
+    "zh-hans": "把挤成一团的 JSON 排成清爽的两空格缩进。"
+  },
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "minimumAppVersion": "1.2.0",
+  "author": "@@",
+  "actions": [
+    {
+      "identifier": "formatJson",
+      "title": {
+        "en": "Format JSON",
+        "zh-hans": "格式化 JSON"
+      },
+      "icon": "code",
+      "surfaces": [
+        "selectionBar",
+        "clipboardHistory",
+        "captureQuickAccess"
+      ],
+      "requirements": {
+        "contentTypes": [
+          "text"
+        ],
+        "regex": "^\\s*(\\{|\\[)"
+      },
+      "after": "paste"
+    }
+  ]
+}

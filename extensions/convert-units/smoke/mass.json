@@ -1,0 +1,13 @@
+{
+  "description": "both units in a sentence convert, each in its own direction",
+  "call": {
+    "action": "convertUnits",
+    "input": {
+      "surface": "selectionBar",
+      "text": "Add 5 kg and 250 g."
+    }
+  },
+  "expect": {
+    "result": "Add 11.02 lb and 8.82 oz."
+  }
+}

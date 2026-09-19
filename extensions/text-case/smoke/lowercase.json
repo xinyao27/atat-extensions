@@ -1,0 +1,13 @@
+{
+  "description": "every letter comes back small",
+  "call": {
+    "action": "lowercase",
+    "input": {
+      "surface": "selectionBar",
+      "text": "Hello, World!"
+    }
+  },
+  "expect": {
+    "result": "hello, world!"
+  }
+}

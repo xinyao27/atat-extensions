@@ -1,0 +1,36 @@
+{
+  "identifier": "counts",
+  "name": {
+    "en": "Count",
+    "zh-hans": "字数统计"
+  },
+  "description": {
+    "en": "Counts the words, characters, and lines you select.",
+    "zh-hans": "数一数选中的文字：多少词、多少字符、多少行。"
+  },
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "minimumAppVersion": "1.2.0",
+  "author": "@@",
+  "actions": [
+    {
+      "identifier": "count",
+      "title": {
+        "en": "Count",
+        "zh-hans": "统计"
+      },
+      "icon": "info",
+      "surfaces": [
+        "selectionBar",
+        "clipboardHistory",
+        "captureQuickAccess"
+      ],
+      "requirements": {
+        "contentTypes": [
+          "text"
+        ]
+      },
+      "after": "show"
+    }
+  ]
+}

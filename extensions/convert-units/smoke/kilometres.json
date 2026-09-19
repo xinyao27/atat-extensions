@@ -1,0 +1,13 @@
+{
+  "description": "kilometres become miles in place",
+  "call": {
+    "action": "convertUnits",
+    "input": {
+      "surface": "selectionBar",
+      "text": "It is 20 km away."
+    }
+  },
+  "expect": {
+    "result": "It is 12.43 mi away."
+  }
+}

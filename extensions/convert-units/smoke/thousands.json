@@ -1,0 +1,13 @@
+{
+  "description": "a thousands separator is never cut in half",
+  "call": {
+    "action": "convertUnits",
+    "input": {
+      "surface": "selectionBar",
+      "text": "A 1,000 m climb"
+    }
+  },
+  "expect": {
+    "result": "A 3,280.84 ft climb"
+  }
+}

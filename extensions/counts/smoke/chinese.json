@@ -1,0 +1,14 @@
+{
+  "description": "the labels follow the app's language",
+  "locale": "zh-Hans",
+  "call": {
+    "action": "count",
+    "input": {
+      "surface": "selectionBar",
+      "text": "你好 world"
+    }
+  },
+  "expect": {
+    "result": "3 个词\n8 个字符\n1 行"
+  }
+}

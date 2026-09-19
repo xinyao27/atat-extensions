@@ -1,0 +1,13 @@
+{
+  "description": "the last line becomes the first",
+  "call": {
+    "action": "reverseLines",
+    "input": {
+      "surface": "selectionBar",
+      "text": "one\ntwo\nthree"
+    }
+  },
+  "expect": {
+    "result": "three\ntwo\none"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "category": "utilities",
+  "keywords": [
+    "lines",
+    "sort",
+    "reverse",
+    "join",
+    "list",
+    "text"
+  ],
+  "releaseNotes": {
+    "en": "Sorts, reverses, or joins the lines you select.",
+    "zh-hans": "把选中的多行文字排序、倒转或合并成一行。"
+  }
+}

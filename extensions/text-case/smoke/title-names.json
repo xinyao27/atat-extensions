@@ -1,0 +1,13 @@
+{
+  "description": "a name with a capital inside keeps its spelling",
+  "call": {
+    "action": "titleCase",
+    "input": {
+      "surface": "selectionBar",
+      "text": "iPhone apps are the future of the mac"
+    }
+  },
+  "expect": {
+    "result": "iPhone Apps Are the Future of the Mac"
+  }
+}

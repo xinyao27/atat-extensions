@@ -1,0 +1,17 @@
+{
+  "description": "the message follows the app's language",
+  "locale": "zh-Hans",
+  "call": {
+    "action": "formatJson",
+    "input": {
+      "surface": "selectionBar",
+      "text": "{ nope }"
+    }
+  },
+  "expect": {
+    "result": null,
+    "notifications": [
+      "不是有效"
+    ]
+  }
+}

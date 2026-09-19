@@ -1,0 +1,13 @@
+{
+  "description": "temperatures convert both ways, keeping the join tight",
+  "call": {
+    "action": "convertUnits",
+    "input": {
+      "surface": "selectionBar",
+      "text": "Boils at 100°C, freezes at 32°F."
+    }
+  },
+  "expect": {
+    "result": "Boils at 212°F, freezes at 0°C."
+  }
+}

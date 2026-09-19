@@ -1,0 +1,13 @@
+{
+  "description": "a title capitalizes its words and leaves the small ones down",
+  "call": {
+    "action": "titleCase",
+    "input": {
+      "surface": "selectionBar",
+      "text": "the quick brown fox jumps over the lazy dog"
+    }
+  },
+  "expect": {
+    "result": "The Quick Brown Fox Jumps Over the Lazy Dog"
+  }
+}

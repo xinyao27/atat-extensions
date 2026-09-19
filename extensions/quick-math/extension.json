@@ -1,0 +1,57 @@
+{
+  "identifier": "quick-math",
+  "name": {
+    "en": "Quick Math",
+    "zh-hans": "快速计算"
+  },
+  "description": {
+    "en": "Works out an expression, or totals every number you select.",
+    "zh-hans": "把选中的算式算出来，或把里面的数字加总。"
+  },
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "minimumAppVersion": "1.2.0",
+  "author": "@@",
+  "actions": [
+    {
+      "identifier": "calculate",
+      "title": {
+        "en": "Calculate",
+        "zh-hans": "算出结果"
+      },
+      "icon": "summarize",
+      "surfaces": [
+        "selectionBar",
+        "clipboardHistory",
+        "captureQuickAccess"
+      ],
+      "requirements": {
+        "contentTypes": [
+          "text"
+        ],
+        "regex": "[0-9].*[+*/^%(×÷-]"
+      },
+      "after": "paste"
+    },
+    {
+      "identifier": "sum",
+      "title": {
+        "en": "Sum numbers",
+        "zh-hans": "求总和"
+      },
+      "icon": "tag",
+      "surfaces": [
+        "selectionBar",
+        "clipboardHistory",
+        "captureQuickAccess"
+      ],
+      "requirements": {
+        "contentTypes": [
+          "text"
+        ],
+        "regex": "[0-9]"
+      },
+      "after": "paste"
+    }
+  ]
+}

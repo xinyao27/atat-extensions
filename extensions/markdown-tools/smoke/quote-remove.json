@@ -1,0 +1,13 @@
+{
+  "description": "a second click takes one level of quoting off",
+  "call": {
+    "action": "blockquote",
+    "input": {
+      "surface": "selectionBar",
+      "text": "> first line\n>\n> second"
+    }
+  },
+  "expect": {
+    "result": "first line\n\nsecond"
+  }
+}

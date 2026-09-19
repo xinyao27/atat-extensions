@@ -1,0 +1,97 @@
+{
+  "identifier": "text-case",
+  "name": {
+    "en": "Text Case",
+    "zh-hans": "大小写"
+  },
+  "description": {
+    "en": "Fixes the capitalization of what you select — upper, lower, title, or sentence case.",
+    "zh-hans": "把选中的英文改成全大写、全小写、标题式或句首大写。"
+  },
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "minimumAppVersion": "1.2.0",
+  "author": "@@",
+  "actions": [
+    {
+      "identifier": "uppercase",
+      "title": {
+        "en": "Uppercase",
+        "zh-hans": "全部大写"
+      },
+      "icon": "text",
+      "surfaces": [
+        "selectionBar",
+        "clipboardHistory",
+        "captureQuickAccess"
+      ],
+      "requirements": {
+        "contentTypes": [
+          "text"
+        ],
+        "regex": "[A-Za-z]"
+      },
+      "after": "paste"
+    },
+    {
+      "identifier": "lowercase",
+      "title": {
+        "en": "Lowercase",
+        "zh-hans": "全部小写"
+      },
+      "icon": "edit",
+      "surfaces": [
+        "selectionBar",
+        "clipboardHistory",
+        "captureQuickAccess"
+      ],
+      "requirements": {
+        "contentTypes": [
+          "text"
+        ],
+        "regex": "[A-Za-z]"
+      },
+      "after": "paste"
+    },
+    {
+      "identifier": "titleCase",
+      "title": {
+        "en": "Title Case",
+        "zh-hans": "标题式大写"
+      },
+      "icon": "document",
+      "surfaces": [
+        "selectionBar",
+        "clipboardHistory",
+        "captureQuickAccess"
+      ],
+      "requirements": {
+        "contentTypes": [
+          "text"
+        ],
+        "regex": "[A-Za-z]"
+      },
+      "after": "paste"
+    },
+    {
+      "identifier": "sentenceCase",
+      "title": {
+        "en": "Sentence case",
+        "zh-hans": "句首大写"
+      },
+      "icon": "note",
+      "surfaces": [
+        "selectionBar",
+        "clipboardHistory",
+        "captureQuickAccess"
+      ],
+      "requirements": {
+        "contentTypes": [
+          "text"
+        ],
+        "regex": "[A-Za-z]"
+      },
+      "after": "paste"
+    }
+  ]
+}

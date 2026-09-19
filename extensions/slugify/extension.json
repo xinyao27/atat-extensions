@@ -1,0 +1,37 @@
+{
+  "identifier": "slugify",
+  "name": {
+    "en": "Slugify",
+    "zh-hans": "链接名"
+  },
+  "description": {
+    "en": "Turns a headline into a lowercase slug fit for a URL.",
+    "zh-hans": "把标题变成能直接放进网址的小写链接名。"
+  },
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "minimumAppVersion": "1.2.0",
+  "author": "@@",
+  "actions": [
+    {
+      "identifier": "slugify",
+      "title": {
+        "en": "Slugify",
+        "zh-hans": "生成链接名"
+      },
+      "icon": "link",
+      "surfaces": [
+        "selectionBar",
+        "clipboardHistory",
+        "captureQuickAccess"
+      ],
+      "requirements": {
+        "contentTypes": [
+          "text"
+        ],
+        "regex": "[A-Za-z0-9\\u00C0-\\u024F]"
+      },
+      "after": "paste"
+    }
+  ]
+}

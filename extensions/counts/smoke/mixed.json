@@ -1,0 +1,13 @@
+{
+  "description": "words, characters and lines come back as three lines of preview",
+  "call": {
+    "action": "count",
+    "input": {
+      "surface": "selectionBar",
+      "text": "Hello, 你好 world\nsecond line"
+    }
+  },
+  "expect": {
+    "result": "6 words\n27 characters\n2 lines"
+  }
+}

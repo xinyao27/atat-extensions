@@ -1,0 +1,16 @@
+{
+  "description": "text that only opens like JSON gets a message, not a result",
+  "call": {
+    "action": "formatJson",
+    "input": {
+      "surface": "selectionBar",
+      "text": "{ nope }"
+    }
+  },
+  "expect": {
+    "result": null,
+    "notifications": [
+      "valid JSON"
+    ]
+  }
+}

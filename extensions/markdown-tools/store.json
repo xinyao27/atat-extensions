@@ -1,0 +1,14 @@
+{
+  "category": "writing",
+  "keywords": [
+    "markdown",
+    "list",
+    "code",
+    "quote",
+    "formatting"
+  ],
+  "releaseNotes": {
+    "en": "Turns a selection into a Markdown list, code, or quote — and back.",
+    "zh-hans": "把选中的文字变成 Markdown 列表、代码或引用，再点一次还原。"
+  }
+}

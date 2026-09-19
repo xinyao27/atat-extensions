@@ -1,0 +1,13 @@
+{
+  "description": "precomposed kana come apart into a base and a sound mark",
+  "call": {
+    "action": "toHalfWidth",
+    "input": {
+      "surface": "selectionBar",
+      "text": "ガギグゲゴ パピプペポ ヴ"
+    }
+  },
+  "expect": {
+    "result": "ｶﾞｷﾞｸﾞｹﾞｺﾞ ﾊﾟﾋﾟﾌﾟﾍﾟﾎﾟ ｳﾞ"
+  }
+}

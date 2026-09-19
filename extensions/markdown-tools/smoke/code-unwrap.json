@@ -1,0 +1,13 @@
+{
+  "description": "a fenced block comes apart again",
+  "call": {
+    "action": "code",
+    "input": {
+      "surface": "selectionBar",
+      "text": "```\nline one\nline two\n```"
+    }
+  },
+  "expect": {
+    "result": "line one\nline two"
+  }
+}

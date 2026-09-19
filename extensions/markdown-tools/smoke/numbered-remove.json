@@ -1,0 +1,13 @@
+{
+  "description": "a numbered list comes back to plain lines",
+  "call": {
+    "action": "numberedList",
+    "input": {
+      "surface": "selectionBar",
+      "text": "1. one\n2. two"
+    }
+  },
+  "expect": {
+    "result": "one\ntwo"
+  }
+}

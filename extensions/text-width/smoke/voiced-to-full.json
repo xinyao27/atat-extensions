@@ -1,0 +1,13 @@
+{
+  "description": "a half-width sound mark joins the kana before it",
+  "call": {
+    "action": "toFullWidth",
+    "input": {
+      "surface": "selectionBar",
+      "text": "ﾃﾞｰﾀ ﾊﾟﾋﾟﾌﾟ ﾜｸﾁﾝ"
+    }
+  },
+  "expect": {
+    "result": "データ　パピプ　ワクチン"
+  }
+}

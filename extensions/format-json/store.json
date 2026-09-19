@@ -1,0 +1,14 @@
+{
+  "category": "developer-tools",
+  "keywords": [
+    "json",
+    "format",
+    "indent",
+    "developer",
+    "data"
+  ],
+  "releaseNotes": {
+    "en": "Formats selected JSON with two-space indentation.",
+    "zh-hans": "把选中的 JSON 排成两空格缩进。"
+  }
+}

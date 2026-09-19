@@ -1,0 +1,13 @@
+{
+  "description": "a single word reads as singular",
+  "call": {
+    "action": "count",
+    "input": {
+      "surface": "selectionBar",
+      "text": "Hello"
+    }
+  },
+  "expect": {
+    "result": "1 word\n5 characters\n1 line"
+  }
+}

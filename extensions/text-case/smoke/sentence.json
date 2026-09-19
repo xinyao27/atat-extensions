@@ -1,0 +1,13 @@
+{
+  "description": "shouting text comes back as quiet sentences",
+  "call": {
+    "action": "sentenceCase",
+    "input": {
+      "surface": "selectionBar",
+      "text": "the QUICK brown fox. it JUMPED over me! and left."
+    }
+  },
+  "expect": {
+    "result": "The quick brown fox. It jumped over me! And left."
+  }
+}

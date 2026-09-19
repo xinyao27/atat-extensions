@@ -1,0 +1,13 @@
+{
+  "description": "a second click clears either kind of marker",
+  "call": {
+    "action": "bulletList",
+    "input": {
+      "surface": "selectionBar",
+      "text": "1. one\n- two"
+    }
+  },
+  "expect": {
+    "result": "one\ntwo"
+  }
+}

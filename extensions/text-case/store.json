@@ -1,0 +1,15 @@
+{
+  "category": "writing",
+  "keywords": [
+    "case",
+    "uppercase",
+    "lowercase",
+    "title case",
+    "sentence case",
+    "text"
+  ],
+  "releaseNotes": {
+    "en": "Uppercase, lowercase, title case and sentence case, for any selection.",
+    "zh-hans": "选中英文就能改成全大写、全小写、标题式或句首大写。"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "category": "utilities",
+  "keywords": [
+    "count",
+    "words",
+    "characters",
+    "lines",
+    "text"
+  ],
+  "releaseNotes": {
+    "en": "Counts words, characters, and lines in a selection.",
+    "zh-hans": "统计选中文字的词数、字符数和行数。"
+  }
+}

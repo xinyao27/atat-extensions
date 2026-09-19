@@ -1,0 +1,14 @@
+{
+  "category": "writing",
+  "keywords": [
+    "slug",
+    "url",
+    "headline",
+    "permalink",
+    "writing"
+  ],
+  "releaseNotes": {
+    "en": "Turns a headline into a URL-ready slug.",
+    "zh-hans": "把标题变成能放进网址的链接名。"
+  }
+}

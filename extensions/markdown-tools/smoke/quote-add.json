@@ -1,0 +1,13 @@
+{
+  "description": "every line is quoted, and the blank line keeps the quote open",
+  "call": {
+    "action": "blockquote",
+    "input": {
+      "surface": "selectionBar",
+      "text": "first line\n\nsecond"
+    }
+  },
+  "expect": {
+    "result": "> first line\n>\n> second"
+  }
+}

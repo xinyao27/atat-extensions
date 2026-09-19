@@ -1,0 +1,13 @@
+{
+  "description": "several lines become a fenced block",
+  "call": {
+    "action": "code",
+    "input": {
+      "surface": "selectionBar",
+      "text": "line one\nline two"
+    }
+  },
+  "expect": {
+    "result": "```\nline one\nline two\n```"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "category": "utilities",
+  "keywords": [
+    "calculate",
+    "math",
+    "sum",
+    "numbers",
+    "arithmetic",
+    "expression"
+  ],
+  "releaseNotes": {
+    "en": "Works out expressions and totals the numbers in a selection.",
+    "zh-hans": "算算式，也把选中的数字加起来。"
+  }
+}

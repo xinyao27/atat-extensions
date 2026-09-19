@@ -1,0 +1,13 @@
+{
+  "description": "a fence is made longer than any backticks already inside the text",
+  "call": {
+    "action": "code",
+    "input": {
+      "surface": "selectionBar",
+      "text": "``` inside\nmore"
+    }
+  },
+  "expect": {
+    "result": "````\n``` inside\nmore\n````"
+  }
+}

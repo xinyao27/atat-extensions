@@ -1,0 +1,77 @@
+{
+  "identifier": "lines",
+  "name": {
+    "en": "Lines",
+    "zh-hans": "多行文字"
+  },
+  "description": {
+    "en": "Sorts, reverses, or joins the lines you select.",
+    "zh-hans": "把选中的多行文字排序、倒转或合并成一行。"
+  },
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "minimumAppVersion": "1.2.0",
+  "author": "@@",
+  "actions": [
+    {
+      "identifier": "sortLines",
+      "title": {
+        "en": "Sort lines",
+        "zh-hans": "按行排序"
+      },
+      "icon": "filter",
+      "surfaces": [
+        "selectionBar",
+        "clipboardHistory",
+        "captureQuickAccess"
+      ],
+      "requirements": {
+        "contentTypes": [
+          "text"
+        ],
+        "regex": "\\n"
+      },
+      "after": "paste"
+    },
+    {
+      "identifier": "reverseLines",
+      "title": {
+        "en": "Reverse lines",
+        "zh-hans": "倒转行序"
+      },
+      "icon": "refresh",
+      "surfaces": [
+        "selectionBar",
+        "clipboardHistory",
+        "captureQuickAccess"
+      ],
+      "requirements": {
+        "contentTypes": [
+          "text"
+        ],
+        "regex": "\\n"
+      },
+      "after": "paste"
+    },
+    {
+      "identifier": "joinLines",
+      "title": {
+        "en": "Join lines",
+        "zh-hans": "合并成一行"
+      },
+      "icon": "text",
+      "surfaces": [
+        "selectionBar",
+        "clipboardHistory",
+        "captureQuickAccess"
+      ],
+      "requirements": {
+        "contentTypes": [
+          "text"
+        ],
+        "regex": "\\n"
+      },
+      "after": "paste"
+    }
+  ]
+}

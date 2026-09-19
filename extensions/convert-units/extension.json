@@ -1,0 +1,37 @@
+{
+  "identifier": "convert-units",
+  "name": {
+    "en": "Convert Units",
+    "zh-hans": "单位换算"
+  },
+  "description": {
+    "en": "Converts the measurements you select — kilometres to miles, kilos to pounds, Celsius to Fahrenheit.",
+    "zh-hans": "把选中的度量换算过来：公里↔英里、公斤↔磅、摄氏↔华氏。"
+  },
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "minimumAppVersion": "1.2.0",
+  "author": "@@",
+  "actions": [
+    {
+      "identifier": "convertUnits",
+      "title": {
+        "en": "Convert units",
+        "zh-hans": "换算单位"
+      },
+      "icon": "refresh",
+      "surfaces": [
+        "selectionBar",
+        "clipboardHistory",
+        "captureQuickAccess"
+      ],
+      "requirements": {
+        "contentTypes": [
+          "text"
+        ],
+        "regex": "[0-9]\\s*(?:kilomet(?:er|re)s?|km|miles?|mi|millimet(?:er|re)s?|mm|centimet(?:er|re)s?|cm|met(?:er|re)s?|m|feet|foot|ft|yards?|yd|kilograms?|kg|pounds?|lbs?|lb|grams?|g|ounces?|oz|inches?|in|°\\s*[CF]|℃|℉)(?![A-Za-z])"
+      },
+      "after": "paste"
+    }
+  ]
+}

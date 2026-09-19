@@ -1,0 +1,13 @@
+{
+  "description": "full-width ASCII and the ideographic space come back to plain forms",
+  "call": {
+    "action": "toHalfWidth",
+    "input": {
+      "surface": "selectionBar",
+      "text": "ＡＢＣ　１２３，！？"
+    }
+  },
+  "expect": {
+    "result": "ABC 123,!?"
+  }
+}

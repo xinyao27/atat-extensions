@@ -1,0 +1,13 @@
+{
+  "description": "every half-width katakana becomes its full-width form",
+  "call": {
+    "action": "toFullWidth",
+    "input": {
+      "surface": "selectionBar",
+      "text": "ｦｧｨｩｪｫｬｭｮｯｰｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ"
+    }
+  },
+  "expect": {
+    "result": "ヲァィゥェォャュョッーアイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワン"
+  }
+}
