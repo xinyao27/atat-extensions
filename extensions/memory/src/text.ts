@@ -51,6 +51,32 @@ export interface Strings {
   brought: (brought: number, skipped: number) => string;
   bringFailed: (reason: string) => string;
   nothingDetected: string;
+
+  /** The action that opens the sources page, named after what it organizes. */
+  organizeItems: string;
+  sourceFavorites: string;
+  sourceCaptures: string;
+  sourceClipboard: string;
+  noSources: string;
+  browseItems: string;
+  organizeTitle: string;
+  organizeMessage: (count: number) => string;
+  organize: string;
+  organizeOutcome: (saved: number, existing: number, skipped: number) => string;
+  organizedToastTitle: (saved: number) => string;
+  organizedToastMessage: (existing: number, skipped: number) => string;
+  organizeFailed: string;
+  organizeFailedReason: (reason: string) => string;
+  organizeFailedRetry: string;
+  searchSource: (title: string) => string;
+  unreadableItems: string;
+  noItems: string;
+  organizeBatch: string;
+  nextBatch: string;
+  backToNewest: string;
+  viewExcerpt: string;
+  tooMany: string;
+  noteSource: (title: string, date: string) => string;
 }
 
 const EN: Strings = {
@@ -106,6 +132,38 @@ const EN: Strings = {
     "No other assistant left any memories on this Mac. @@ looked for " +
     assistantNames(", ", " and ") +
     ".",
+
+  organizeItems: "Organize AtAt items",
+  sourceFavorites: "Favorites",
+  sourceCaptures: "Capture projects",
+  sourceClipboard: "Clipboard history",
+  noSources: "No sources available",
+  browseItems: "Browse items",
+  organizeTitle: "Make memories from these items?",
+  organizeMessage: (count) =>
+    "Your configured agent will turn text from " +
+    (count === 1 ? "this item" : "these " + String(count) + " items") +
+    " into notes. Images use text recognition; videos are skipped.",
+  organize: "Organize",
+  organizeOutcome: (saved, existing, skipped) =>
+    String(saved) + " saved · " + String(existing) + " already saved · " +
+    String(skipped) + " skipped",
+  organizedToastTitle: (saved) => String(saved) + " memories saved",
+  organizedToastMessage: (existing, skipped) =>
+    String(existing) + " already saved; " + String(skipped) +
+    " not retained or unsupported.",
+  organizeFailed: "Couldn't finish organizing",
+  organizeFailedReason: (reason) => "Couldn't finish: " + reason,
+  organizeFailedRetry: "Couldn't organize these items. Try again.",
+  searchSource: (title) => "Search " + title.toLowerCase(),
+  unreadableItems: "Couldn't read these items",
+  noItems: "No items found",
+  organizeBatch: "Organize this batch",
+  nextBatch: "Next batch",
+  backToNewest: "Back to newest",
+  viewExcerpt: "View excerpt",
+  tooMany: "Choose up to 10 items.",
+  noteSource: (title, date) => "Source: " + title + " · " + date,
 };
 
 const ZH: Strings = {
@@ -153,6 +211,35 @@ const ZH: Strings = {
   bringFailed: (reason) => "没能带过来：" + reason,
   nothingDetected:
     "没找到其他助手留下的记忆。会找这些：" + assistantNames("、") + "。",
+
+  organizeItems: "整理 AtAt 资料",
+  sourceFavorites: "收藏",
+  sourceCaptures: "截图与录屏工程",
+  sourceClipboard: "剪贴板历史",
+  noSources: "没有可用的资料",
+  browseItems: "查看资料",
+  organizeTitle: "把这批资料整理成记忆？",
+  organizeMessage: (count) =>
+    "将这 " + String(count) + " 条资料中的文字交给你配置的助手，提炼成笔记。图片会先识别文字，录屏暂不处理。",
+  organize: "整理",
+  organizeOutcome: (saved, existing, skipped) =>
+    "新增 " + String(saved) + " 条记忆，" + String(existing) + " 条已保存，" +
+    String(skipped) + " 条跳过。",
+  organizedToastTitle: (saved) => "新增 " + String(saved) + " 条记忆",
+  organizedToastMessage: (existing, skipped) =>
+    String(existing) + " 条已整理，" + String(skipped) + " 条无需保存或暂不支持。",
+  organizeFailed: "整理未完成",
+  organizeFailedReason: (reason) => "整理未完成：" + reason,
+  organizeFailedRetry: "这次没能整理好，请再试一次。",
+  searchSource: (title) => "搜索" + title,
+  unreadableItems: "暂时无法读取资料",
+  noItems: "没有找到资料",
+  organizeBatch: "整理这一批",
+  nextBatch: "下一批",
+  backToNewest: "回到最新",
+  viewExcerpt: "查看摘要",
+  tooMany: "每次最多整理 10 条。",
+  noteSource: (title, date) => "资料来源：" + title + " · " + date,
 };
 
 /** `zh`, `zh-Hans`, `zh-Hant-TW` all get Chinese; everything else gets English. */

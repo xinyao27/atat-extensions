@@ -387,7 +387,7 @@ export default function MemoryPanel(): ReactElement {
       actions={
         <ActionPanel>
           <Action
-            title={environment.locale.startsWith("zh") ? "整理 AtAt 资料" : "Organize AtAt items"}
+            title={words.organizeItems}
             onAction={() => navigation.push(<SourcesPage onFinished={() => state.revalidate()} />)}
           />
           <Action

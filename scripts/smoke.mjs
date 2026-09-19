@@ -75,7 +75,13 @@ A scenario is one hook call or one action call, with the world it happens in:
   "ocr":    "the text ocr() returns",
   "translation": "the text translate() returns",
   "translationSource": "the language translate() reports it ran from", // default: the pinned source, else "en"
-  "speech": "the text speak() reads aloud",
+  "sources": {                          // the records ctx.sources hands over, per source name;
+    "favorites": [{                     // summaries come from query(), text and filePaths from get()
+      "id": "fav-1", "title": "…", "excerpt": "…", "text": "…",
+      "kind": "text",                   // default "text"
+      "createdAt": "2026-09-18T10:00:00Z", "updatedAt": "2026-09-18T10:00:00Z"
+    }]
+  },
   "call":   { "hook": "contextAssembled", "input": { … } },   // or { "action": "name", … },
                                                               // or { "routine": "name", "args": [ … ] }
                                                               // for a routine the bundle exports
@@ -269,6 +275,26 @@ function makeContext(manifest, scenario, roots, state) {
   const readable = [...handed, ...everyReadRoot];
   const grantedOnly = [roots.folder];
 
+  // The source records a scenario brought, in the shape the host hands them over: a page
+  // of summaries, and the full record — text and file paths — only through `get`.
+  const sourceRecords = scenario.sources ?? {};
+  const SOURCE_ENTITLEMENT = {
+    clipboard: "clipboardRead",
+    favorites: "favoritesRead",
+    captures: "capturesRead",
+  };
+  const describeSource = (source, entry) => ({
+    source,
+    id: String(entry.id),
+    title: String(entry.title ?? entry.id),
+    kind: entry.kind ?? "text",
+    createdAt: String(entry.createdAt ?? "2026-09-19T00:00:00Z"),
+    updatedAt: String(entry.updatedAt ?? entry.createdAt ?? "2026-09-19T00:00:00Z"),
+    sourceApp: entry.sourceApp,
+    sourceApplicationName: entry.sourceApplicationName,
+    excerpt: String(entry.excerpt ?? ""),
+  });
+
   return {
     extension: { identifier: manifest.identifier, version: manifest.version },
     locale: scenario.locale ?? "en",
@@ -303,6 +329,52 @@ function makeContext(manifest, scenario, roots, state) {
       async set(key, value) {
         gate("secrets");
         state.secrets.set(String(key), String(value));
+      },
+    },
+
+    sources: {
+      async query(input) {
+        const wanted = (input?.sources ?? []).map(String);
+        for (const name of wanted) gate(SOURCE_ENTITLEMENT[name]);
+        const needle = String(input?.query ?? "").toLowerCase();
+        const records = wanted
+          .flatMap((name) =>
+            (sourceRecords[name] ?? []).map((entry) => describeSource(name, entry))
+          )
+          .filter(
+            (entry) =>
+              needle.length === 0 ||
+              (entry.title + " " + entry.excerpt).toLowerCase().includes(needle)
+          )
+          .sort((left, right) =>
+            left.updatedAt === right.updatedAt
+              ? left.id.localeCompare(right.id)
+              : left.updatedAt < right.updatedAt
+                ? 1
+                : -1
+          );
+        const start = input?.cursor === undefined ? 0 : Number(input.cursor) || 0;
+        const limit = Math.min(Math.max(Number(input?.limit ?? 50), 1), 100);
+        const page = records.slice(start, start + limit);
+        const next = start + limit;
+        return {
+          items: page,
+          nextCursor: next < records.length ? String(next) : undefined,
+        };
+      },
+      async get(lookup) {
+        const source = String(lookup?.source ?? "");
+        gate(SOURCE_ENTITLEMENT[source]);
+        const found = (sourceRecords[source] ?? []).find(
+          (entry) => String(entry.id) === String(lookup?.id)
+        );
+        if (found === undefined) return null;
+        return {
+          ...describeSource(source, found),
+          text: found.text === undefined ? undefined : String(found.text),
+          filePaths: (found.filePaths ?? []).map(String),
+          mediaRole: found.mediaRole,
+        };
       },
     },
 

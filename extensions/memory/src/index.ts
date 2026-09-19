@@ -17,6 +17,7 @@ import { forgetNotes } from "./forget.js";
 import MemoryPanel from "./panel.js";
 import { recall } from "./recall.js";
 import { saveToMemory } from "./save.js";
+import { organizeSources } from "./source-memory.js";
 
 const hooks: ExtensionHooks = {
   contextAssembled: recall,
@@ -30,5 +31,8 @@ export default defineExtension({
   hooks,
   actions,
   views: { memory: MemoryPanel },
-  routines: { detectAssistants, importFromAssistant, forgetNotes },
+  // The sources page's own work rides along under `routines`, which the host ignores and
+  // the smoke harness calls by name: organizing a batch needs a folder, an agent reply and
+  // a page of source records, and a scenario can bring all three.
+  routines: { detectAssistants, importFromAssistant, forgetNotes, organizeSources },
 });

@@ -6,17 +6,18 @@ import {
 } from "@atat/api";
 import type { SourceName, SourcePage } from "@atat/api";
 import { organizeSources } from "./source-memory.js";
+import { strings } from "./text.js";
 
 export default function SourcesPage({ onFinished }: { onFinished: () => void }): ReactElement {
-  const isChinese = environment.locale.startsWith("zh");
+  const words = strings(environment.locale);
   const choices: { source: SourceName; title: string }[] = [
-    { source: "favorites", title: isChinese ? "收藏" : "Favorites" },
-    { source: "captures", title: isChinese ? "截图与录屏工程" : "Capture projects" },
-    { source: "clipboard", title: isChinese ? "剪贴板历史" : "Clipboard history" },
+    { source: "favorites", title: words.sourceFavorites },
+    { source: "captures", title: words.sourceCaptures },
+    { source: "clipboard", title: words.sourceClipboard },
   ];
-  return <List emptyTitle={isChinese ? "没有可用的资料" : "No sources available"}>
+  return <List emptyTitle={words.noSources}>
     {choices.map(({ source, title }) => <List.Item key={source} title={title} actions={
-      <ActionPanel><Action.Push title={isChinese ? "查看资料" : "Browse items"}
+      <ActionPanel><Action.Push title={words.browseItems}
         target={<SourceItems source={source} title={title} onFinished={onFinished} />} /></ActionPanel>
     } />)}
   </List>;
@@ -25,7 +26,7 @@ export default function SourcesPage({ onFinished }: { onFinished: () => void }):
 function SourceItems({ source, title, onFinished }: {
   source: SourceName; title: string; onFinished: () => void;
 }): ReactElement {
-  const isChinese = environment.locale.startsWith("zh");
+  const words = strings(environment.locale);
   const [query, setQuery] = useState("");
   const [cursor, setCursor] = useState<string | undefined>();
   const [isOrganizing, setIsOrganizing] = useState(false);
@@ -41,28 +42,23 @@ function SourceItems({ source, title, onFinished }: {
     isBusy.current = true;
     try {
       const isConfirmed = await confirmAlert({
-        title: isChinese ? "把这批资料整理成记忆？" : "Make memories from these items?",
-        message: isChinese
-          ? `将这 ${items.length} 条资料中的文字交给你配置的助手，提炼成笔记。图片会先识别文字，录屏暂不处理。`
-          : `Your configured agent will turn text from ${items.length === 1 ? "this item" : `these ${items.length} items`} into notes. Images use text recognition; videos are skipped.`,
-        primaryAction: { title: isChinese ? "整理" : "Organize" },
+        title: words.organizeTitle,
+        message: words.organizeMessage(items.length),
+        primaryAction: { title: words.organize },
       });
       if (!isConfirmed) return;
       setIsOrganizing(true);
       setOutcome("");
       const result = await organizeSources({ sources, files, agent, ocr, options }, items, environment.locale);
-      setOutcome(isChinese
-        ? `新增 ${result.saved} 条记忆，${result.existing} 条已保存，${result.skipped} 条跳过。`
-        : `${result.saved} saved · ${result.existing} already saved · ${result.skipped} skipped`);
+      setOutcome(words.organizeOutcome(result.saved, result.existing, result.skipped));
       await showToast({
-        title: isChinese ? `新增 ${result.saved} 条记忆` : `${result.saved} memories saved`,
-        message: isChinese ? `${result.existing} 条已整理，${result.skipped} 条无需保存或暂不支持。`
-          : `${result.existing} already saved; ${result.skipped} not retained or unsupported.`,
+        title: words.organizedToastTitle(result.saved),
+        message: words.organizedToastMessage(result.existing, result.skipped),
       });
     } catch (error) {
-      setOutcome((isChinese ? "整理未完成：" : "Couldn’t finish: ") + (error instanceof Error ? error.message : String(error)));
-      await showToast({ title: isChinese ? "整理未完成" : "Couldn't finish organizing",
-        message: error instanceof Error ? error.message : String(error) });
+      const reason = error instanceof Error ? error.message : String(error);
+      setOutcome(words.organizeFailedReason(reason));
+      await showToast({ title: words.organizeFailed, message: reason });
     } finally {
       isBusy.current = false;
       setIsOrganizing(false);
@@ -71,21 +67,20 @@ function SourceItems({ source, title, onFinished }: {
   };
   return <List
     isLoading={page.isLoading || isOrganizing}
-    searchBarPlaceholder={isChinese ? `搜索${title}` : `Search ${title.toLowerCase()}`}
+    searchBarPlaceholder={words.searchSource(title)}
     onSearchTextChange={(text) => { if (!isBusy.current) { setOutcome(""); setCursor(undefined); setQuery(text); } }}
-    emptyTitle={page.error ? (isChinese ? "暂时无法读取资料" : "Couldn't read these items")
-      : isChinese ? "没有找到资料" : "No items found"}
+    emptyTitle={page.error ? words.unreadableItems : words.noItems}
     actions={<ActionPanel>
-      {items.length > 0 && !isOrganizing && <Action title={isChinese ? "整理这一批" : "Organize this batch"} onAction={organize} />}
-      {page.data?.nextCursor && !isOrganizing && <Action title={isChinese ? "下一批" : "Next batch"}
+      {items.length > 0 && !isOrganizing && <Action title={words.organizeBatch} onAction={organize} />}
+      {page.data?.nextCursor && !isOrganizing && <Action title={words.nextBatch}
         onAction={() => { if (!isBusy.current) { setOutcome(""); setCursor(page.data?.nextCursor); } }} />}
-      {cursor && !isOrganizing && <Action title={isChinese ? "回到最新" : "Back to newest"}
+      {cursor && !isOrganizing && <Action title={words.backToNewest}
         onAction={() => { if (!isBusy.current) { setOutcome(""); setCursor(undefined); } }} />}
     </ActionPanel>}
   >
     <List.Section title={outcome || undefined}>
     {items.map((item) => <List.Item key={item.id} title={item.title} subtitle={item.excerpt}
-      actions={<ActionPanel><Action.Push title={isChinese ? "查看摘要" : "View excerpt"}
+      actions={<ActionPanel><Action.Push title={words.viewExcerpt}
         target={<Detail markdown={item.excerpt || item.title} />} /></ActionPanel>} />)}
     </List.Section>
   </List>;

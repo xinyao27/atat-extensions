@@ -3,6 +3,8 @@ import { readConfiguration, inboxDirectory } from "./library.js";
 import {
   buildNote, encodeText, hashOf, isImagePath, joinPath, sanitizeText, stamp, truncate,
 } from "./notes.js";
+import { strings } from "./text.js";
+import type { Strings } from "./text.js";
 
 export type SourceMemoryHost = Pick<HostContext, "sources" | "files" | "agent" | "ocr" | "options">;
 
@@ -29,10 +31,11 @@ export interface OrganizationResult {
 export async function organizeSources(
   host: SourceMemoryHost, records: SourceSummary[], locale: string
 ): Promise<OrganizationResult> {
-  if (records.length > 10) throw new Error(locale.startsWith("zh") ? "每次最多整理 10 条。" : "Choose up to 10 items.");
+  const words = strings(locale);
+  if (records.length > 10) throw new Error(words.tooMany);
   const configuration = readConfiguration(host.options);
   if (!configuration.memoryDirectory) {
-    throw new Error(locale.startsWith("zh") ? "请先选择记忆目录。" : "Choose a memory folder first.");
+    throw new Error(words.noFolder);
   }
   const directory = inboxDirectory(configuration);
   const rootEntries = await host.files.list(configuration.memoryDirectory);
@@ -83,7 +86,7 @@ export async function organizeSources(
     }))),
     { timeoutMs: 90000 }
   );
-  const extracted = parseExtractions(response, prepared, locale);
+  const extracted = parseExtractions(response, prepared, words);
   // Validate the complete answer before writing anything. Deterministic filenames make
   // retrying after a partial write safe, without retaining a shadow copy of raw history.
   for (const entry of prepared) {
@@ -100,18 +103,16 @@ export async function organizeSources(
       app: entry.record.sourceApp,
       media_role: entry.record.mediaRole,
     }, note.facts.map((fact) => "- " + fact).join("\n") + "\n\n" +
-      (locale.startsWith("zh") ? "资料来源：" : "Source: ") +
-      truncate(entry.record.title, 80) + " · " + entry.record.createdAt);
+      words.noteSource(truncate(entry.record.title, 80), entry.record.createdAt));
     await host.files.write(entry.path, { base64: encodeText(content) });
     result.saved++;
   }
   return result;
 }
 
-function parseExtractions(response: string, prepared: Prepared[], locale: string): Map<string, Extraction> {
+function parseExtractions(response: string, prepared: Prepared[], words: Strings): Map<string, Extraction> {
   const fail = (): never => {
-    throw new Error(locale.startsWith("zh")
-      ? "这次没能整理好，请再试一次。" : "Couldn't organize these items. Try again.");
+    throw new Error(words.organizeFailedRetry);
   };
   let value: unknown;
   try { value = JSON.parse(response.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "")); }

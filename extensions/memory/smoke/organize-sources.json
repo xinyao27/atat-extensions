@@ -1,0 +1,51 @@
+{
+  "description": "A batch of favorites becomes one note in the memory folder, with its source kept",
+  "locale": "en",
+  "options": { "memoryFolder": "{folder}" },
+  "sources": {
+    "favorites": [
+      {
+        "id": "fav-1",
+        "title": "Bridge budget",
+        "excerpt": "The bridge budget is 12 tokens.",
+        "text": "The bridge budget is 12 tokens per message. Anything longer is dropped.",
+        "createdAt": "2026-09-18T10:00:00Z",
+        "updatedAt": "2026-09-18T10:00:00Z"
+      }
+    ]
+  },
+  "agent": {
+    "Extract durable": "[{\"key\":\"favorites:fav-1\",\"title\":\"Bridge budget\",\"facts\":[\"The bridge budget is 12 tokens per message.\"]}]"
+  },
+  "call": {
+    "routine": "organizeSources",
+    "args": [
+      [
+        {
+          "source": "favorites",
+          "id": "fav-1",
+          "title": "Bridge budget",
+          "kind": "text",
+          "createdAt": "2026-09-18T10:00:00Z",
+          "updatedAt": "2026-09-18T10:00:00Z",
+          "excerpt": "The bridge budget is 12 tokens."
+        }
+      ],
+      "en"
+    ]
+  },
+  "expect": {
+    "result": { "saved": 1, "existing": 0, "skipped": 0 },
+    "files": [
+      {
+        "path": "inbox/*-atat-*.md",
+        "count": 1,
+        "contains": [
+          "title: Bridge budget",
+          "source: favorites",
+          "Source: Bridge budget"
+        ]
+      }
+    ]
+  }
+}
