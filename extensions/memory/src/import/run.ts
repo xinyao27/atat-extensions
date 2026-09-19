@@ -46,16 +46,16 @@ interface Record_ {
 
 interface Ledger {
   records: Record<string, Record_>;
+  /**
+   * The note files that are really in `inbox/` right now.
+   *
+   * Not part of what is stored: the ledger keeps every record, and this says which of them
+   * still have their note on disk. A record whose note is gone is not "already brought" —
+   * the next press brings it back, and it is written to the name it had so a note deleted in
+   * Finder returns as itself instead of doubling with a new timestamp.
+   */
+  presentFiles: Set<string>;
 }
-
-/**
- * What was read while looking, kept for the press that follows.
- *
- * Finding out whether an assistant has memories means parsing them, and the user's next act
- * is almost always to bring that same assistant over. A panel session is one JavaScript
- * context, so the parse survives exactly as long as the page the user is looking at.
- */
-const parsed = new Map<string, ImportedEntry[]>();
 
 // ------------------------------------------------------------------- what is here
 
@@ -91,11 +91,8 @@ export async function detectAssistants(host: MemoryHost): Promise<AssistantMemor
   return found;
 }
 
-/** Every memory one assistant left here, read once per panel session. */
+/** Read current files on each request; another assistant can edit them while the panel stays open. */
 async function entriesFor(host: MemoryHost, identifier: string): Promise<ImportedEntry[]> {
-  const cached = parsed.get(identifier);
-  if (cached) return cached;
-
   const converter = converterFor(identifier);
   if (!converter) return [];
   let roots: string[] = [];
@@ -117,7 +114,6 @@ async function entriesFor(host: MemoryHost, identifier: string): Promise<Importe
       host.log("could not read what " + identifier + " remembers: " + messageOf(error));
     }
   }
-  parsed.set(identifier, entries);
   return entries;
 }
 
@@ -152,7 +148,10 @@ export async function importFromAssistant(
     const key = keyOf(entry);
     done += 1;
     const known = ledger.records[key];
-    if (known && known.hash === keyHash(entry)) {
+    // Skipped only while the note is still there. A note the user deleted outside AtAt is
+    // brought back rather than counted as already here — and written under its recorded
+    // name, so the memory returns instead of a second copy appearing beside where it was.
+    if (known && known.hash === keyHash(entry) && ledger.presentFiles.has(known.file)) {
       skipped += 1;
       onProgress?.(done, entries.length);
       continue;
@@ -216,17 +215,29 @@ function origin(entry: ImportedEntry): string {
   return hash > 0 ? entry.origin.slice(0, hash) : entry.origin;
 }
 
+function ledgerKey(host: MemoryHost): string {
+  return STORAGE_KEY + ":" + hashOf(readConfiguration(host.options).memoryDirectory);
+}
+
 async function readLedger(host: MemoryHost): Promise<Ledger> {
-  try {
-    const stored = (await host.storage.get(STORAGE_KEY)) as Partial<Ledger> | null;
-    const records = stored?.records;
-    return {
-      records: records && typeof records === "object" ? (records as Ledger["records"]) : {},
-    };
-  } catch (error) {
-    host.log("could not read what was brought over before: " + messageOf(error));
-    return { records: {} };
+  const scoped = (await host.storage.get(ledgerKey(host))) as Partial<Ledger> | null;
+  const stored = scoped ?? (await host.storage.get(STORAGE_KEY)) as Partial<Ledger> | null;
+  const records = stored?.records;
+  if (!records || typeof records !== "object") {
+    return { records: {}, presentFiles: new Set() };
   }
+  const configuration = readConfiguration(host.options);
+  const root = await host.files.list(configuration.memoryDirectory);
+  const entries = root.some((entry) => entry.name === "inbox" && entry.isDirectory)
+    ? await host.files.list(joinPath(configuration.memoryDirectory, "inbox")) : [];
+  const presentFiles = new Set(
+    entries.filter((entry) => !entry.isDirectory).map((entry) => entry.name)
+  );
+  const kept: Ledger["records"] = {};
+  for (const [key, value] of Object.entries(records)) {
+    if (value && typeof value.file === "string") kept[key] = value;
+  }
+  return { records: kept, presentFiles };
 }
 
 async function writeLedger(host: MemoryHost, ledger: Ledger): Promise<void> {
@@ -239,7 +250,7 @@ async function writeLedger(host: MemoryHost, ledger: Ledger): Promise<void> {
     if (record) trimmed[key] = record;
   }
   try {
-    await host.storage.set(STORAGE_KEY, { records: trimmed });
+    await host.storage.set(ledgerKey(host), { records: trimmed });
   } catch (error) {
     host.log("could not remember what was brought over: " + messageOf(error));
   }

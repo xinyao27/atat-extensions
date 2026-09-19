@@ -8,11 +8,16 @@
     "en": "Keeps the things you tell @@ to remember, and brings them back when they fit.",
     "zh-hans": "把你让 @@ 记住的东西存成笔记，用得上的时候再拿出来。"
   },
-  "version": "1.1.0",
+  "version": "1.2.0",
   "apiVersion": 1,
-  "minimumAppVersion": "0.10.0",
+  "minimumAppVersion": "0.10.1",
   "author": "@@",
-  "entitlements": [],
+  "entitlements": [
+    "clipboardRead",
+    "favoritesRead",
+    "capturesRead",
+    "agent"
+  ],
   "options": [
     {
       "identifier": "memoryFolder",
@@ -67,7 +72,9 @@
   "reads": [
     {
       "identifier": "claude-code",
-      "paths": ["~/.claude/projects/*/memory"],
+      "paths": [
+        "~/.claude/projects/*/memory"
+      ],
       "title": {
         "en": "What Claude Code remembers",
         "zh-hans": "Claude Code 记住的东西"
@@ -75,7 +82,9 @@
     },
     {
       "identifier": "codex",
-      "paths": ["~/.codex/memories"],
+      "paths": [
+        "~/.codex/memories"
+      ],
       "title": {
         "en": "What Codex remembers",
         "zh-hans": "Codex 记住的东西"
@@ -83,7 +92,10 @@
     },
     {
       "identifier": "hermes",
-      "paths": ["~/.hermes/memories", "~/.hermes/profiles/*/memories"],
+      "paths": [
+        "~/.hermes/memories",
+        "~/.hermes/profiles/*/memories"
+      ],
       "title": {
         "en": "What Hermes remembers",
         "zh-hans": "Hermes 记住的东西"
@@ -91,7 +103,9 @@
     },
     {
       "identifier": "openclaw",
-      "paths": ["~/.openclaw/workspace"],
+      "paths": [
+        "~/.openclaw/workspace"
+      ],
       "title": {
         "en": "What OpenClaw remembers",
         "zh-hans": "OpenClaw 记住的东西"
@@ -99,7 +113,9 @@
     },
     {
       "identifier": "gemini-cli",
-      "paths": ["~/.gemini/tmp/*/memory"],
+      "paths": [
+        "~/.gemini/tmp/*/memory"
+      ],
       "title": {
         "en": "What Gemini CLI remembers",
         "zh-hans": "Gemini CLI 记住的东西"
@@ -107,7 +123,10 @@
     },
     {
       "identifier": "qwen-code",
-      "paths": ["~/.qwen/memories", "~/.qwen/projects/*/memory"],
+      "paths": [
+        "~/.qwen/memories",
+        "~/.qwen/projects/*/memory"
+      ],
       "title": {
         "en": "What Qwen Code remembers",
         "zh-hans": "Qwen Code 记住的东西"
@@ -115,7 +134,10 @@
     },
     {
       "identifier": "trae",
-      "paths": ["~/.trae/memory", "~/.trae-cn/memory"],
+      "paths": [
+        "~/.trae/memory",
+        "~/.trae-cn/memory"
+      ],
       "title": {
         "en": "What Trae remembers",
         "zh-hans": "Trae 记住的东西"
@@ -123,7 +145,9 @@
     },
     {
       "identifier": "goose",
-      "paths": ["~/.config/goose/memory"],
+      "paths": [
+        "~/.config/goose/memory"
+      ],
       "title": {
         "en": "What Goose remembers",
         "zh-hans": "Goose 记住的东西"

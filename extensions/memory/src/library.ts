@@ -68,7 +68,8 @@ export function sourceForSurface(surface: string): string {
 /** The row glyph for a note, by where it came from. Host icon names, not files. */
 export function iconForSource(source: string): string {
   if (source === "clipboard") return "clipboard";
-  if (source === "capture") return "camera01";
+  if (source === "capture" || source === "captures") return "camera01";
+  if (source === "favorites") return "bookmark";
   if (source === "phone") return "share08";
   if (source === "selection") return "text";
   // Everything brought over from another assistant shares one glyph; the row's subtitle is

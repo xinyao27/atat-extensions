@@ -10,6 +10,7 @@
 // the right is when. Clicking it opens the note. Nothing here shows a path.
 
 import { useState } from "react";
+import SourcesPage from "./sources-page.js";
 import type { ReactElement } from "react";
 import {
   Action,
@@ -144,7 +145,7 @@ async function search(
 ): Promise<PanelData> {
   let hits: { path: string; snippet: string; score: number }[] = [];
   try {
-    hits = await files.search(configuration.memoryDirectory, query, { limit: SEARCH_LIMIT });
+    hits = await files.search(configuration.memoryDirectory, query, { limit: SEARCH_LIMIT, mode: "keyword" });
   } catch (error) {
     // An index that is still building is not a broken panel. No result reads better here
     // than an error a user can do nothing about.
@@ -156,21 +157,13 @@ async function search(
     const path = String(hit?.path ?? "");
     if (!isGranted(configuration, path) || seen[path]) continue;
     seen[path] = true;
-    const snippet = truncate(flatten(String(hit?.snippet ?? "")), EXCERPT_LIMIT);
+    const rawSnippet = String(hit?.snippet ?? "");
+    const isMetadata = /(^---|\b(?:source_id|source_updated|source_title|title|date):)/m.test(rawSnippet.trim());
+    const snippet = isMetadata ? "" : truncate(flatten(rawSnippet), EXCERPT_LIMIT);
     const content = await read(path);
-    rows.push(
-      content === null
-        ? {
-            path,
-            title: stem(basename(path)),
-            excerpt: snippet,
-            when: "",
-            icon: "note",
-            from: "",
-            origin: "",
-          }
-        : rowFor(path, content, snippet, words)
-    );
+    // The index can briefly retain a file after it was forgotten or moved.
+    if (content === null) continue;
+    rows.push(rowFor(path, content, snippet, words));
   }
   return { rows, mode: "search", truncated: false };
 }
@@ -393,6 +386,10 @@ export default function MemoryPanel(): ReactElement {
       }
       actions={
         <ActionPanel>
+          <Action
+            title={environment.locale.startsWith("zh") ? "整理 AtAt 资料" : "Organize AtAt items"}
+            onAction={() => navigation.push(<SourcesPage onFinished={() => state.revalidate()} />)}
+          />
           <Action
             title={words.otherAssistants}
             onAction={() =>

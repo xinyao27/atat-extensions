@@ -11,7 +11,7 @@
     "codex"
   ],
   "releaseNotes": {
-    "en": "Memory now keeps only what you saved on purpose, and can bring over what Claude Code, Codex, Hermes, OpenClaw, Gemini CLI, Qwen Code, Trae or Goose already remembers about you.",
-    "zh-hans": "记忆现在只收你主动存的东西；还能把 Claude Code、Codex、Hermes、OpenClaw、Gemini CLI、Qwen Code、Trae、Goose 记住的东西一次带过来。"
+    "en": "Turn saved clipboard items, favorites and image text into notes with your agent.",
+    "zh-hans": "用你配置的助手，把剪贴板历史、收藏和图片里的文字整理成记忆。"
   }
 }

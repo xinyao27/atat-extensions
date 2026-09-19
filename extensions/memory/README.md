@@ -3,8 +3,9 @@
 Memory keeps the things you tell @@ to remember, and brings them back when they fit what you
 are asking. The folder is yours: plain markdown files, on your Mac, readable in any editor.
 
-Installing it takes one confirmation. There is nothing to configure, no service to run and
-no account to make. It never uses the network.
+Installing it asks you to allow access to saved items and your configured agent. No extra
+service or account is needed. Recall stays local; organizing a batch uses your agent and
+may send text to its provider after you confirm.
 
 ## What it does
 
@@ -14,8 +15,8 @@ copied into the folder with the words in it written out beside it, so you can fi
 picture by what it says. A Shortcut on your phone writes into the same folder, which is why
 the folder starts inside iCloud Drive.
 
-Nothing else is recorded. What you asked @@ and what came back belongs to History, and a
-memory is only ever something you decided to keep.
+You can also choose saved AtAt items to organize into notes. Questions and answers remain
+in History; Memory does not automatically transcribe your conversations.
 
 **Brings notes back.** Before a question goes out, Memory looks through your folder and
 attaches up to five notes that fit. Each one shows up as a pill you can delete before you
@@ -104,3 +105,20 @@ pnpm verify
 
 `src/` is TypeScript and TSX; CI rebuilds the single-file `main.js` bundle AtAt evaluates, with
 `react` and `@atat/api` left external because the host supplies both.
+
+## Organize AtAt items
+
+Requires AtAt 0.10.1 or newer. In Memory, choose **Organize AtAt items**, then Favorites,
+Capture projects, or Clipboard history. Search or browse ten items at a time and choose
+**Organize this batch**. Confirm to let your configured agent turn their text into short notes.
+Images use text recognition; video and unreadable content are skipped.
+
+Each note retains its source and date and joins the same recall and Forget flow. Repeating the
+same batch skips notes already saved. Forgetting a note lets you organize its source again.
+Deleting a source item does not delete an already saved note. There is no background collection.
+
+The extension requests access to the three saved sources and permission to ask your agent.
+Text is sent only when you confirm a batch, using the agent you configured, which may be a
+hosted service. Each item contributes at most 2,400 characters and three recognized images;
+notes contain at most three short statements. Capture projects provide source media, not
+rendered edits. No raw history archive is copied into your memory folder.
