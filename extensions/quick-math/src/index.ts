@@ -2,7 +2,7 @@
 //
 // Two actions: work out an expression, or add up every number in a selection. The
 // evaluator is a small recursive-descent parser — numbers, + - * / ^, unary signs,
-// parentheses, a trailing % and "of" — because the Store forbids eval and a model is the
+// parentheses, a trailing % and "of" — because the directory forbids eval and a model is the
 // wrong tool for arithmetic that has to be exact.
 
 import { defineExtension } from "@atat/api";

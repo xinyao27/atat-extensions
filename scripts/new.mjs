@@ -42,7 +42,7 @@ if (!identifier || identifier === "--help") {
     [
       "usage: pnpm new <identifier>",
       "",
-      "Creates extensions/<identifier>/ with a valid manifest, Store metadata, an entry",
+      "Creates extensions/<identifier>/ with a valid manifest, listing metadata, an entry",
       "point and a README. The identifier is the directory name and the extension's id:",
       "lowercase letters, digits and hyphens, 1–64 characters.",
       "",
@@ -80,7 +80,7 @@ const manifest = {
   author: "@@",
 };
 
-const storeMetadata = {
+const listingMetadata = {
   category: "utilities",
   keywords: [identifier.slice(0, 32)],
   releaseNotes: { en: "Initial release.", "zh-hans": "首个版本。" },
@@ -114,7 +114,7 @@ needed. A extension with no entitlements says so — that is the interesting fac
 
 await mkdir(join(directory, "src"), { recursive: true });
 await writeFile(join(directory, "extension.json"), `${JSON.stringify(manifest, null, 2)}\n`);
-await writeFile(join(directory, "store.json"), `${JSON.stringify(storeMetadata, null, 2)}\n`);
+await writeFile(join(directory, "listing.json"), `${JSON.stringify(listingMetadata, null, 2)}\n`);
 await writeFile(join(directory, "src", "index.ts"), entryPoint);
 await writeFile(join(directory, "README.md"), readme);
 
@@ -122,7 +122,7 @@ process.stdout.write(
   [
     `Created extensions/${identifier}/`,
     "  extension.json   manifest — declare hooks, actions, options and views here",
-    "  store.json    Store category, keywords and release notes",
+    "  listing.json  category, keywords and release notes",
     "  src/index.ts  the entry point, one member per declaration",
     "  README.md     what it does and what it touches",
     "",

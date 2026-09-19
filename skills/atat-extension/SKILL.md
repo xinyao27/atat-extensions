@@ -404,10 +404,11 @@ When a extension misbehaves, the shape of the symptom names the cause:
 **Done when** the extension's own log line for the request's scenario appears in the stream, and
 what the user sees in AtAt is what the request asked for.
 
-## Step 8 — Store metadata, README, and the review checklist
+## Step 8 — Listing metadata, README, and the review checklist
 
-`store.json` carries the Store listing: one `category` from the set `scripts/validate.mjs`
-allows, 1–12 lowercase keywords, and `releaseNotes` in both languages describing *this* version.
+`listing.json` carries the directory listing: one `category` from the set
+`scripts/validate.mjs` allows, 1–12 lowercase keywords, and `releaseNotes` in both languages
+describing *this* version.
 `README.md` says what the extension does and what it touches — a extension is a manifest, a bundle and
 its documentation, and a package never asks a user to run a script.
 
@@ -421,7 +422,7 @@ Before opening the pull request, check `REVIEW_POLICY.md` against the change:
       explained in the pull request
 - [ ] `pnpm verify` and `pnpm smoke <identifier>` pass
 - [ ] the commit carries source only — no `main.js`, no archive; a maintainer dispatches
-      `.github/workflows/release.yml`, which packages every extension on `main` and publishes the Store release
+      `.github/workflows/release.yml`, which packages every extension on `main` and publishes the extensions release
 
 **Done when** every box is checked and `pnpm verify` is clean on the branch.
 

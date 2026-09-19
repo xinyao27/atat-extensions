@@ -5,7 +5,7 @@
 // file that assigns to `exports`, and `react` / `@atat/api` stay external because the host
 // vendors both and pins their versions.
 //
-// Products are generated and checked in CI. Store artifacts are never assembled from a
+// Products are generated and checked in CI. Release artifacts are never assembled from a
 // contributor's prebuilt JavaScript.
 
 import { readdir, readFile, stat, writeFile } from "node:fs/promises";

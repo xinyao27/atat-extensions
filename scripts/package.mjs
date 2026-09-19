@@ -9,8 +9,8 @@ const DIST = join(ROOT, "dist");
 const ARTIFACTS = join(DIST, "artifacts");
 const NORMALIZED_DATE = new Date("1980-01-01T00:00:00.000Z");
 /// Where the release workflow publishes every artifact: one rolling GitHub Release, tagged
-/// `store`, so the app has one stable URL for the catalog and one per archive.
-const STORE_DOWNLOAD_BASE = "https://github.com/xinyao27/atat-extensions/releases/download/store";
+/// `extensions`, so the app has one stable URL for the catalog and one per archive.
+const EXTENSIONS_DOWNLOAD_BASE = "https://github.com/xinyao27/atat-extensions/releases/download/extensions";
 const requested = process.argv.slice(2);
 const identifiers = requested.length > 0
   ? requested.map((identifier) => basename(identifier))
@@ -53,7 +53,7 @@ try {
   for (const identifier of identifiers) {
     const source = join(EXTENSIONS, identifier);
     const manifest = JSON.parse(await readFile(join(source, "extension.json"), "utf8"));
-    const store = JSON.parse(await readFile(join(source, "store.json"), "utf8"));
+    const listing = JSON.parse(await readFile(join(source, "listing.json"), "utf8"));
     const packageName = identifier;
     const stagingRoot = join(DIST, "staging");
     const packageDirectory = join(stagingRoot, packageName);
@@ -98,6 +98,17 @@ try {
     } catch (error) {
       if (error.code !== "ENOENT") throw error;
     }
+    // The same mark alone, black on nothing, for the website: its directory draws the
+    // extension's glyph in its own icon language rather than the app's coloured tile.
+    // Optional — a submission without one keeps the tile everywhere.
+    let glyph = null;
+    try {
+      const glyphBytes = await readFile(join(source, "glyph.png"));
+      if (glyphBytes.length > 128 * 1024) throw new Error(`${identifier}: glyph.png exceeds 128 KB`);
+      glyph = `data:image/png;base64,${glyphBytes.toString("base64")}`;
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+    }
     extensions.push({
       identifier,
       version: manifest.version,
@@ -110,11 +121,12 @@ try {
         name: manifest.name,
         description: manifest.description,
         author: manifest.author ?? null,
-        category: store.category,
-        keywords: store.keywords,
-        releaseNotes: store.releaseNotes,
+        category: listing.category,
+        keywords: listing.keywords,
+        releaseNotes: listing.releaseNotes,
       },
       icon,
+      glyph,
       actions: (manifest.actions ?? []).map((action) => ({
         identifier: action.identifier,
         title: action.title,
@@ -124,7 +136,7 @@ try {
       readme,
       artifact: {
         fileName: archiveName,
-        url: `${STORE_DOWNLOAD_BASE}/${archiveName}`,
+        url: `${EXTENSIONS_DOWNLOAD_BASE}/${archiveName}`,
         sha256,
         bytes,
       },

@@ -1,6 +1,6 @@
 # AtAt Extensions
 
-The official directory of AtAt extensions — and the Store the app's Extensions pane reads from.
+The official directory of AtAt extensions — and the release the app's Extensions pane reads from.
 Maintained the way Raycast maintains its extensions: one monorepo, one directory per extension,
 contributions by pull request.
 
@@ -10,10 +10,11 @@ contributions by pull request.
 extensions/
   <identifier>/          # one extension per directory, named by its identifier
     extension.json          # manifest (required)
-    store.json           # category, keywords, and release notes
+    listing.json         # category, keywords, and release notes
     src/                 # TypeScript / TSX sources
     main.js              # build output; ignored and removed after verification
-    icon.png             # 256×256 (optional)
+    icon.png             # 256×256 (optional) — the app's tile
+    glyph.png            # 256×256 (optional) — the same mark alone, black on nothing, for the website
     README.md
     smoke/               # fake-host scenarios, run by `pnpm smoke <identifier>`
 scripts/build.mjs        # the builder, `atat extension build` in prototype form
@@ -38,10 +39,10 @@ pnpm package             # what the release publishes, under dist/artifacts
 
 `main.js` is always rebuilt from reviewed source; pull requests never supply a bundle.
 
-## The Store
+## The release
 
 Every push to `main` runs `pnpm package` and publishes the result to one rolling GitHub
-Release tagged **`store`**: a `catalog.json` naming every extension, and one
+Release tagged **`extensions`**: a `catalog.json` naming every extension, and one
 `<identifier>-<version>.atatextension` per extension. AtAt's Settings → Extensions pane reads that
 catalog, shows what is available, and installs an archive by downloading it and checking its
 SHA-256 against the catalog. Everything is free; there is no server behind it but GitHub.

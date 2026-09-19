@@ -1,7 +1,7 @@
-# Publishes the Store: every extension on main, packaged deterministically, on one rolling
-# GitHub Release tagged `store`. The app reads `catalog.json` from that release and downloads
-# each `.atatextension` from the URL the catalog names, so the release is the Store and nothing
-# else has to run anywhere.
+# Publishes the extensions release: every extension on main, packaged deterministically, on one
+# rolling GitHub Release tagged `extensions`. The app reads `catalog.json` from that release and
+# downloads each `.atatextension` from the URL the catalog names, so the release is the directory
+# and nothing else has to run anywhere.
 name: Release
 
 on:
@@ -13,7 +13,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: store-release
+  group: extensions-release
   cancel-in-progress: false
 
 jobs:
@@ -28,12 +28,12 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm package
-      - name: Publish to the store release
+      - name: Publish to the extensions release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if ! gh release view store >/dev/null 2>&1; then
-            gh release create store --title "Store" \
+          if ! gh release view extensions >/dev/null 2>&1; then
+            gh release create extensions --title "Extensions" \
               --notes "The extensions the app's Extensions pane offers. Rewritten on every push to main."
           fi
-          gh release upload store dist/artifacts/* --clobber
+          gh release upload extensions dist/artifacts/* --clobber

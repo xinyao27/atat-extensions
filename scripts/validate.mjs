@@ -60,7 +60,7 @@ const ROOT_FIELDS = new Set([
   "panels",
   "reads",
 ]);
-const STORE_CATEGORIES = new Set([
+const LISTING_CATEGORIES = new Set([
   "productivity",
   "writing",
   "developer-tools",
@@ -68,7 +68,7 @@ const STORE_CATEGORIES = new Set([
   "clipboard",
   "utilities",
 ]);
-const STORE_FIELDS = new Set(["category", "keywords", "releaseNotes"]);
+const LISTING_FIELDS = new Set(["category", "keywords", "releaseNotes"]);
 const LOCALES = new Set(["en", "zh-hans"]);
 
 function fail(message) {
@@ -389,17 +389,17 @@ function validateManifest(manifest, directoryName) {
   return { identifier, version };
 }
 
-function validateStoreMetadata(value, identifier) {
-  const metadata = object(value, `${identifier}/store.json`);
+function validateListingMetadata(value, identifier) {
+  const metadata = object(value, `${identifier}/listing.json`);
   for (const key of Object.keys(metadata)) {
-    if (!STORE_FIELDS.has(key)) fail(`${identifier}: unsupported Store field ${key}`);
+    if (!LISTING_FIELDS.has(key)) fail(`${identifier}: unsupported listing field ${key}`);
   }
-  const category = string(metadata.category, `${identifier}.store.category`);
-  if (!STORE_CATEGORIES.has(category)) fail(`${identifier}: unsupported Store category ${category}`);
-  const keywords = uniqueStrings(metadata.keywords, `${identifier}.store.keywords`);
-  if (keywords.length === 0 || keywords.length > 12) fail(`${identifier}: Store keywords must contain 1–12 values`);
-  for (const keyword of keywords) if (keyword !== keyword.toLowerCase() || keyword.length > 32) fail(`${identifier}: Store keywords must be lowercase and at most 32 characters`);
-  localizable(metadata.releaseNotes, `${identifier}.store.releaseNotes`);
+  const category = string(metadata.category, `${identifier}.listing.category`);
+  if (!LISTING_CATEGORIES.has(category)) fail(`${identifier}: unsupported listing category ${category}`);
+  const keywords = uniqueStrings(metadata.keywords, `${identifier}.listing.keywords`);
+  if (keywords.length === 0 || keywords.length > 12) fail(`${identifier}: listing keywords must contain 1–12 values`);
+  for (const keyword of keywords) if (keyword !== keyword.toLowerCase() || keyword.length > 32) fail(`${identifier}: listing keywords must be lowercase and at most 32 characters`);
+  localizable(metadata.releaseNotes, `${identifier}.listing.releaseNotes`);
 }
 
 async function rejectUnsafeEntries(directory, relative = "") {
@@ -415,7 +415,7 @@ async function rejectUnsafeEntries(directory, relative = "") {
       if (/\.(?:[cm]?[jt]sx?)$/.test(entry.name)) {
         const source = await readFile(path, "utf8");
         if (/(?:\beval\s*\(|\bnew\s+Function\s*\(|\bFunction\s*\(|\bimport\s*\(|\bWebAssembly\s*\.)/.test(source)) {
-          fail(`${label}: Store source cannot evaluate or import code at runtime`);
+          fail(`${label}: a directory source cannot evaluate or import code at runtime`);
         }
       }
     }
@@ -428,8 +428,8 @@ for (const identifier of identifiers) {
   const directory = join(EXTENSIONS, basename(identifier));
   const manifest = JSON.parse(await readFile(join(directory, "extension.json"), "utf8"));
   const result = validateManifest(manifest, basename(directory));
-  const storeMetadata = JSON.parse(await readFile(join(directory, "store.json"), "utf8"));
-  validateStoreMetadata(storeMetadata, result.identifier);
+  const listingMetadata = JSON.parse(await readFile(join(directory, "listing.json"), "utf8"));
+  validateListingMetadata(listingMetadata, result.identifier);
   await rejectUnsafeEntries(directory, result.identifier);
-  process.stdout.write(`Valid ${result.identifier} ${result.version} (API 1, free Store policy)\n`);
+  process.stdout.write(`Valid ${result.identifier} ${result.version} (API 1, free extension policy)\n`);
 }

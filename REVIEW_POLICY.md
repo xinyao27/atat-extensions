@@ -10,7 +10,7 @@ and an icon — and the repository owns the toolchain, not the author.
 - `extension.json` — with `entitlements`, `networkHosts`, `reads`, options, hooks and action
   surfaces exactly the ones the code uses. Zero entitlements is the strong position.
 - `src/` and one smoke scenario per hook and action.
-- `store.json` — one category, 1–12 lowercase keywords, and release notes for this version
+- `listing.json` — one category, 1–12 lowercase keywords, and release notes for this version
   in English and Simplified Chinese.
 - `README.md` — what the extension does and what it touches.
 - `icon.png` — a 256×256 PNG, at most 128 KB.
@@ -21,7 +21,7 @@ and an icon — and the repository owns the toolchain, not the author.
 
 ## Nothing a submission carries
 
-- `main.js` or a built archive: CI builds from source and publishes the Store release.
+- `main.js` or a built archive: CI builds from source and publishes the extensions release.
 - A lint, format or editor configuration of the author's own, or hunks that only reformat
   code. Code standards belong to the repository — VitePlus for format and lint,
   `pnpm typecheck` for types — not to a submission.
@@ -30,18 +30,19 @@ and an icon — and the repository owns the toolchain, not the author.
 
 ## Suggested, never required
 
-Screenshots of the extension in use, more than one scenario per action, a longer README.
-A submission is complete without them.
+Screenshots of the extension in use, more than one scenario per action, a longer README, and
+a `glyph.png` — the mark alone, black on nothing, for the website's directory. A submission
+is complete without them.
 
 ## What the listing shows
 
 | The submission | Where the user meets it |
 |---|---|
-| icon, name, one-line description | the store row and the listing header |
+| icon, name, one-line description | the extensions row and the listing header |
 | `author` | the listing's "by …" line |
 | action titles and surfaces, hooks, entitlements, `reads` | the listing's "Affects" section — the same sentences the install dialog uses |
 | `README.md` | the listing's "About" section |
-| category and keywords | the store's filter and search |
+| category and keywords | the directory's filter and search |
 | release notes | the update prompt |
 
 ## What sends a submission back
