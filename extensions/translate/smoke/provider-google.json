@@ -1,0 +1,22 @@
+{
+  "description": "Google Translate turns the text into Chinese with no key at all",
+  "locale": "en",
+  "options": { "useGoogle": true },
+  "fetch": {
+    "translate.googleapis.com": {
+      "json": [[["你好，世界", "Hello world", null, null, 10]], null, "en"]
+    }
+  },
+  "call": {
+    "routine": "translate",
+    "args": ["google", "Hello world", "zh-Hans"]
+  },
+  "expect": {
+    "result": {
+      "source": "Hello world",
+      "translation": "你好，世界",
+      "language": "zh-Hans",
+      "instruction": null
+    }
+  }
+}

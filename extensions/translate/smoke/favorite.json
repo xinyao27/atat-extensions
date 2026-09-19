@@ -1,0 +1,13 @@
+{
+  "description": "Favoriting a translation puts it in Clipboard Favorites",
+  "locale": "en",
+  "options": { "useAgent": true },
+  "call": {
+    "routine": "favorite",
+    "args": ["你好，世界"]
+  },
+  "expect": {
+    "result": null,
+    "favorites": ["你好，世界"]
+  }
+}

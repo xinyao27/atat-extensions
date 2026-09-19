@@ -59,7 +59,8 @@ function verifyExports(identifier, definition, manifest) {
     }
   }
   for (const action of manifest.actions ?? []) {
-    if (action.url) continue;
+    // A URL template and a view both run without a JS action handler; neither may export one.
+    if (action.url || action.view) continue;
     if (typeof definition.actions?.[action.identifier] !== "function") {
       throw new Error(`${identifier}: missing exported action ${action.identifier}`);
     }
@@ -67,6 +68,16 @@ function verifyExports(identifier, definition, manifest) {
   for (const view of manifest.views ?? []) {
     if (typeof definition.views?.[view.identifier] !== "function") {
       throw new Error(`${identifier}: missing exported view ${view.identifier}`);
+    }
+  }
+  // The host refuses to mount a view whose name is also an action handler, because "does the
+  // click run the handler or open the view?" would have no single answer. The check is on the
+  // view's name — the same lookup the runtime blob does at mount — so checked here so the
+  // mistake fails CI instead of a user's install.
+  for (const action of manifest.actions ?? []) {
+    if (!action.view) continue;
+    if (typeof definition.actions?.[action.view] === "function") {
+      throw new Error(`${identifier}: action ${action.identifier} opens the view ${action.view} and must not also export a handler with that name`);
     }
   }
 }

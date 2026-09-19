@@ -1,0 +1,20 @@
+{
+  "description": "A pinned source language reaches Google as sl, not as auto",
+  "locale": "en",
+  "options": { "useGoogle": true },
+  "fetch": {
+    "https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh-CN&dt=t&q=Hello%20world": {
+      "json": [[["你好，世界", "Hello world", null, null, 10]], null, "en"]
+    }
+  },
+  "call": {
+    "routine": "translate",
+    "args": ["google", "Hello world", "zh-Hans", "en"]
+  },
+  "expect": {
+    "result": {
+      "translation": "你好，世界",
+      "language": "zh-Hans"
+    }
+  }
+}

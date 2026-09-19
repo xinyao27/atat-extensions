@@ -9,39 +9,6 @@ declare module "@atat/api" {
 
   // ------------------------------------------------------------- components
 
-  export type ExtensionViewSpacing = "none" | "xs" | "sm" | "md" | "lg" | "xl";
-  export type ExtensionViewAlignment = "leading" | "center" | "trailing";
-
-  export interface StackProps {
-    children?: ReactNode;
-    spacing?: ExtensionViewSpacing;
-    alignment?: ExtensionViewAlignment;
-  }
-
-  export const Stack: (props: StackProps) => ReactElement;
-  export const HStack: (props: StackProps) => ReactElement;
-
-  export interface TextProps {
-    children?: string | number;
-    style?: "title" | "heading" | "body" | "caption" | "label";
-    emphasis?: "primary" | "secondary" | "tertiary";
-    lineLimit?: 1 | 2 | 3 | 4 | 5 | 6;
-  }
-
-  export const Text: (props: TextProps) => ReactElement;
-
-  export interface ButtonProps {
-    title: string;
-    icon?: string;
-    style?: "primary" | "secondary" | "plain";
-    onAction?: () => void;
-  }
-
-  export const Button: (props: ButtonProps) => ReactElement;
-  export const Divider: (props: Record<string, never>) => ReactElement;
-  export const ScrollView: (props: { children?: ReactNode }) => ReactElement;
-  export const Markdown: (props: { markdown: string }) => ReactElement;
-
   /**
    * What the window's title bar calls this page.
    *
@@ -69,13 +36,14 @@ declare module "@atat/api" {
      */
     actions?: ReactNode;
     /**
-     * The actions a selection of rows can be put through — and the thing that makes a list
-     * selectable at all. The host owns the whole selection, and there is no selection mode to
-     * enter: a circle appears in front of the row under the pointer, ⌘-click and ⇧-click and
-     * ⌘A do what they do everywhere else, and once anything is selected a small floating bar
-     * at the foot of the list carries these actions with the count. Each `<Action>` in here is
-     * handed the `id` of every selected row, and the host clears the selection and reloads the
-     * list once the action's promise settles.
+     * What can be done to several rows at once, which is also what makes the list selectable:
+     * a list without this one prop cannot be selected at all.
+     *
+     * The host owns the whole of selection — the circles, the range that ⇧-click covers, ⌘A,
+     * the bar that floats up at the bottom while something is selected — and each `<Action>`
+     * here is one of the buttons in that bar, in the order written. What reaches the handler
+     * is the `id` of every selected row: `onAction={(ids) => …}`. A `destructive` one still
+     * confirms itself with `confirmAlert`, and should say how many rows it is about.
      */
     selection?: ReactNode;
   }
@@ -91,13 +59,22 @@ declare module "@atat/api" {
   }
 
   export interface ListItemProps {
-    /** What a selection reports this row as. Defaults to the row's `key`. */
+    /**
+     * What this row is, in the extension's own terms — the one a batch action gets back.
+     * Falls back to the row's React `key`, so `key={memory.id}` alone is usually enough.
+     */
     id?: string;
     title: string;
+    /** One line. Anything longer is truncated rather than wrapped. */
     subtitle?: string;
+    /** Only the first one is drawn: a row ends in one piece of trailing text, not a table. */
     accessories?: ListAccessory[];
-    /** A file name inside the extension package. */
+    /** An @@ icon name (`clipboard`, `camera01`), or a file name inside the extension package. */
     icon?: string;
+    /**
+     * The first `Action.Push` runs on a click anywhere in the row; everything else lives in
+     * the row's ••• menu.
+     */
     actions?: ReactElement;
   }
 
@@ -115,6 +92,85 @@ declare module "@atat/api" {
   }
 
   export const Detail: (props: DetailProps) => ReactElement;
+
+  /**
+   * The generic page root: a vertical stack of sections and text, with the mount's actions
+   * in its action area. A view opened from an action — the translation window is the first —
+   * is written against this rather than against a list or a form.
+   *
+   * `isLoading` adds a progress indicator without unmounting what is already there, so the
+   * original text and the controls that produced the request stay on screen while it runs.
+   * `error` replaces the result area with a sentence of the extension's own and offers
+   * `onRetry`; a network failure handled this way is a state of the view, not a broken
+   * panel.
+   */
+  export interface PanelProps extends NavigationTitleProps {
+    children?: ReactNode;
+    isLoading?: boolean;
+    /** A readable sentence, never a provider's raw error body. */
+    error?: string;
+    onRetry?: () => void;
+    /** Drawn at the bottom of a floating view; in Settings, at the end of the title bar. */
+    actions?: ReactElement;
+  }
+
+  export interface PanelSectionProps {
+    title?: string;
+    /**
+     * A glyph before the title: an @@ icon name, or a file name inside the package. The
+     * same resolution an action's `icon` gets, so one section per service can wear the
+     * service's mark.
+     */
+    icon?: string;
+    /**
+     * Drawn at the trailing end of the section's title line, because they act on the section
+     * rather than on the page — copying the result beside the result.
+     */
+    actions?: ReactNode;
+    children?: ReactNode;
+  }
+
+  export interface PanelControlsProps {
+    /**
+     * The parameters the request needs, in the order written. A `Form.Dropdown` here draws
+     * as a compact control rather than a settings row: the value and a chevron, no label
+     * column.
+     */
+    children?: ReactNode;
+    /** The primary action of the row, at its trailing end. */
+    actions?: ReactNode;
+  }
+
+  export interface PanelPromptProps {
+    placeholder?: string;
+    /**
+     * What the field holds. The host keeps a draft while the user types and syncs it when
+     * this prop changes, so a view that submitted its text writes `""` back to clear it.
+     */
+    value?: string;
+    /** Receives the typed text on Return or the submit button. */
+    onSubmit?: (text: string) => void;
+  }
+
+  export const Panel: {
+    (props: PanelProps): ReactElement;
+    /** A group with an optional title. It does not scroll on its own. */
+    Section: (props: PanelSectionProps) => ReactElement;
+    /** Plain text. Line breaks are kept; nothing is interpreted. */
+    Text: (props: { text: string }) => ReactElement;
+    /** Markdown through @@'s own renderer. Remote images show their alt text only. */
+    Markdown: (props: { markdown: string }) => ReactElement;
+    /**
+     * The row of parameters that belongs with the content: a compact `Form.Dropdown`, an
+     * icon button, and the row's own `actions` at the trailing end.
+     */
+    Controls: (props: PanelControlsProps) => ReactElement;
+    /**
+     * The input pinned at the bottom of a floating view while the content scrolls: what the
+     * user wants changed, not a second form. `onSubmit` gets the typed text.
+     */
+    Prompt: (props: PanelPromptProps) => ReactElement;
+  };
 
   export interface FormProps extends NavigationTitleProps {
     children?: ReactNode;
@@ -186,11 +242,12 @@ declare module "@atat/api" {
     confirmTitle?: string;
     confirmMessage?: string;
     /**
-     * A batch action inside `<List selection>` is handed the selected rows' ids; anywhere
-     * else it is handed nothing. Return a promise and the host waits for it before leaving
-     * selection mode.
+     * Inside a `<List selection>` panel the handler is called with the ids of the selected
+     * rows, and the host clears the selection once the promise it returns settles — so an
+     * `async` handler keeps the selection while it works. Everywhere else it is called with
+     * nothing.
      */
-    onAction?: (ids?: string[]) => void | Promise<void>;
+    onAction?: (ids: string[]) => void | Promise<void>;
   }
 
   export const Action: {
@@ -216,7 +273,41 @@ declare module "@atat/api" {
       content: string;
       label?: string;
     }) => ReactElement;
+    /**
+     * Writes the content back into the selection the view was opened from. Only exists
+     * where there is a selection to write into: in a Settings panel or a clipboard entry
+     * the host does not show it. The click is handled natively — nothing crosses the
+     * bridge — and the host re-validates the original selection before anything is typed.
+     */
+    ReplaceSelection: (props: {
+      title: string;
+      icon?: string;
+      content: string;
+    }) => ReactElement;
   };
+
+  // ------------------------------------------------------------- view props
+
+  /** What an action is handed when the user clicks it. The same shape a hook sees. */
+  export interface ActionInput {
+    surface: string;
+    text?: string;
+    filePaths?: string[];
+    sourceBundleID?: string;
+    regexMatches?: string[];
+    modifiers: string[];
+  }
+
+  /**
+   * The props every view component receives, whatever opened it. `input` is a read-only
+   * snapshot — frozen, and never updated while the view is open — and `entry` names the
+   * place that opened it (`"settings"`, `"selectionBar"`, `"clipboardHistory"`,
+   * `"captureQuickAccess"`). A component that needs no input can ignore both.
+   */
+  export interface ViewProps<Input = unknown> {
+    readonly input: Readonly<Input>;
+    readonly entry: string;
+  }
 
   // ------------------------------------------------------------------ hooks
 
@@ -265,22 +356,21 @@ declare module "@atat/api" {
       dirPath: string
     ): Promise<{ name: string; isDirectory: boolean; modifiedAt?: string }[]>;
     /**
-     * Moves the file to the Trash, which is the only undo a delete has. `trashed` is false
-     * when the file could not go there and was deleted outright — say so before promising a
-     * user they can get it back.
+     * Moves the file to the Trash, so a batch delete has a way back. `trashed` is false on
+     * the systems where that cannot be done and the file was deleted outright.
      */
     remove(path: string): Promise<{ trashed: boolean }>;
     /**
-     * The directories one `reads` declaration found on this Mac, wildcards expanded and
-     * anything absent left out. An empty array is how a extension learns the other app is not
-     * installed, without listing the folder above it.
+     * The directories one `reads` declaration resolved to on this Mac: absolute, wildcards
+     * expanded, and only the ones that are really there. An empty array means the other app
+     * has left nothing here; an identifier the manifest never declared is rejected.
      */
     roots(identifier: string): Promise<string[]>;
-    /** The host's index over a granted directory. Same call a hook's `ctx.files` has. */
+    /** Searches an authorized directory through the host's own index. */
     search(
       dirPath: string,
       query: string,
-      opts?: { limit?: number }
+      opts?: { limit?: number; mode?: "hybrid" | "keyword" }
     ): Promise<{ path: string; snippet: string; score: number }[]>;
   };
 
@@ -302,17 +392,45 @@ declare module "@atat/api" {
 
   export const clipboard: { copy(text: string): Promise<void> };
 
+  /**
+   * Adds a text Favorite in Clipboard History, attributed to AtAt. No entitlement, the
+   * same footing as `clipboard.copy`.
+   */
+  export const favorites: { add(text: string): Promise<void> };
+
   /** Entitlement: `agent`. Ten calls a minute, per extension. */
   export const agent: {
-    ask(prompt: string, opts?: { timeoutMs?: number }): Promise<string>;
+    /**
+     * Borrows the user's configured agent. `skill` names one of the user's installed
+     * skills, expanded the way the selection bar's skill action expands it.
+     */
+    ask(prompt: string, opts?: { timeoutMs?: number; skill?: string }): Promise<string>;
   };
 
   /** Entitlement: `automation`. */
   export function openUrl(url: string): Promise<void>;
-  /** Entitlement: `automation`. */
-  export function runShortcut(name: string, input?: string): Promise<string | null>;
 
   export function ocr(path: string): Promise<string>;
+
+  /**
+   * Entitlement: `translation`. Apple's on-device translation, the one macOS itself uses.
+   * The language pair has to be downloaded on this Mac already: a pair the system could
+   * only offer to download cannot be requested from here, and rejects instead.
+   */
+  export function translate(
+    text: string,
+    options: { target: string; source?: string; timeoutMs?: number }
+  ): Promise<string>;
+
+  /**
+   * Reads text aloud with the Mac's own voice, choosing a voice for `language` when one is
+   * installed. No entitlement: it is local and as harmless as `notify`. Resolves when the
+   * utterance finishes or is stopped, so a button can toggle on the same promise.
+   */
+  export function speak(text: string, options?: { language?: string }): Promise<void>;
+
+  /** Stops whatever `speak` is reading, if anything. No entitlement. */
+  export function stopSpeaking(): Promise<void>;
 
   /**
    * The user's configuration, as a snapshot. Secret-typed options are absent by
@@ -321,6 +439,12 @@ declare module "@atat/api" {
   export const options: Record<string, string | boolean>;
 
   export const extension: { identifier: string; version: string };
+
+  /**
+   * What the panel can know about the host it runs inside. `locale` is the app's own
+   * interface language as a BCP 47 tag — `"en"` or `"zh-Hans"` — and is the same value a
+   * hook reads as `ctx.locale`.
+   */
   export const environment: { locale: string };
 
   export function notify(message: string): Promise<void>;
@@ -342,16 +466,23 @@ declare module "@atat/api" {
         }
   ): Promise<boolean>;
 
-  /** One pill in the Composer: the words, and what the pill is called. */
+  /** One thing handed to the Composer, which becomes one pill. */
   export interface ComposerItem {
     text: string;
+    /** What the pill is called. Defaults to the extension's own name. */
     label?: string;
   }
 
   /**
-   * What `<Action.SendToComposer>` calls. One item opens a Composer interaction carrying one
-   * pill; an array opens one interaction carrying a pill for each, which is what a batch
-   * action sends.
+   * What `<Action.SendToComposer>` calls. An array opens **one** interaction carrying one
+   * pill per entry, in order — a batch "Ask @@" over five rows is one question about five
+   * things, not five questions.
    */
-  export function sendToComposer(item: ComposerItem | ComposerItem[]): Promise<void>;
+  export function sendToComposer(
+    content: string | ComposerItem | Array<string | ComposerItem>,
+    label?: string
+  ): Promise<void>;
+
+  /** The identity wrapper for a extension's `{ hooks, actions, views }` definition. */
+  export function defineExtension<Definition>(definition: Definition): Definition;
 }

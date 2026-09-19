@@ -6,7 +6,7 @@ const ROOT = resolve(import.meta.dirname, "..");
 const EXTENSIONS = join(ROOT, "extensions");
 const IDENTIFIER = /^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/;
 const SEMVER = /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
-const ENTITLEMENTS = new Set(["network", "secrets", "automation", "agent"]);
+const ENTITLEMENTS = new Set(["network", "secrets", "automation", "agent", "translation", "clipboardRead", "favoritesRead", "capturesRead"]);
 const HOOKS = new Set(["clipboardIngest", "capture", "contextAssembled", "response"]);
 const SURFACES = new Set(["selectionBar", "clipboardHistory", "captureQuickAccess"]);
 const ROUTES = new Set(["paste", "copy", "show", "composer", "none"]);
@@ -21,6 +21,8 @@ const OPTION_FIELDS = new Set([
   "defaultValue",
   "defaultPath",
   "values",
+  "visibleWhen",
+  "icon",
 ]);
 /// Where the host creates and grants a `folder` option's directory at install time.
 const FOLDER_DEFAULT_PATHS = new Set(["shortcuts", "icloud", "documents"]);
@@ -32,6 +34,7 @@ const ACTION_FIELDS = new Set([
   "requirements",
   "after",
   "url",
+  "view",
   "requiresApp",
 ]);
 const READ_FIELDS = new Set(["identifier", "paths", "title"]);
@@ -124,6 +127,28 @@ function uniqueStrings(value, field, allowed) {
   const result = array(value ?? [], field).map((entry, index) => string(entry, `${field}[${index}]`));
   if (new Set(result).size !== result.length) fail(`${field} contains duplicate values`);
   for (const entry of result) if (allowed && !allowed.has(entry)) fail(`${field} contains unsupported value ${entry}`);
+  return result;
+}
+
+/// A choice option's values, as the host parses them: a bare string — the value, shown as
+/// itself — or an object with the stored `value` and the localized `title` the user reads.
+function optionValues(value, field) {
+  const result = [];
+  for (const [index, entry] of array(value ?? [], field).entries()) {
+    const itemField = `${field}[${index}]`;
+    if (typeof entry === "string") {
+      result.push(string(entry, itemField));
+      continue;
+    }
+    const record = object(entry, itemField);
+    for (const key of Object.keys(record)) {
+      if (key !== "value" && key !== "title") fail(`${itemField}: unsupported value field ${key}`);
+    }
+    string(record.value, `${itemField}.value`);
+    localizable(record.title, `${itemField}.title`);
+    result.push(record.value);
+  }
+  if (new Set(result).size !== result.length) fail(`${field} contains duplicate values`);
   return result;
 }
 
@@ -280,27 +305,65 @@ function validateManifest(manifest, directoryName) {
       validateURLTemplate(action.url, `${identifier}.actions[${index}].url`);
       if (route !== "none") fail(`${identifier}: URL action cannot also declare an after route`);
     }
+    if (action.view !== undefined) {
+      // One action walks exactly one mode — URL, JS handler, React view — and a view opens
+      // an interface rather than returning a string for an `after` route to consume.
+      const view = string(action.view, `${identifier}.actions[${index}].view`);
+      if (!views.has(view)) fail(`${identifier}: action ${name} names a view that was not declared: ${view}`);
+      if (action.url !== undefined) fail(`${identifier}: action ${name} cannot declare both a URL and a view`);
+      if (route !== "none") fail(`${identifier}: a view action cannot also declare an after route`);
+    }
   }
 
-  const optionNames = new Set();
+  const optionNames = new Map();
+  const optionDeclarations = [];
   for (const [index, entry] of array(value.options ?? [], `${identifier}.options`).entries()) {
-    const option = object(entry, `${identifier}.options[${index}]`);
+    const field = `${identifier}.options[${index}]`;
+    const option = object(entry, field);
     for (const key of Object.keys(option)) {
       if (!OPTION_FIELDS.has(key)) fail(`${identifier}: unsupported option field ${key}`);
     }
-    const name = string(option.identifier, `${identifier}.options[${index}].identifier`);
+    const name = string(option.identifier, `${field}.identifier`);
     if (optionNames.has(name)) fail(`${identifier}: duplicate option ${name}`);
-    optionNames.add(name);
-    const type = string(option.type, `${identifier}.options[${index}].type`);
+    const type = string(option.type, `${field}.type`);
     if (!OPTION_TYPES.has(type)) fail(`${identifier}: unsupported option type ${type}`);
-    localizable(option.label, `${identifier}.options[${index}].label`);
-    if (option.description !== undefined) localizable(option.description, `${identifier}.options[${index}].description`);
-    const values = option.values === undefined ? [] : uniqueStrings(option.values, `${identifier}.options[${index}].values`);
+    if (option.icon !== undefined) {
+      // An @@ icon name or a file inside the package, exactly as an action's icon.
+      string(option.icon, `${field}.icon`);
+    }
+    localizable(option.label, `${field}.label`);
+    if (option.description !== undefined) localizable(option.description, `${field}.description`);
+    const values = optionValues(option.values, `${field}.values`);
     if (type === "choice" && values.length === 0) fail(`${identifier}: choice ${name} needs values`);
     if (["secret", "folder"].includes(type) && option.defaultValue !== undefined) fail(`${identifier}: ${type} cannot have a default`);
+    if (option.defaultValue !== undefined && type === "choice" && !values.includes(option.defaultValue)) fail(`${identifier}: ${name} default is not one of its values`);
     if (option.defaultPath !== undefined) {
       if (type !== "folder") fail(`${identifier}: only a folder option can declare defaultPath`);
       if (!FOLDER_DEFAULT_PATHS.has(option.defaultPath)) fail(`${identifier}: unsupported defaultPath ${option.defaultPath}`);
+    }
+    if (option.visibleWhen !== undefined) {
+      const visibility = object(option.visibleWhen, `${field}.visibleWhen`);
+      for (const key of Object.keys(visibility)) {
+        if (key !== "option" && key !== "equals") fail(`${identifier}: unsupported visibleWhen field ${key}`);
+      }
+      string(visibility.option, `${field}.visibleWhen.option`);
+      string(visibility.equals, `${field}.visibleWhen.equals`);
+    }
+    optionNames.set(name, { values });
+    optionDeclarations.push({ name, option, field });
+  }
+
+  // A condition names a sibling, and a choice's condition names one of its values. Checked
+  // after the loop so an option can wait on one declared below it.
+  for (const { name, option, field } of optionDeclarations) {
+    if (option.visibleWhen === undefined) continue;
+    const visibility = option.visibleWhen;
+    const referenced = optionNames.get(visibility.option);
+    if (visibility.option === name || referenced === undefined) {
+      fail(`${field}.visibleWhen must name another option`);
+    }
+    if (referenced.values.length > 0 && !referenced.values.includes(visibility.equals)) {
+      fail(`${field}.visibleWhen.equals must be one of ${visibility.option}'s values`);
     }
   }
 

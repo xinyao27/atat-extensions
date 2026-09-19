@@ -72,6 +72,7 @@ declare module "@atat/api" {
     /** Entitlement: `network`. HTTPS, plus plain HTTP to the loopback host. */
     fetch(url: string, init?: FetchInit): Promise<FetchResponse>;
 
+    sources: SourcesAPI;
     clipboard: { copy(text: string): Promise<void> };
     /** Adds a text Favorite in Clipboard History, attributed to AtAt. No entitlement. */
     favorites: { add(text: string): Promise<void> };
@@ -107,7 +108,7 @@ declare module "@atat/api" {
       search(
         dirPath: string,
         query: string,
-        opts?: { limit?: number }
+        opts?: { limit?: number; mode?: "hybrid" | "keyword" }
       ): Promise<FileSearchHit[]>;
       /**
        * The directories one `reads` declaration found on this Mac: wildcard segments
@@ -119,6 +120,25 @@ declare module "@atat/api" {
     };
 
     ocr(filePath: string): Promise<string>;
+
+    /**
+     * Entitlement: `translation`. Apple's on-device translation, the one macOS itself uses.
+     * The language pair has to be downloaded on this Mac already: a pair the system could
+     * only offer to download cannot be requested from here, and rejects instead.
+     */
+    translate(
+      text: string,
+      options: { target: string; source?: string; timeoutMs?: number }
+    ): Promise<string>;
+
+    /**
+     * Reads text aloud with the Mac's own voice, choosing a voice for `language` when one is
+     * installed. No entitlement: it is local and as harmless as `notify`. Resolves when the
+     * utterance finishes or is stopped, so a button can toggle on the same promise.
+     */
+    speak(text: string, options?: { language?: string }): Promise<void>;
+    /** Stops whatever `speak` is reading, if anything. No entitlement. */
+    stopSpeaking(): Promise<void>;
 
     /** Entitlement: `automation`. */
     openUrl(url: string): Promise<void>;
@@ -251,19 +271,30 @@ declare module "@atat/api" {
     ctx: HostContext
   ) => Promise<string | void>;
 
-  export interface ExtensionViewProps {
-    presentation: "settingsPanel";
-    input: Readonly<{
-      surface?: Surface;
-      text?: string;
-      sourceBundleIdentifier?: string;
-    }>;
+  /**
+   * The props every view component receives, whatever opened it.
+   *
+   * `input` is a read-only snapshot — frozen on the JavaScript side, and never updated
+   * while the view is open — and `entry` names the place that opened it (`"settings"`,
+   * `"selectionBar"`, `"clipboardHistory"`, `"captureQuickAccess"`). An action's view
+   * receives `ViewProps<ActionInput>`. A component that needs no input can ignore both.
+   */
+  export interface ViewProps<Input = unknown> {
+    readonly input: Readonly<Input>;
+    readonly entry: string;
   }
 
+  /**
+   * A view action: the manifest declares `view: "<identifier>"` on the action and
+   * `views: [{ identifier }]` at the root, and the host mounts the component when the
+   * button is clicked. `url`, a JS action handler and a view are mutually exclusive.
+   */
   export interface ExtensionDefinition {
     hooks?: ExtensionHooks;
     actions?: Record<string, ExtensionAction>;
-    views?: Record<string, ComponentType<ExtensionViewProps>>;
+    // Each view declares its own narrower input type; the host entry that mounts it is the
+    // one that knows which shape it passes.
+    views?: Record<string, ComponentType<ViewProps<any>>>;
   }
 
   export function defineExtension<Definition extends ExtensionDefinition>(

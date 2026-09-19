@@ -30,7 +30,16 @@ const HOOK_BUDGET_MS = {
   contextAssembled: 1500,
   response: 10000,
 };
-const ENTITLEMENTS = ["network", "secrets", "automation", "agent"];
+const ENTITLEMENTS = [
+  "network",
+  "secrets",
+  "automation",
+  "agent",
+  "translation",
+  "clipboardRead",
+  "favoritesRead",
+  "capturesRead",
+];
 const MAXIMUM_READ_BYTES = 10_000_000;
 const MAXIMUM_STORAGE_BYTES = 5_000_000;
 const MAXIMUM_SECTIONS = 4;
@@ -64,6 +73,8 @@ A scenario is one hook call or one action call, with the world it happens in:
   "agent":  "the reply agent.ask returns",        // or { "substring of prompt": "reply" }
   "appleScript": "the text runAppleScript returns", // default null
   "ocr":    "the text ocr() returns",
+  "translation": "the text translate() returns",
+  "speech": "the text speak() reads aloud",
   "call":   { "hook": "contextAssembled", "input": { … } },   // or { "action": "name", … },
                                                               // or { "routine": "name", "args": [ … ] }
                                                               // for a routine the bundle exports
@@ -78,6 +89,7 @@ A scenario is one hook call or one action call, with the world it happens in:
     "copied":        ["substring of ctx.clipboard.copy"],
     "pasted":        ["substring of ctx.paste"],
     "favorites":     ["substring of ctx.favorites.add"],
+    "spoken":        ["substring of a speak() text"],
     "appleScripts":  ["substring of a runAppleScript source or input"],
     "storage":       { "key": { "any": "json" } }              // deep subset, after the call
   }
@@ -407,6 +419,24 @@ function makeContext(manifest, scenario, roots, state) {
       return String(scenario.ocr);
     },
 
+    async speak(text, options) {
+      state.spoken.push(String(text));
+      return undefined;
+    },
+    async stopSpeaking() {},
+
+    async translate(text, options) {
+      gate("translation");
+      state.translations.push({
+        text: String(text),
+        target: String(options?.target ?? ""),
+      });
+      if (scenario.translation === undefined) {
+        throw new Error('no canned text for translate(): add "translation" to the scenario');
+      }
+      return String(scenario.translation);
+    },
+
     async openUrl(url) {
       gate("automation");
       state.opened.push(String(url));
@@ -544,6 +574,7 @@ async function expectationErrors(expected, result, state, roots) {
     copied: state.copied,
     pasted: state.pasted,
     favorites: state.favorites,
+    spoken: state.spoken,
     appleScripts: state.appleScripts.map((run) => `${run.source}\n${run.input ?? ""}`),
   };
   for (const [key, values] of Object.entries(collections)) {
@@ -625,6 +656,8 @@ async function runScenario(manifest, definition, scenarioPath) {
     searches: [],
     requests: [],
     asked: [],
+    translations: [],
+    spoken: [],
     opened: [],
     shortcuts: [],
     appleScripts: [],

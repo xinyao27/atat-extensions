@@ -37,11 +37,13 @@ host already has, or a button the user presses?) and **what does the user get ba
 | "…and copy it" / "…just show it" | `after: "copy"` / `after: "show"` |
 | "…and let me keep talking to the agent about it" | `after: "composer"` |
 | "open <site> with whatever I selected" | action with a `url` template — no code at all |
+| "click the button and give me an interface to work in" | action with `view: "<id>"` + a `views` entry — the host opens the component in a floating window |
 | "let me browse or clean up what it saved" | a `views` entry + a `panels` entry (one Settings tab per extension) |
 | the user picks where files go | `folder` option, plus `defaultPath` so it works on install |
 | "read what <other app> left on disk" | a `reads` declaration per app, and `files.roots` to find out whether it is installed |
 | the user supplies an API key or token | `secret` option |
 | "use AI to …" | `ctx.agent.ask` and the `agent` entitlement |
+| "translate with the Mac's own translation" | `ctx.translate` and the `translation` entitlement |
 | "call <service>" | `ctx.fetch`, the `network` entitlement, and exact `networkHosts` |
 | "open a URL" / "run my Shortcut" / "run this AppleScript" | the `automation` entitlement — `ctx.openUrl`, `ctx.runShortcut`, `ctx.runAppleScript` |
 | "save it to my Favorites" | `ctx.favorites.add` — no entitlement |
@@ -137,6 +139,15 @@ schema. What it cannot tell you:
   want it somewhere else", "I don't want to be recorded"). There is no grouping heading, because
   a list long enough to need grouping is the problem. `extensions/memory/extension.json` ships one
   option for a extension with a hook, an action on three surfaces and a panel.
+- **A choice option's values can carry the words the user reads.** A `values` entry is either
+  a string — the value, shown as itself — or `{ value, title }` with a localizable title. Use
+  the pair whenever the stored value is not what a person should read: `zh-Hans` stores a stable
+  value while the menu says 简体中文, and the display follows the app's language.
+  `extensions/translate/extension.json` has two of them.
+- **An option that only matters for one choice waits for it.** `visibleWhen: { option, equals }`
+  keeps the row off the page until that option holds the value: `extensions/translate` shows
+  each service's key only while that service is picked. The value stays stored while its row is
+  hidden, and the condition may name an option declared below it.
 
 **Done when** `pnpm validate <identifier>` passes and every declaration traces back to your
 step 1 list.
@@ -215,13 +226,75 @@ trailing ••• menu.
 
 A view is a React component rendered natively by the host from the whitelist in
 `types/atat-ui.d.ts` — no HTML, no CSS, no window of its own, and an unknown component is a
-render error. A panel session lives as long as its Settings tab is open — the host kills a
+render error. A panel session lives as long as the Settings tab (or the window a view action
+opened) stays up — the host kills a
 session that stops making progress, and names it in its log line — React state dies with it, and
 anything that must persist goes through `storage` or `files`. A panel is where a user *uses*
 the feature, not a second settings page: the manifest's options are already rendered natively
 above it. Credential and folder input
 never appear in a panel — a extension cannot draw a trustworthy password field, so those stay in
 the host's own option panel.
+
+### View actions
+
+A view is not only a Settings page. Put `"view": "<identifier>"` on an action and clicking its
+button opens the component in a floating window next to what the user clicked — the same view
+component can be declared in `views` and opened by an action on any surface. `url`, a JS
+handler and `view` are mutually exclusive: one action walks one mode, and a view action has no
+`actions[id]` handler in the bundle (the host refuses the mount if both exist, and
+`pnpm verify` fails on it).
+
+The component receives the view contract's props — `ViewProps<ActionInput>` — and the window is
+yours to write for: the host owns its size, its anchor and its lifetime.
+
+```tsx
+import { Panel, Form, Action, ActionPanel, usePromise } from "@atat/api";
+import type { ActionInput, ViewProps } from "@atat/api";
+
+function TranslationView({ input }: ViewProps<ActionInput>) {
+  return (
+    <Panel navigationTitle="Translate" isLoading={false}
+      actions={<ActionPanel><Action.CopyToClipboard title="Copy" content="…" /></ActionPanel>}>
+      <Panel.Text text={input.text ?? ""} />
+      <Panel.Controls actions={<ActionPanel>
+        <Action title="Translate again" icon="refresh" onAction={() => {}} />
+      </ActionPanel>}>
+        <Form.Dropdown id="language" title="Translate into" value="en" onChange={() => {}}>
+          <Form.Dropdown.Item value="en" title="English" />
+        </Form.Dropdown>
+      </Panel.Controls>
+      <Panel.Section title="Translation" actions={<ActionPanel>
+        <Action.CopyToClipboard title="Copy" icon="copy01" content="…" />
+        <Action.ReplaceSelection title="Replace selection" icon="check" content="…" />
+      </ActionPanel>}>
+        <Panel.Text text="…" />
+      </Panel.Section>
+      <Panel.Prompt placeholder="Tell me what to adjust" value="" onSubmit={() => {}} />
+    </Panel>
+  );
+}
+
+export default defineExtension({ views: { translation: TranslationView } });
+```
+
+- `<Panel>` is the page root: `isLoading`, `error`, `onRetry`, an `actions` ActionPanel, and
+  `Panel.Section` / `Panel.Text` / `Panel.Markdown` / `Panel.Controls` / `Panel.Prompt`
+  inside. A section's own `actions` draw on its title line, beside the thing they act on; a
+  controls row holds a compact `Form.Dropdown` (just the value and a chevron) with the row's
+  button at its end; the prompt is the one input pinned at the bottom of the window, and its
+  `onSubmit` receives the typed text. List, Detail and Form stay separate pages and can be
+  pushed from it.
+- `input` is a frozen, read-only snapshot of the click (`ActionInput`: `surface`, `text?`,
+  `filePaths?`, `sourceBundleID?`, `regexMatches?`, `modifiers`) and never changes while the
+  window is open; `entry` says where it opened (`"settings"`, `"selectionBar"`,
+  `"clipboardHistory"`, `"captureQuickAccess"`). A second click opens a second window.
+- `<Action.ReplaceSelection>` writes back into the selection the window was opened from. It is
+  drawn only where there is a selection to write into: in a Settings panel or a clipboard/capture
+  window the host does not show it. The click is native — JS cannot trigger it — and the host
+  revalidates the original selection first, so a changed document means a refusal, never a
+  write into the wrong place.
+- `extensions/translate/` is the worked example: OCR for image input, one `agent.ask`, a
+  language picker, and actions shown only for the result that matches the current language.
 
 **Done when** `pnpm typecheck` is clean and every hook, action and view named in `extension.json`
 has a same-named member in the default export.
@@ -357,6 +430,7 @@ Before opening the pull request, check `REVIEW_POLICY.md` against the change:
 | To see | Read |
 |---|---|
 | the smallest possible action, `requiresApp`, `runAppleScript` and the `automation` entitlement | `extensions/bob-translate/` |
+| a view action: `<Panel>` layout, OCR for an image, `agent.ask`, `<Action.ReplaceSelection>`, a provider chosen by a `choice` option, `fetch` + `secrets` + `ctx.translate` | `extensions/translate/` |
 | a hook, an action on three surfaces, a view, a panel, a `folder` option with `defaultPath`, `reads` — and zero entitlements | `extensions/memory/` |
 | a hook that swallows its own failures, inside a budget | `extensions/memory/src/recall.ts` |
 | UTF-8 base64, front matter, path joins | `extensions/memory/src/notes.ts` |
@@ -368,8 +442,8 @@ Before opening the pull request, check `REVIEW_POLICY.md` against the change:
 ## Reference: gotchas
 
 - Three action surfaces exist — `selectionBar`, `clipboardHistory` and `captureQuickAccess` —
-  and a view renders only as a Settings panel. There is no surface while capturing, on the
-  agent's answer, or on a composer pill yet.
+  and a view renders either as a Settings panel or in the floating window a view action opens.
+  There is no surface while capturing, on the agent's answer, or on a composer pill yet.
 - The identifier appears three times — directory name, `extension.json`'s `identifier`, and the
   install directory. Renaming means all three, and `pnpm validate` fails until they agree.
 - `after: "paste"` degrades to a copy plus a toast when the selection snapshot has expired.
@@ -384,6 +458,10 @@ Before opening the pull request, check `REVIEW_POLICY.md` against the change:
 - `capture` transforms by writing the new file to `input.outputPath` and returning
   `{ action: "replace" }`; the original is left alone otherwise.
 - `ctx.ocr` accepts only a path this call was handed.
+- `ctx.translate(text, { target })` is Apple's on-device translation, the one macOS itself uses,
+  and the language pair has to be downloaded on the Mac already (System Settings › General ›
+  Language & Region). A pair that could only be offered as a download rejects instead of
+  prompting: an extension cannot show the system's download sheet.
 - `networkHosts` is this directory's review rule — exact hostnames, no wildcards, each one the
   code calls — and `pnpm smoke` enforces it. The app itself enforces `https` everywhere, plus
   plain `http` to `127.0.0.1` and `localhost` for a service the user runs themselves.

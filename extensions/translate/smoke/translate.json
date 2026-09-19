@@ -1,0 +1,20 @@
+{
+  "description": "The agent's prompt carries the source inside a data element and the reply stays bound to its language",
+  "locale": "en",
+  "options": { "useAgent": true },
+  "agent": {
+    "<source>Hello world</source>": "你好，世界"
+  },
+  "call": {
+    "routine": "translate",
+    "args": ["agent", "Hello world", "zh-Hans"]
+  },
+  "expect": {
+    "result": {
+      "source": "Hello world",
+      "translation": "你好，世界",
+      "language": "zh-Hans",
+      "instruction": null
+    }
+  }
+}

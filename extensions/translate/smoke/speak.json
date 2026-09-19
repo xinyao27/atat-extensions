@@ -1,0 +1,13 @@
+{
+  "description": "Reading a translation aloud goes through the host, in the language's voice",
+  "locale": "en",
+  "options": { "useAgent": true },
+  "call": {
+    "routine": "speak",
+    "args": ["你好，世界", "zh-Hans"]
+  },
+  "expect": {
+    "result": null,
+    "spoken": ["你好，世界"]
+  }
+}

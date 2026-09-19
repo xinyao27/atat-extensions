@@ -1,0 +1,25 @@
+{
+  "description": "A free DeepL key goes to the free host and the translation comes back",
+  "locale": "en",
+  "options": { "useDeepL": true },
+  "secrets": { "deeplKey": "test-key:fx" },
+  "fetch": {
+    "api-free.deepl.com": {
+      "json": {
+        "translations": [{ "detected_source_language": "ZH", "text": "Hello world" }]
+      }
+    }
+  },
+  "call": {
+    "routine": "translate",
+    "args": ["deepl", "你好，世界", "en"]
+  },
+  "expect": {
+    "result": {
+      "source": "你好，世界",
+      "translation": "Hello world",
+      "language": "en",
+      "instruction": null
+    }
+  }
+}

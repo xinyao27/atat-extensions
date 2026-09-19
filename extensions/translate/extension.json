@@ -1,0 +1,247 @@
+{
+  "identifier": "translate",
+  "name": {
+    "en": "Translate",
+    "zh-hans": "翻译"
+  },
+  "description": {
+    "en": "Translates what you select — or the text in a screenshot — right next to it.",
+    "zh-hans": "把选中的文字或截图里的文字就地翻译，译文就在旁边。"
+  },
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "minimumAppVersion": "1.2.0",
+  "author": "@@",
+  "entitlements": [
+    "agent",
+    "network",
+    "secrets",
+    "translation"
+  ],
+  "networkHosts": [
+    "translate.googleapis.com",
+    "api.cognitive.microsofttranslator.com",
+    "api-free.deepl.com",
+    "api.deepl.com"
+  ],
+  "options": [
+    {
+      "identifier": "primaryLanguage",
+      "type": "choice",
+      "label": {
+        "en": "Primary language",
+        "zh-hans": "主要语言"
+      },
+      "description": {
+        "en": "The language you usually want translations in; Automatic follows the language AtAt uses.",
+        "zh-hans": "你平常想译成的语言。选「自动」时跟随 AtAt 的界面语言。"
+      },
+      "defaultValue": "auto",
+      "values": [
+        {
+          "value": "auto",
+          "title": {
+            "en": "Automatic",
+            "zh-hans": "自动"
+          }
+        },
+        {
+          "value": "zh-Hans",
+          "title": {
+            "en": "Chinese (Simplified)",
+            "zh-hans": "简体中文"
+          }
+        },
+        {
+          "value": "en",
+          "title": {
+            "en": "English",
+            "zh-hans": "英文"
+          }
+        }
+      ]
+    },
+    {
+      "identifier": "secondaryLanguage",
+      "type": "choice",
+      "label": {
+        "en": "Second language",
+        "zh-hans": "第二语言"
+      },
+      "description": {
+        "en": "When Automatic sees Chinese script and your primary language is Chinese, it uses this language.",
+        "zh-hans": "「自动」在主要语言为中文且原文含中文文字时使用这种语言。"
+      },
+      "defaultValue": "auto",
+      "values": [
+        {
+          "value": "auto",
+          "title": {
+            "en": "Automatic",
+            "zh-hans": "自动"
+          }
+        },
+        {
+          "value": "zh-Hans",
+          "title": {
+            "en": "Chinese (Simplified)",
+            "zh-hans": "简体中文"
+          }
+        },
+        {
+          "value": "en",
+          "title": {
+            "en": "English",
+            "zh-hans": "英文"
+          }
+        }
+      ]
+    },
+    {
+      "identifier": "useAgent",
+      "type": "boolean",
+      "label": {
+        "en": "Your agent",
+        "zh-hans": "你的助手"
+      },
+      "description": {
+        "en": "Translate with the assistant you already set up. It is the only service you can ask for changes afterwards.",
+        "zh-hans": "用你已经配置好的助手翻译。只有它能接着按你的要求改译文。"
+      },
+      "icon": "brain03",
+      "defaultValue": true
+    },
+    {
+      "identifier": "useSystem",
+      "type": "boolean",
+      "label": {
+        "en": "macOS translation",
+        "zh-hans": "macOS 自带翻译"
+      },
+      "description": {
+        "en": "Translate on this Mac, once the language is downloaded in System Settings.",
+        "zh-hans": "在这台 Mac 上翻译，先在系统设置里下载语言。"
+      },
+      "icon": "apple",
+      "defaultValue": false
+    },
+    {
+      "identifier": "useGoogle",
+      "type": "boolean",
+      "label": {
+        "en": "Google Translate",
+        "zh-hans": "Google 翻译"
+      },
+      "description": {
+        "en": "No account and no key needed.",
+        "zh-hans": "不用账号，也不用填密钥。"
+      },
+      "icon": "google",
+      "defaultValue": false
+    },
+    {
+      "identifier": "useMicrosoft",
+      "type": "boolean",
+      "label": {
+        "en": "Microsoft Translator",
+        "zh-hans": "微软翻译"
+      },
+      "description": {
+        "en": "Needs a key from your Microsoft Translator resource in Azure.",
+        "zh-hans": "需要 Azure 微软翻译资源里的密钥。"
+      },
+      "icon": "microsoft",
+      "defaultValue": false
+    },
+    {
+      "identifier": "useDeepL",
+      "type": "boolean",
+      "label": {
+        "en": "DeepL",
+        "zh-hans": "DeepL"
+      },
+      "description": {
+        "en": "Needs a key from your DeepL account.",
+        "zh-hans": "需要 DeepL 账号里的密钥。"
+      },
+      "icon": "translation",
+      "defaultValue": false
+    },
+    {
+      "identifier": "microsoftKey",
+      "type": "secret",
+      "label": {
+        "en": "Microsoft Translator key",
+        "zh-hans": "微软翻译密钥"
+      },
+      "description": {
+        "en": "The key from your Microsoft Translator resource in Azure.",
+        "zh-hans": "Azure 微软翻译资源里的密钥。"
+      },
+      "visibleWhen": {
+        "option": "useMicrosoft",
+        "equals": "true"
+      }
+    },
+    {
+      "identifier": "microsoftRegion",
+      "type": "string",
+      "label": {
+        "en": "Microsoft Translator region",
+        "zh-hans": "微软翻译区域"
+      },
+      "description": {
+        "en": "The region your key belongs to, if Azure gave you one.",
+        "zh-hans": "密钥所在的区域，Azure 给了就填。"
+      },
+      "defaultValue": "",
+      "visibleWhen": {
+        "option": "useMicrosoft",
+        "equals": "true"
+      }
+    },
+    {
+      "identifier": "deeplKey",
+      "type": "secret",
+      "label": {
+        "en": "DeepL key",
+        "zh-hans": "DeepL 密钥"
+      },
+      "description": {
+        "en": "The key from your DeepL account.",
+        "zh-hans": "DeepL 账号里的密钥。"
+      },
+      "visibleWhen": {
+        "option": "useDeepL",
+        "equals": "true"
+      }
+    }
+  ],
+  "views": [
+    {
+      "identifier": "translation"
+    }
+  ],
+  "actions": [
+    {
+      "identifier": "translate",
+      "title": {
+        "en": "Translate",
+        "zh-hans": "翻译"
+      },
+      "icon": "translate",
+      "surfaces": [
+        "selectionBar",
+        "clipboardHistory",
+        "captureQuickAccess"
+      ],
+      "requirements": {
+        "contentTypes": [
+          "text",
+          "image"
+        ]
+      },
+      "view": "translation"
+    }
+  ]
+}

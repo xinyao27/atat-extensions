@@ -1,0 +1,25 @@
+{
+  "description": "A capture's screenshot is read with OCR before anything is translated",
+  "locale": "en",
+  "inputFiles": {
+    "shot.png": "pretend pixels"
+  },
+  "ocr": "The quick brown fox jumps over the lazy dog.",
+  "call": {
+    "routine": "resolveSource",
+    "args": [
+      {
+        "surface": "captureQuickAccess",
+        "filePaths": [
+          "{input}/shot.png"
+        ],
+        "modifiers": []
+      }
+    ]
+  },
+  "expect": {
+    "result": {
+      "text": "The quick brown fox jumps over the lazy dog."
+    }
+  }
+}

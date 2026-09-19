@@ -1,0 +1,23 @@
+{
+  "description": "Microsoft Translator answers with the key and region from its settings",
+  "locale": "en",
+  "options": { "useMicrosoft": true, "microsoftRegion": "westeurope" },
+  "secrets": { "microsoftKey": "test-key" },
+  "fetch": {
+    "api.cognitive.microsofttranslator.com": {
+      "json": [{ "translations": [{ "text": "你好，世界", "to": "zh-Hans" }] }]
+    }
+  },
+  "call": {
+    "routine": "translate",
+    "args": ["microsoft", "Hello world", "zh-Hans"]
+  },
+  "expect": {
+    "result": {
+      "source": "Hello world",
+      "translation": "你好，世界",
+      "language": "zh-Hans",
+      "instruction": null
+    }
+  }
+}

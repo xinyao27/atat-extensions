@@ -1,0 +1,17 @@
+{
+  "category": "writing",
+  "keywords": [
+    "translate",
+    "translation",
+    "language",
+    "ocr",
+    "screenshot",
+    "selection",
+    "deepl",
+    "google"
+  ],
+  "releaseNotes": {
+    "en": "Turn on several translation services and each one answers in its own block, with a source-language picker and a swap.",
+    "zh-hans": "可以同时打开多个翻译服务，每个各出一块译文，还能选源语言、一键交换。"
+  }
+}
