@@ -3,6 +3,7 @@
   "locale": "en",
   "options": { "useSystem": true },
   "translation": "你好，世界",
+  "translationSource": "en",
   "call": {
     "routine": "translate",
     "args": ["system", "Hello world", "zh-Hans"]
@@ -11,8 +12,8 @@
     "result": {
       "source": "Hello world",
       "translation": "你好，世界",
-      "language": "zh-Hans",
-      "instruction": null
+      "detected": "en",
+      "language": "zh-Hans"
     }
   }
 }

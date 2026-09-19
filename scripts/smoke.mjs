@@ -74,6 +74,7 @@ A scenario is one hook call or one action call, with the world it happens in:
   "appleScript": "the text runAppleScript returns", // default null
   "ocr":    "the text ocr() returns",
   "translation": "the text translate() returns",
+  "translationSource": "the language translate() reports it ran from", // default: the pinned source, else "en"
   "speech": "the text speak() reads aloud",
   "call":   { "hook": "contextAssembled", "input": { … } },   // or { "action": "name", … },
                                                               // or { "routine": "name", "args": [ … ] }
@@ -434,7 +435,16 @@ function makeContext(manifest, scenario, roots, state) {
       if (scenario.translation === undefined) {
         throw new Error('no canned text for translate(): add "translation" to the scenario');
       }
-      return String(scenario.translation);
+      // The host answers with the text and the language it ran from: the source the caller
+      // pinned, or the one it recognized. A scenario that cares about recognition says so;
+      // the default is English, which is what a short Latin sample would be read as.
+      return {
+        text: String(scenario.translation),
+        source:
+          scenario.translationSource === undefined
+            ? String(options?.source ?? "en")
+            : String(scenario.translationSource),
+      };
     },
 
     async openUrl(url) {

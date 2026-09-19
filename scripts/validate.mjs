@@ -5,6 +5,8 @@ import process from "node:process";
 const ROOT = resolve(import.meta.dirname, "..");
 const EXTENSIONS = join(ROOT, "extensions");
 const IDENTIFIER = /^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/;
+/// A System Settings pane's bundle identifier, as `systemSettingsLink.pane` carries it.
+const SETTINGS_PANE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const SEMVER = /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
 const ENTITLEMENTS = new Set(["network", "secrets", "automation", "agent", "translation", "clipboardRead", "favoritesRead", "capturesRead"]);
 const HOOKS = new Set(["clipboardIngest", "capture", "contextAssembled", "response"]);
@@ -24,6 +26,7 @@ const OPTION_FIELDS = new Set([
   "visibleWhen",
   "icon",
   "group",
+  "systemSettingsLink",
 ]);
 /// Where the host creates and grants a `folder` option's directory at install time.
 const FOLDER_DEFAULT_PATHS = new Set(["shortcuts", "icloud", "documents"]);
@@ -355,6 +358,15 @@ function validateManifest(manifest, directoryName) {
       }
       string(visibility.option, `${field}.visibleWhen.option`);
       string(visibility.equals, `${field}.visibleWhen.equals`);
+    }
+    if (option.systemSettingsLink !== undefined) {
+      const link = object(option.systemSettingsLink, `${field}.systemSettingsLink`);
+      for (const key of Object.keys(link)) {
+        if (key !== "title" && key !== "pane") fail(`${identifier}: unsupported systemSettingsLink field ${key}`);
+      }
+      localizable(link.title, `${field}.systemSettingsLink.title`);
+      const pane = string(link.pane, `${field}.systemSettingsLink.pane`);
+      if (!SETTINGS_PANE.test(pane)) fail(`${field}.systemSettingsLink.pane must be a settings pane identifier`);
     }
     optionNames.set(name, { values });
     optionDeclarations.push({ name, option, field });

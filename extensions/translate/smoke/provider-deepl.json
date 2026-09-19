@@ -18,8 +18,8 @@
     "result": {
       "source": "你好，世界",
       "translation": "Hello world",
-      "language": "en",
-      "instruction": null
+      "detected": "ZH",
+      "language": "en"
     }
   }
 }

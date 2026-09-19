@@ -117,9 +117,9 @@ declare module "@atat/api" {
   export interface PanelSectionProps {
     title?: string;
     /**
-     * A glyph before the title: an @@ icon name, or a file name inside the package. The
-     * same resolution an action's `icon` gets, so one section per service can wear the
-     * service's mark.
+     * A glyph before the title: an @@ icon name, a file name inside the package, or a
+     * reserved host mark such as `environment.agent.icon`. One section per service can
+     * wear the service's mark.
      */
     icon?: string;
     /**
@@ -127,6 +127,12 @@ declare module "@atat/api" {
      * rather than on the page — copying the result beside the result.
      */
     actions?: ReactNode;
+    /**
+     * Whether this region is still waiting on something. The content and its footer row are
+     * replaced by a small progress indicator; the header stays, so the user can still fold
+     * the card — and only the region that is waiting shows a wait.
+     */
+    loading?: boolean;
     children?: ReactNode;
   }
 
@@ -134,11 +140,25 @@ declare module "@atat/api" {
     /**
      * The parameters the request needs, in the order written. A `Form.Dropdown` here draws
      * as a compact control rather than a settings row: the value and a chevron, no label
-     * column.
+     * column. An `ActionPanel` here draws as icon buttons in place, between the controls
+     * they sit between — a swap belongs between the two languages it swaps.
      */
     children?: ReactNode;
     /** The primary action of the row, at its trailing end. */
     actions?: ReactNode;
+  }
+
+  export interface PanelBadgeProps {
+    /** The quiet word before the value — "Recognized as". */
+    title: string;
+    /** The answer itself, drawn as the part that stands out. */
+    value: string;
+    /** What a click does, shown as the native tooltip. */
+    tooltip?: string;
+    /** Receives the chosen value. Without it the badge is a label, not a menu. */
+    onChange?: (value: string) => void;
+    /** The choices: the same `Form.Dropdown.Item` children a dropdown carries. */
+    children?: ReactNode;
   }
 
   export interface PanelPromptProps {
@@ -162,9 +182,15 @@ declare module "@atat/api" {
     Markdown: (props: { markdown: string }) => ReactElement;
     /**
      * The row of parameters that belongs with the content: a compact `Form.Dropdown`, an
-     * icon button, and the row's own `actions` at the trailing end.
+     * icon button, and the row's own `actions` at the trailing end. Directly under a
+     * `Panel` it is drawn as a card, like a section.
      */
     Controls: (props: PanelControlsProps) => ReactElement;
+    /**
+     * A small state pill with a menu behind it: what a value was resolved to, and the place
+     * the user can say otherwise.
+     */
+    Badge: (props: PanelBadgeProps) => ReactElement;
     /**
      * The input pinned at the bottom of a floating view while the content scrolls: what the
      * user wants changed, not a second form. `onSubmit` gets the typed text.
@@ -415,12 +441,14 @@ declare module "@atat/api" {
   /**
    * Entitlement: `translation`. Apple's on-device translation, the one macOS itself uses.
    * The language pair has to be downloaded on this Mac already: a pair the system could
-   * only offer to download cannot be requested from here, and rejects instead.
+   * only offer to download cannot be requested from here, and rejects instead. Resolves
+   * with the translated text and the language it ran from — the pinned `source`, or the one
+   * the system recognised when the caller left it out.
    */
   export function translate(
     text: string,
     options: { target: string; source?: string; timeoutMs?: number }
-  ): Promise<string>;
+  ): Promise<{ text: string; source: string }>;
 
   /**
    * Reads text aloud with the Mac's own voice, choosing a voice for `language` when one is
@@ -445,7 +473,16 @@ declare module "@atat/api" {
    * interface language as a BCP 47 tag — `"en"` or `"zh-Hans"` — and is the same value a
    * hook reads as `ctx.locale`.
    */
-  export const environment: { locale: string };
+  export const environment: {
+    locale: string;
+    /**
+     * The user's own agent, when the host has one: the model's name as the composer's
+     * picker shows it, and the provider's mark as the reserved `agent:<preset>` name an
+     * `icon` prop resolves. `null` when there is no agent to name — fall back to the
+     * extension's own wording rather than inventing one.
+     */
+    agent: { name: string; icon: string } | null;
+  };
 
   export function notify(message: string): Promise<void>;
   export function log(message: string): Promise<void>;

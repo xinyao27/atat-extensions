@@ -124,12 +124,14 @@ declare module "@atat/api" {
     /**
      * Entitlement: `translation`. Apple's on-device translation, the one macOS itself uses.
      * The language pair has to be downloaded on this Mac already: a pair the system could
-     * only offer to download cannot be requested from here, and rejects instead.
+     * only offer to download cannot be requested from here, and rejects instead. Resolves
+     * with the translated text and the language it ran from — the pinned `source`, or the
+     * one the system recognised when the caller left it out.
      */
     translate(
       text: string,
       options: { target: string; source?: string; timeoutMs?: number }
-    ): Promise<string>;
+    ): Promise<{ text: string; source: string }>;
 
     /**
      * Reads text aloud with the Mac's own voice, choosing a voice for `language` when one is

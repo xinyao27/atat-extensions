@@ -15,8 +15,8 @@
     "result": {
       "source": "Hello world",
       "translation": "你好，世界",
-      "language": "zh-Hans",
-      "instruction": null
+      "detected": "en",
+      "language": "zh-Hans"
     }
   }
 }

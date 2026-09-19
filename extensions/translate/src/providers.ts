@@ -43,9 +43,21 @@ export function enabledProviders(options: Record<string, string | boolean>): Pro
 export interface ProviderCapabilities {
   fetch: (url: string, init?: FetchInit) => Promise<FetchResponse>;
   secrets: { get(key: string): Promise<string | null> };
-  translate: (text: string, options: { target: string; source?: string; timeoutMs?: number }) => Promise<string>;
+  translate: (
+    text: string,
+    options: { target: string; source?: string; timeoutMs?: number }
+  ) => Promise<ProviderResult>;
   ask: AskAgent;
   options: Record<string, string | boolean>;
+}
+
+/// One service's answer: the text, and the language the service says it was in. The source
+/// is the pinned one, or the service's own recognition when the caller left it out; it is
+/// absent only from a service that does not report one — the agent — and the view leaves
+/// the language badge off rather than guessing.
+export interface ProviderResult {
+  text: string;
+  source?: string;
 }
 
 /// One translation, by one provider. `source` is the language the user pinned, or
@@ -57,10 +69,13 @@ export async function translateText(
   language: TargetLanguage,
   source: TargetLanguage | undefined,
   capabilities: ProviderCapabilities
-): Promise<string> {
+): Promise<ProviderResult> {
   switch (provider) {
     case "agent":
-      return (await translateWithAgent(text, language, source, capabilities.ask)).translation;
+      return {
+        text: (await translateWithAgent(text, language, source, capabilities.ask))
+          .translation,
+      };
     case "system":
       return translateWithSystem(text, language, source, capabilities);
     case "google":
@@ -76,21 +91,23 @@ export async function translateText(
 
 /// The translation macOS itself uses, through the host. The language pair has to be
 /// downloaded on this Mac already; the host reports that as its own refusal, and the wording
-/// the user sees points at System Settings either way.
+/// the user sees points at System Settings either way. The host is also the one service
+/// that answers with the language it recognised, because the system is doing the
+/// recognising.
 async function translateWithSystem(
   text: string,
   language: TargetLanguage,
   source: TargetLanguage | undefined,
   capabilities: ProviderCapabilities
-): Promise<string> {
+): Promise<ProviderResult> {
   try {
-    const translation = await capabilities.translate(text, {
+    const result = await capabilities.translate(text, {
       target: language,
       source,
       timeoutMs: 60_000,
     });
-    if (!translation.trim()) throw new TranslateError("failed");
-    return translation.trim();
+    if (!result.text.trim()) throw new TranslateError("failed");
+    return { text: result.text.trim(), source: result.source };
   } catch (error) {
     if (error instanceof TranslateError) throw error;
     throw new TranslateError("systemUnavailable");
@@ -109,7 +126,7 @@ async function translateWithGoogle(
   language: TargetLanguage,
   source: TargetLanguage | undefined,
   capabilities: ProviderCapabilities
-): Promise<string> {
+): Promise<ProviderResult> {
   const query = [
     "client=gtx",
     `sl=${source === undefined ? "auto" : googleLanguage(source)}`,
@@ -121,9 +138,9 @@ async function translateWithGoogle(
     timeoutMs: 30_000,
   });
   if (response.status !== 200) throw new TranslateError("failed");
-  const translation = parseGoogle(await response.json());
-  if (!translation) throw new TranslateError("failed");
-  return translation;
+  const result = parseGoogle(await response.json());
+  if (!result.text) throw new TranslateError("failed");
+  return result;
 }
 
 function googleLanguage(language: TargetLanguage): string {
@@ -131,16 +148,18 @@ function googleLanguage(language: TargetLanguage): string {
 }
 
 /// `[[["译文","source",…],["…","…"]],null,"en",…]`: every segment's first cell is a piece
-/// of the answer, and joining them back is the whole parse.
-function parseGoogle(payload: unknown): string {
-  if (!Array.isArray(payload) || !Array.isArray(payload[0])) return "";
+/// of the answer, joining them back is the whole parse, and the third cell of the root is
+/// the language Google decided the text was in.
+function parseGoogle(payload: unknown): ProviderResult {
+  if (!Array.isArray(payload) || !Array.isArray(payload[0])) return { text: "" };
   let translation = "";
   for (const segment of payload[0] as unknown[]) {
     if (Array.isArray(segment) && typeof segment[0] === "string") {
       translation += segment[0];
     }
   }
-  return translation.trim();
+  const detected = typeof payload[2] === "string" ? (payload[2] as string) : undefined;
+  return { text: translation.trim(), source: detected };
 }
 
 // ------------------------------------------------------------------------ Microsoft
@@ -155,7 +174,7 @@ async function translateWithMicrosoft(
   language: TargetLanguage,
   source: TargetLanguage | undefined,
   capabilities: ProviderCapabilities
-): Promise<string> {
+): Promise<ProviderResult> {
   const key = await requireSecret(capabilities, "microsoftKey");
   const headers: Record<string, string> = {
     "Ocp-Apim-Subscription-Key": key,
@@ -181,19 +200,26 @@ async function translateWithMicrosoft(
     throw new TranslateError("keyRejected");
   }
   if (response.status !== 200) throw new TranslateError("failed");
-  const translation = parseMicrosoft(await response.json());
-  if (!translation) throw new TranslateError("failed");
-  return translation;
+  const result = parseMicrosoft(await response.json());
+  if (!result.text) throw new TranslateError("failed");
+  return result;
 }
 
-/// `[{"translations":[{"text":"…","to":"zh-Hans"}]}]`.
-function parseMicrosoft(payload: unknown): string {
-  if (!Array.isArray(payload)) return "";
-  const first = payload[0] as { translations?: unknown } | undefined;
+/// `[{"detectedLanguage":{"language":"en"},"translations":[{"text":"…"}]}]`.
+function parseMicrosoft(payload: unknown): ProviderResult {
+  if (!Array.isArray(payload)) return { text: "" };
+  const first = payload[0] as
+    | { translations?: unknown; detectedLanguage?: unknown }
+    | undefined;
   const translations = first?.translations;
-  if (!Array.isArray(translations)) return "";
+  if (!Array.isArray(translations)) return { text: "" };
   const translated = (translations[0] as { text?: unknown } | undefined)?.text;
-  return typeof translated === "string" ? translated.trim() : "";
+  const detected = (first?.detectedLanguage as { language?: unknown } | undefined)
+    ?.language;
+  return {
+    text: typeof translated === "string" ? translated.trim() : "",
+    source: typeof detected === "string" ? detected : undefined,
+  };
 }
 
 // ------------------------------------------------------------------------ DeepL
@@ -209,7 +235,7 @@ async function translateWithDeepL(
   language: TargetLanguage,
   source: TargetLanguage | undefined,
   capabilities: ProviderCapabilities
-): Promise<string> {
+): Promise<ProviderResult> {
   const key = await requireSecret(capabilities, "deeplKey");
   const endpoint = key.endsWith(":fx") ? DEEPL_FREE_ENDPOINT : DEEPL_PRO_ENDPOINT;
   const body: { text: string[]; target_lang: string; source_lang?: string } = {
@@ -230,17 +256,25 @@ async function translateWithDeepL(
     throw new TranslateError("keyRejected");
   }
   if (response.status !== 200) throw new TranslateError("failed");
-  const translation = parseDeepL(await response.json());
-  if (!translation) throw new TranslateError("failed");
-  return translation;
+  const result = parseDeepL(await response.json());
+  if (!result.text) throw new TranslateError("failed");
+  return result;
 }
 
 /// `{"translations":[{"detected_source_language":"EN","text":"…"}]}`.
-function parseDeepL(payload: unknown): string {
+function parseDeepL(payload: unknown): ProviderResult {
   const translations = (payload as { translations?: unknown } | null)?.translations;
-  if (!Array.isArray(translations)) return "";
-  const translated = (translations[0] as { text?: unknown } | undefined)?.text;
-  return typeof translated === "string" ? translated.trim() : "";
+  if (!Array.isArray(translations)) return { text: "" };
+  const first = translations[0] as
+    | { text?: unknown; detected_source_language?: unknown }
+    | undefined;
+  return {
+    text: typeof first?.text === "string" ? first.text.trim() : "",
+    source:
+      typeof first?.detected_source_language === "string"
+        ? first.detected_source_language
+        : undefined,
+  };
 }
 
 // ------------------------------------------------------------------------ keys

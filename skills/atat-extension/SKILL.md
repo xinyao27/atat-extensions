@@ -148,6 +148,12 @@ schema. What it cannot tell you:
   keeps the row off the page until that option holds the value: `extensions/translate` shows
   each service's key only while that service is picked. The value stays stored while its row is
   hidden, and the condition may name an option declared below it.
+- **A row can open the System Settings pane it depends on.** `systemSettingsLink: { title, pane }`
+  puts a button on the option's row — in a grouped service, in that service's detail — that
+  opens the pane named by its bundle identifier, such as
+  `com.apple.Localization-Settings.extension`. The host composes the URL, so the button can
+  reach System Settings and nowhere else; reach for it when the missing switch is one only
+  macOS can flip. `extensions/translate` uses it on macOS translation.
 
 **Done when** `pnpm validate <identifier>` passes and every declaration traces back to your
 step 1 list.

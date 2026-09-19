@@ -8,7 +8,7 @@
     "en": "Translates what you select — or the text in a screenshot — right next to it.",
     "zh-hans": "把选中的文字或截图里的文字就地翻译，译文就在旁边。"
   },
-  "version": "1.0.0",
+  "version": "1.1.0",
   "apiVersion": 1,
   "minimumAppVersion": "1.2.0",
   "author": "@@",
@@ -105,8 +105,8 @@
         "zh-hans": "你的助手"
       },
       "description": {
-        "en": "Translate with the assistant you already set up. It is the only service you can ask for changes afterwards.",
-        "zh-hans": "用你已经配置好的助手翻译。只有它能接着按你的要求改译文。"
+        "en": "Translate with the assistant you already set up.",
+        "zh-hans": "用你已经配置好的助手翻译。"
       },
       "icon": "brain03",
       "group": "agent",
@@ -125,7 +125,14 @@
       },
       "icon": "service-system.png",
       "group": "system",
-      "defaultValue": false
+      "defaultValue": false,
+      "systemSettingsLink": {
+        "title": {
+          "en": "Download languages…",
+          "zh-hans": "下载语言…"
+        },
+        "pane": "com.apple.Localization-Settings.extension"
+      }
     },
     {
       "identifier": "useGoogle",

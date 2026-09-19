@@ -15,6 +15,10 @@ export interface Strings {
   auto: string;
   chinese: string;
   english: string;
+  /// The badge that names the language the text was recognised as.
+  recognizedAs: string;
+  /// What clicking that badge does.
+  adjustRecognition: string;
   swap: string;
   translation: string;
   copy: string;
@@ -27,7 +31,6 @@ export interface Strings {
   favorite: string;
   favorited: string;
   favoriteFailed: string;
-  adjust: string;
   failed: string;
   noText: string;
   noServices: string;
@@ -46,8 +49,10 @@ const EN: Strings = {
   sourceLanguage: "From",
   language: "Translate into",
   auto: "Auto Detect",
-  chinese: "Chinese",
+  chinese: "Simplified Chinese",
   english: "English",
+  recognizedAs: "Recognized as",
+  adjustRecognition: "Click to correct the recognized language.",
   swap: "Swap languages",
   translation: "Translation",
   copy: "Copy",
@@ -60,7 +65,6 @@ const EN: Strings = {
   favorite: "Favorite",
   favorited: "Saved to Favorites",
   favoriteFailed: "Couldn’t add that to Favorites.",
-  adjust: "Tell me what to adjust",
   failed: "Translation failed. Try again.",
   noText: "No readable text here to translate.",
   noServices: "Turn on a translation service on the Translate page in Settings.",
@@ -79,8 +83,10 @@ const ZH_HANS: Strings = {
   sourceLanguage: "源语言",
   language: "翻译成",
   auto: "自动检测",
-  chinese: "中文",
+  chinese: "简体中文",
   english: "英文",
+  recognizedAs: "识别为",
+  adjustRecognition: "点一下就能改识别出的语言。",
   swap: "交换语言",
   translation: "译文",
   copy: "复制",
@@ -93,7 +99,6 @@ const ZH_HANS: Strings = {
   favorite: "收藏",
   favorited: "已加入收藏",
   favoriteFailed: "没能加入收藏。",
-  adjust: "想怎么调整？",
   failed: "翻译没成功，再试一次。",
   noText: "这里没有能翻译的文字。",
   noServices: "先在设置的「翻译」页里打开一个翻译服务。",
