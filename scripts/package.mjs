@@ -66,9 +66,11 @@ try {
       }
     }
     // A service's own mark travels with the package: a PNG at the extension's root, other
-    // than icon.png (which is the extension's own icon, and has its own rule).
+    // than the two the directory itself uses — `icon.png`, the extension's own icon, and
+    // `glyph.png`, the website listing's glyph, which no installed copy needs.
+    const directoryOnlyAssets = new Set(["icon.png", "glyph.png"]);
     for (const item of await readdir(source, { withFileTypes: true })) {
-      if (!item.isFile() || !item.name.endsWith(".png") || item.name === "icon.png") continue;
+      if (!item.isFile() || !item.name.endsWith(".png") || directoryOnlyAssets.has(item.name)) continue;
       await copyFile(join(source, item.name), join(packageDirectory, item.name));
     }
     const packageEntries = await normalizedEntries(packageDirectory);
