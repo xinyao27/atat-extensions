@@ -23,6 +23,7 @@ const OPTION_FIELDS = new Set([
   "values",
   "visibleWhen",
   "icon",
+  "group",
 ]);
 /// Where the host creates and grants a `folder` option's directory at install time.
 const FOLDER_DEFAULT_PATHS = new Set(["shortcuts", "icloud", "documents"]);
@@ -330,6 +331,12 @@ function validateManifest(manifest, directoryName) {
     if (option.icon !== undefined) {
       // An @@ icon name or a file inside the package, exactly as an action's icon.
       string(option.icon, `${field}.icon`);
+    }
+    if (option.group !== undefined) {
+      // Options that share a group render as one service: a row on the left, the rest of
+      // the group's options as that row's detail on the right.
+      string(option.group, `${field}.group`);
+      if (!IDENTIFIER.test(option.group)) fail(`${field}.group must be kebab-case`);
     }
     localizable(option.label, `${field}.label`);
     if (option.description !== undefined) localizable(option.description, `${field}.description`);

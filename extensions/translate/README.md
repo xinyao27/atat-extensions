@@ -59,3 +59,9 @@ Translates the text you point at, right where you pointed at it.
 - 不保存任何东西：原文和译文只在这个窗口里，关掉就没了。真正出去的只有这些翻译请求，
   以及你自己复制或替换的内容。
 - 需要 AtAt 1.2.0 或更新版本。
+
+## Assets
+
+The service logos are the vendors' own artwork, kept only to identify the service they belong
+to: Google Translate, Microsoft Translator and Apple Translate app icons from Apple's App
+Store listing artwork; DeepL from DeepL's official brand kit (2025).

@@ -65,14 +65,15 @@ interface Adjustment {
 }
 
 /// The service's mark, drawn before its name in the panel and before its switch in
-/// Settings. @@ icon names, the same vocabulary an action's `icon` uses.
+/// Settings: the service's own logo from the package, or a template glyph for the agent,
+/// which has no vendor to borrow a logo from.
 function providerIcon(provider: ProviderId): string {
   switch (provider) {
     case "agent": return "brain03";
-    case "system": return "apple";
-    case "google": return "google";
-    case "microsoft": return "microsoft";
-    case "deepl": return "translation";
+    case "system": return "service-system.png";
+    case "google": return "service-google.png";
+    case "microsoft": return "service-microsoft.png";
+    case "deepl": return "service-deepl.png";
   }
 }
 

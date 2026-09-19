@@ -109,6 +109,7 @@
         "zh-hans": "用你已经配置好的助手翻译。只有它能接着按你的要求改译文。"
       },
       "icon": "brain03",
+      "group": "agent",
       "defaultValue": true
     },
     {
@@ -122,7 +123,8 @@
         "en": "Translate on this Mac, once the language is downloaded in System Settings.",
         "zh-hans": "在这台 Mac 上翻译，先在系统设置里下载语言。"
       },
-      "icon": "apple",
+      "icon": "service-system.png",
+      "group": "system",
       "defaultValue": false
     },
     {
@@ -136,7 +138,8 @@
         "en": "No account and no key needed.",
         "zh-hans": "不用账号，也不用填密钥。"
       },
-      "icon": "google",
+      "icon": "service-google.png",
+      "group": "google",
       "defaultValue": false
     },
     {
@@ -150,7 +153,8 @@
         "en": "Needs a key from your Microsoft Translator resource in Azure.",
         "zh-hans": "需要 Azure 微软翻译资源里的密钥。"
       },
-      "icon": "microsoft",
+      "icon": "service-microsoft.png",
+      "group": "microsoft",
       "defaultValue": false
     },
     {
@@ -164,7 +168,8 @@
         "en": "Needs a key from your DeepL account.",
         "zh-hans": "需要 DeepL 账号里的密钥。"
       },
-      "icon": "translation",
+      "icon": "service-deepl.png",
+      "group": "deepl",
       "defaultValue": false
     },
     {
@@ -181,7 +186,8 @@
       "visibleWhen": {
         "option": "useMicrosoft",
         "equals": "true"
-      }
+      },
+      "group": "microsoft"
     },
     {
       "identifier": "microsoftRegion",
@@ -198,7 +204,8 @@
       "visibleWhen": {
         "option": "useMicrosoft",
         "equals": "true"
-      }
+      },
+      "group": "microsoft"
     },
     {
       "identifier": "deeplKey",
@@ -214,7 +221,8 @@
       "visibleWhen": {
         "option": "useDeepL",
         "equals": "true"
-      }
+      },
+      "group": "deepl"
     }
   ],
   "views": [

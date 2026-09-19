@@ -65,6 +65,12 @@ try {
         if (error.code !== "ENOENT") throw error;
       }
     }
+    // A service's own mark travels with the package: a PNG at the extension's root, other
+    // than icon.png (which is the extension's own icon, and has its own rule).
+    for (const item of await readdir(source, { withFileTypes: true })) {
+      if (!item.isFile() || !item.name.endsWith(".png") || item.name === "icon.png") continue;
+      await copyFile(join(source, item.name), join(packageDirectory, item.name));
+    }
     const packageEntries = await normalizedEntries(packageDirectory);
     await utimes(packageDirectory, NORMALIZED_DATE, NORMALIZED_DATE);
     const archiveName = `${identifier}-${manifest.version}.atatextension`;
