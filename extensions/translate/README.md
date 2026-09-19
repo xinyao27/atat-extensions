@@ -5,8 +5,8 @@ Translates the text you point at, right where you pointed at it.
 - Select text and click **Translate** in the bar that appears: the translation opens beside
   the selection, with the original above it. **Replace** writes a translation back into the
   document you were editing; **Copy** puts it on the clipboard.
-- The same button appears on a clipboard item and on a screenshot's card. A screenshot is
-  read on-device with `ocr` first, so only words, never the image, reach the translators.
+- The same button appears on a clipboard item and on a screenshot's card. A screenshot's
+  words are read on this Mac first, so only text, never the image, reaches the translators.
 - Every service you turn on translates at once, each in its own card you can fold, with that
   card's buttons under its own translation: your agent, macOS's own translation, Google
   Translate, Microsoft Translator and DeepL. Turn services on or off on the Translate page
@@ -17,8 +17,8 @@ Translates the text you point at, right where you pointed at it.
   - Google Translate needs no account and no key.
   - Microsoft Translator uses a key and region from Azure; DeepL uses a key from your
     DeepL account. Keys are kept in your Keychain.
-- The original shows the language it was recognized as. Click that to say otherwise, and the
-  services translate from the one you pick.
+- When a service recognizes what language the original is in, the card shows it. Click that
+  to say otherwise, and the services translate from the one you pick.
 - The language row under the original picks both sides: what it is being translated from
   (Auto Detect by default) and what it is being translated into, with a swap button between
   them. The target starts at Automatic: translations go into your primary language, and
@@ -44,7 +44,7 @@ Translates the text you point at, right where you pointed at it.
 
 - 选中文字，点浮动条上的**翻译**：译文和原文一起出现在选区旁边。**替换**把译文写回你
   正在编辑的地方，**复制**把它放进剪贴板。
-- 剪贴板条目和截图卡片上有同一个按钮。截图先用设备上的 `ocr` 读出文字，送出去的只有
+- 剪贴板条目和截图卡片上有同一个按钮。截图先在这台 Mac 上读出文字，送出去的只有
   文字，不是图片。
 - 你在设置里打开的每个服务都会同时翻译，各成一张能收起的卡片，卡片里的按钮就在译文下面：
   你的助手、macOS 自带翻译、Google 翻译、微软翻译和 DeepL。开关都在设置的「翻译」页里。
@@ -53,7 +53,7 @@ Translates the text you point at, right where you pointed at it.
     通用 › 语言与地区。
   - Google 翻译不用账号，也不用填密钥。
   - 微软翻译要填 Azure 的密钥和区域，DeepL 要填账号里的密钥。密钥存在钥匙串里。
-- 原文下面会显示识别出的语言。点一下就能改成你选的语言，各服务按它翻译。
+- 有服务认出原文是哪种语言时，卡片上会显示出来。点一下就能改成你选的语言，各服务按它翻译。
 - 原文下方一行选两侧语言：从哪种语言（默认自动检测）、译成哪种语言，中间可以一键交换。
   目标语言默认是「自动」：译成你的主要语言，原文已经是主要语言时译成第二语言，两个语言
   在扩展的设置页里选。

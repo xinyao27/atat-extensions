@@ -52,6 +52,7 @@ import {
   type Translation,
 } from "./translation.js";
 import {
+  PROVIDER_ICONS,
   enabledProviders,
   translateText,
   type ProviderCapabilities,
@@ -64,25 +65,16 @@ import {
 /// provider mark the host names, so the card wears whichever agent is selected. A host
 /// with no agent to name keeps the template glyph.
 function providerIcon(provider: ProviderId): string {
-  switch (provider) {
-    case "agent": return environment.agent?.icon ?? "brain03";
-    case "system": return "service-system.png";
-    case "google": return "service-google.png";
-    case "microsoft": return "service-microsoft.png";
-    case "deepl": return "service-deepl.png";
-  }
+  if (provider === "agent") return environment.agent?.icon ?? "brain03";
+  return PROVIDER_ICONS[provider];
 }
 
 /// What the card is called. The agent's card names the model that will answer — the same
-/// name the composer's picker shows — instead of a generic label.
+/// name the composer's picker shows — instead of a generic label; every other service's
+/// name lives in the strings table like its UI copy.
 function providerName(provider: ProviderId, copy: Strings): string {
-  switch (provider) {
-    case "agent": return environment.agent?.name ?? copy.agent;
-    case "system": return copy.system;
-    case "google": return copy.google;
-    case "microsoft": return copy.microsoft;
-    case "deepl": return copy.deepl;
-  }
+  if (provider === "agent") return environment.agent?.name ?? copy.agent;
+  return copy[provider];
 }
 
 function TranslationView({ input }: ViewProps<ActionInput>): ReactElement {
@@ -419,9 +411,9 @@ function TranslationView({ input }: ViewProps<ActionInput>): ReactElement {
             <Form.Dropdown.Item value="auto" title={copy.auto} />
             {LANGUAGES.map((language) => (
               <Form.Dropdown.Item
-                key={language}
-                value={language}
-                title={languageLabel(language)}
+                key={language.code}
+                value={language.code}
+                title={languageLabel(language.code)}
               />
             ))}
           </Panel.Badge>
@@ -440,9 +432,9 @@ function TranslationView({ input }: ViewProps<ActionInput>): ReactElement {
           <Form.Dropdown.Item value="auto" title={copy.auto} />
           {LANGUAGES.map((language) => (
             <Form.Dropdown.Item
-              key={language}
-              value={language}
-              title={languageLabel(language)}
+              key={language.code}
+              value={language.code}
+              title={languageLabel(language.code)}
             />
           ))}
         </Form.Dropdown>
@@ -462,9 +454,9 @@ function TranslationView({ input }: ViewProps<ActionInput>): ReactElement {
           <Form.Dropdown.Item value="auto" title={copy.auto} />
           {LANGUAGES.map((language) => (
             <Form.Dropdown.Item
-              key={language}
-              value={language}
-              title={languageLabel(language)}
+              key={language.code}
+              value={language.code}
+              title={languageLabel(language.code)}
             />
           ))}
         </Form.Dropdown>

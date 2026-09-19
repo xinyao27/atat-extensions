@@ -12,6 +12,7 @@
 import type { FetchInit, FetchResponse } from "@atat/api";
 import {
   TranslateError,
+  languageDefinition,
   translate as translateWithAgent,
   type AskAgent,
   type TargetLanguage,
@@ -31,6 +32,15 @@ const ENABLED_OPTION: Record<ProviderId, string> = {
   google: "useGoogle",
   microsoft: "useMicrosoft",
   deepl: "useDeepL",
+};
+
+/// The package file each service's mark lives in. The agent has no file here: its mark is
+/// the host's, resolved at render time from `environment.agent`.
+export const PROVIDER_ICONS: Record<Exclude<ProviderId, "agent">, string> = {
+  system: "service-system.png",
+  google: "service-google.png",
+  microsoft: "service-microsoft.png",
+  deepl: "service-deepl.png",
 };
 
 /// Which providers the user turned on, in declaration order.
@@ -63,29 +73,37 @@ export interface ProviderResult {
 /// One translation, by one provider. `source` is the language the user pinned, or
 /// `undefined` when the provider should detect it — which is what "Auto Detect" means and
 /// what every service here can do.
-export async function translateText(
+export function translateText(
   provider: ProviderId,
   text: string,
   language: TargetLanguage,
   source: TargetLanguage | undefined,
   capabilities: ProviderCapabilities
 ): Promise<ProviderResult> {
-  switch (provider) {
-    case "agent":
-      return {
-        text: (await translateWithAgent(text, language, source, capabilities.ask))
-          .translation,
-      };
-    case "system":
-      return translateWithSystem(text, language, source, capabilities);
-    case "google":
-      return translateWithGoogle(text, language, source, capabilities);
-    case "microsoft":
-      return translateWithMicrosoft(text, language, source, capabilities);
-    case "deepl":
-      return translateWithDeepL(text, language, source, capabilities);
-  }
+  return TRANSLATORS[provider](text, language, source, capabilities);
 }
+
+/// Every provider's translator, so adding a service is one row here and the caller has one
+/// line. The functions below are declarations on purpose: the table is read at call time,
+/// not at load time.
+const TRANSLATORS: Record<
+  ProviderId,
+  (
+    text: string,
+    language: TargetLanguage,
+    source: TargetLanguage | undefined,
+    capabilities: ProviderCapabilities
+  ) => Promise<ProviderResult>
+> = {
+  agent: async (text, language, source, capabilities) => ({
+    text: (await translateWithAgent(text, language, source, capabilities.ask))
+      .translation,
+  }),
+  system: translateWithSystem,
+  google: translateWithGoogle,
+  microsoft: translateWithMicrosoft,
+  deepl: translateWithDeepL,
+};
 
 // ------------------------------------------------------------------------ the system
 
@@ -144,27 +162,8 @@ async function translateWithGoogle(
 }
 
 function googleLanguage(language: TargetLanguage): string {
-  return GOOGLE_LANGUAGES[language];
+  return languageDefinition(language).google;
 }
-
-/// Google's own codes: the Chinese scripts carry the region, everything else is the bare
-/// language.
-const GOOGLE_LANGUAGES: Record<TargetLanguage, string> = {
-  en: "en",
-  "zh-Hans": "zh-CN",
-  "zh-Hant": "zh-TW",
-  ja: "ja",
-  ko: "ko",
-  fr: "fr",
-  ru: "ru",
-  de: "de",
-  es: "es",
-  it: "it",
-  pt: "pt",
-  pl: "pl",
-  nl: "nl",
-  ar: "ar",
-};
 
 /// `[[["译文","source",…],["…","…"]],null,"en",…]`: every segment's first cell is a piece
 /// of the answer, joining them back is the whole parse, and the third cell of the root is
@@ -259,9 +258,9 @@ async function translateWithDeepL(
   const endpoint = key.endsWith(":fx") ? DEEPL_FREE_ENDPOINT : DEEPL_PRO_ENDPOINT;
   const body: { text: string[]; target_lang: string; source_lang?: string } = {
     text: [text],
-    target_lang: DEEPL_TARGET_LANGUAGES[language],
+    target_lang: languageDefinition(language).deeplTarget,
   };
-  if (source !== undefined) body.source_lang = DEEPL_SOURCE_LANGUAGES[source];
+  if (source !== undefined) body.source_lang = languageDefinition(source).deeplSource;
   const response = await capabilities.fetch(endpoint, {
     method: "POST",
     headers: {
@@ -279,43 +278,6 @@ async function translateWithDeepL(
   if (!result.text) throw new TranslateError("failed");
   return result;
 }
-
-/// DeepL's own codes. Its target side names regional variants — American English,
-/// European Portuguese, both Chinese scripts — and its source side takes the bare
-/// language, because a text being read is not assumed to belong to one variant.
-const DEEPL_TARGET_LANGUAGES: Record<TargetLanguage, string> = {
-  en: "EN-US",
-  "zh-Hans": "ZH-HANS",
-  "zh-Hant": "ZH-HANT",
-  ja: "JA",
-  ko: "KO",
-  fr: "FR",
-  ru: "RU",
-  de: "DE",
-  es: "ES",
-  it: "IT",
-  pt: "PT-PT",
-  pl: "PL",
-  nl: "NL",
-  ar: "AR",
-};
-
-const DEEPL_SOURCE_LANGUAGES: Record<TargetLanguage, string> = {
-  en: "EN",
-  "zh-Hans": "ZH",
-  "zh-Hant": "ZH",
-  ja: "JA",
-  ko: "KO",
-  fr: "FR",
-  ru: "RU",
-  de: "DE",
-  es: "ES",
-  it: "IT",
-  pt: "PT",
-  pl: "PL",
-  nl: "NL",
-  ar: "AR",
-};
 
 /// `{"translations":[{"detected_source_language":"EN","text":"…"}]}`.
 function parseDeepL(payload: unknown): ProviderResult {

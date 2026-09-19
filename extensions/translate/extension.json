@@ -153,8 +153,8 @@
         "zh-hans": "第二语言"
       },
       "description": {
-        "en": "When Automatic sees Chinese script and your primary language is Chinese, it uses this language.",
-        "zh-hans": "「自动」在主要语言为中文且原文含中文文字时使用这种语言。"
+        "en": "When the original is written in your primary language's script, Automatic translates into this one instead.",
+        "zh-hans": "原文写成主要语言的字型时，「自动」改译成这种语言。"
       },
       "defaultValue": "auto",
       "values": [

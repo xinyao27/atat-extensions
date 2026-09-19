@@ -4,9 +4,8 @@
 // `environment.locale`, so the view does not ask per string and a missing translation is a
 // type error rather than an English word in a Chinese window.
 
-import type { TargetLanguage } from "./translation.js";
-
-export type Language = "en" | "zh-Hans";
+import { LANGUAGES, languageFromLocale } from "./translation.js";
+import type { Language, TargetLanguage } from "./translation.js";
 
 export interface Strings {
   title: string;
@@ -22,7 +21,6 @@ export interface Strings {
   /// What clicking that badge does.
   adjustRecognition: string;
   swap: string;
-  translation: string;
   copy: string;
   /// The copy button's own mark, while its check shows.
   copied: string;
@@ -53,26 +51,10 @@ const EN: Strings = {
   sourceLanguage: "From",
   language: "Translate into",
   auto: "Auto Detect",
-  languageNames: {
-    en: "English",
-    "zh-Hans": "Simplified Chinese",
-    "zh-Hant": "Traditional Chinese",
-    ja: "Japanese",
-    ko: "Korean",
-    fr: "French",
-    ru: "Russian",
-    de: "German",
-    es: "Spanish",
-    it: "Italian",
-    pt: "Portuguese",
-    pl: "Polish",
-    nl: "Dutch",
-    ar: "Arabic",
-  },
+  languageNames: languageNames("en"),
   recognizedAs: "Recognized as",
   adjustRecognition: "Click to correct the recognized language.",
   swap: "Swap languages",
-  translation: "Translation",
   copy: "Copy",
   copied: "Copied",
   replace: "Replace",
@@ -102,26 +84,10 @@ const ZH_HANS: Strings = {
   sourceLanguage: "源语言",
   language: "翻译成",
   auto: "自动检测",
-  languageNames: {
-    en: "英语",
-    "zh-Hans": "简体中文",
-    "zh-Hant": "繁体中文",
-    ja: "日语",
-    ko: "韩语",
-    fr: "法语",
-    ru: "俄语",
-    de: "德语",
-    es: "西班牙语",
-    it: "意大利语",
-    pt: "葡萄牙语",
-    pl: "波兰语",
-    nl: "荷兰语",
-    ar: "阿拉伯语",
-  },
+  languageNames: languageNames("zh-Hans"),
   recognizedAs: "识别为",
   adjustRecognition: "点一下就能改识别出的语言。",
   swap: "交换语言",
-  translation: "译文",
   copy: "复制",
   copied: "已复制",
   replace: "替换",
@@ -146,10 +112,14 @@ const ZH_HANS: Strings = {
   deepl: "DeepL",
 };
 
-export function languageFor(locale: string): Language {
-  return locale.toLowerCase().startsWith("zh") ? "zh-Hans" : "en";
+export function stringsFor(locale: string): Strings {
+  return languageFromLocale(locale) === "zh-Hans" ? ZH_HANS : EN;
 }
 
-export function stringsFor(locale: string): Strings {
-  return languageFor(locale) === "zh-Hans" ? ZH_HANS : EN;
+/// The interface names of every offered language, read from the one language table in
+/// `translation.ts`, so a new language is added there and nowhere else.
+function languageNames(language: Language): Record<TargetLanguage, string> {
+  return Object.fromEntries(
+    LANGUAGES.map((definition) => [definition.code, definition.names[language]])
+  ) as Record<TargetLanguage, string>;
 }
