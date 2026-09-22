@@ -52,8 +52,8 @@ host already has, or a button the user presses?) and **what does the user get ba
 | remember a few kilobytes between runs | `ctx.storage` — no entitlement |
 | keep the user's own documents | a `folder` option and `ctx.files` — no entitlement |
 
-Zero entitlements is the default and the strong position: the local text tools (`lines`,
-`counts`, `slugify`, `format-json`…) and `convert-units` declare none. Reach for one only when
+Zero entitlements is the default and the strong position: the local text tools (`counts`,
+`format-json`, `text-case`…) declare none. Reach for one only when
 the request cannot be served without it, and expect to justify it in review.
 
 One constraint reshapes designs at this step rather than later: `networkHosts` is a list of
@@ -439,7 +439,7 @@ Before opening the pull request, check `REVIEW_POLICY.md` against the change:
 | the smallest possible action, `requiresApp`, `runAppleScript` and the `automation` entitlement | `extensions/bob-translate/` |
 | a view action: `<Panel>` layout, OCR for an image, `agent.ask`, `<Action.ReplaceSelection>`, a provider chosen by a `choice` option, `fetch` + `secrets` + `ctx.translate` | `extensions/translate/` |
 | a hook, an action on three surfaces, a view, a panel, a `folder` option with `defaultPath`, `reads` | `extensions/memory/` |
-| a zero-entitlement action that only computes | `extensions/lines/` |
+| a zero-entitlement action that only computes | `extensions/format-json/` |
 | a hook that swallows its own failures, inside a budget | `extensions/memory/src/recall.ts` |
 | UTF-8 base64, front matter, path joins | `extensions/memory/src/notes.ts` |
 | localized user-visible strings | `extensions/memory/src/text.ts` |
