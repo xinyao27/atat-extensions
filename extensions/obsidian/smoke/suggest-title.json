@@ -1,0 +1,6 @@
+{
+  "description": "the agent's title arrives without quotes or a trailing full stop",
+  "agent": "“Spacing and hierarchy in UI.”",
+  "call": { "routine": "suggestTitle", "args": ["Refactoring UI talks about spacing and hierarchy."] },
+  "expect": { "result": "Spacing and hierarchy in UI" }
+}

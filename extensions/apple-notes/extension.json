@@ -1,0 +1,66 @@
+{
+  "identifier": "apple-notes",
+  "name": {
+    "en": "Apple Notes",
+    "zh-hans": "备忘录"
+  },
+  "description": {
+    "en": "Saves what you select or copy as a new note in Notes.",
+    "zh-hans": "把选中或复制的内容存成「备忘录」里的一条新备忘录。"
+  },
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "minimumAppVersion": "1.2.0",
+  "author": "@@",
+  "entitlements": [
+    "agent",
+    "automation"
+  ],
+  "options": [
+    {
+      "identifier": "suggestTitle",
+      "type": "boolean",
+      "label": {
+        "en": "Suggest a title",
+        "zh-hans": "自动拟标题"
+      },
+      "description": {
+        "en": "Your agent names the note from what you saved.",
+        "zh-hans": "由你的助手根据内容给备忘录起个标题。"
+      },
+      "defaultValue": true
+    }
+  ],
+  "views": [
+    {
+      "identifier": "save"
+    }
+  ],
+  "actions": [
+    {
+      "identifier": "saveToNotes",
+      "title": {
+        "en": "Save to Notes",
+        "zh-hans": "存到备忘录"
+      },
+      "icon": "sticky-note01",
+      "surfaces": [
+        "selectionBar",
+        "clipboardHistory",
+        "captureQuickAccess"
+      ],
+      "requirements": {
+        "contentTypes": [
+          "text"
+        ]
+      },
+      "requiresApp": {
+        "name": "Notes",
+        "bundleIdentifiers": [
+          "com.apple.Notes"
+        ]
+      },
+      "view": "save"
+    }
+  ]
+}

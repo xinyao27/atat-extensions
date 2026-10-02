@@ -1,0 +1,15 @@
+{
+  "description": "a failed run says to open CueCue and returns nothing rather than an empty paste",
+  "appleScript": "",
+  "call": {
+    "action": "translate",
+    "input": {
+      "surface": "selectionBar",
+      "text": "Bonjour"
+    }
+  },
+  "expect": {
+    "result": null,
+    "notifications": ["CueCue"]
+  }
+}

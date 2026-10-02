@@ -1,0 +1,15 @@
+{
+  "description": "a reminder with a due date travels as the handler's input, never spliced into the script",
+  "appleScript": { "make new reminder": "提醒" },
+  "call": {
+    "routine": "add",
+    "args": ["DEF8ADC0-3478", "Reply to \"Mia\" about the offsite", "Thread from Slack:\nCan we move it to Friday?", "2026-09-28T09:30:00"]
+  },
+  "expect": {
+    "result": "提醒",
+    "appleScripts": [
+      "on atatSelection(selectedText)",
+      "DEF8ADC0-3478\u001fReply to \"Mia\" about the offsite\u001fThread from Slack:\nCan we move it to Friday?\u001f2026\u001f9\u001f28\u001f9\u001f30"
+    ]
+  }
+}

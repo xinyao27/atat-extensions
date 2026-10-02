@@ -1,0 +1,53 @@
+{
+  "identifier": "privacy-guard",
+  "name": {
+    "en": "Privacy Guard",
+    "zh-hans": "隐私守护"
+  },
+  "description": {
+    "en": "Masks names, emails, phones and other personal details in what you send, then puts them back in the answer you see. Detection runs on your Mac — nothing leaves with the real values.",
+    "zh-hans": "把你要发出去的姓名、邮箱、电话等个人信息先换成假值，收到回答后再换回来。识别只在你这台 Mac 上跑，真值不会跟着发出去。"
+  },
+  "version": "1.0.2",
+  "apiVersion": 1,
+  "minimumAppVersion": "1.2.0",
+  "author": "@@",
+  "entitlements": [],
+  "hooks": [
+    {
+      "hook": "contextAssembled"
+    },
+    {
+      "hook": "answerAssembled"
+    }
+  ],
+  "models": [
+    {
+      "capability": "pii",
+      "format": "gpu-pii-format-1",
+      "bundled": {
+        "weights": "assets/model.bin",
+        "layout": "assets/model.json"
+      },
+      "hint": {
+        "prefer": "metal",
+        "maxResidentBytes": 33554432
+      }
+    }
+  ],
+  "options": [
+    {
+      "identifier": "rememberMappings",
+      "type": "boolean",
+      "label": {
+        "en": "Remember replacements",
+        "zh-hans": "记住替换结果"
+      },
+      "description": {
+        "en": "The same real value always becomes the same fake one, so a follow-up question still makes sense. Turn off to forget between sessions.",
+        "zh-hans": "同一个真值永远换成同一个假值，这样追问时语义还对得上。关掉之后，下次启动就不再沿用上一次的映射。"
+      },
+      "defaultValue": true
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "category": "productivity",
+  "keywords": ["notes", "apple notes", "note", "save", "apple"],
+  "releaseNotes": {
+    "en": "Save what you select or copy as a new note in Notes, with a suggested title.",
+    "zh-hans": "把选中或复制的内容存成一条新备忘录，标题可以让助手来拟。"
+  }
+}

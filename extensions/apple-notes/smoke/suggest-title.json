@@ -1,0 +1,6 @@
+{
+  "description": "the agent's title comes back without quotes or a closing full stop",
+  "agent": "「周五发布清单」",
+  "call": { "routine": "suggestTitle", "args": ["周五前要把面板组件发布出去，负责人是 Mia 和 Leo。"] },
+  "expect": { "result": "周五发布清单" }
+}

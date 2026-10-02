@@ -1,0 +1,26 @@
+{
+  "description": "the vault is walked into items, frontmatter stripped, hidden folders skipped",
+  "options": { "vault": "{folder}" },
+  "files": {
+    "Inbox/trip.md": "---\ntitle: Lisbon notes\n---\n\nPasteis de nata first, then the hill.\n",
+    "Inbox/untitled.md": "Just a thought, no heading.\n",
+    "Daily/2026-09-26.md": "# Friday\n\n- stand-up at ten\n- shipped the card\n",
+    ".obsidian/workspace.json": "{}",
+    "Empty/blank.md": "   \n"
+  },
+  "call": {
+    "memorySource": "vault",
+    "input": {}
+  },
+  "expect": {
+    "result": {
+      "items": [
+        { "externalKey": "Daily/2026-09-26.md", "title": "Friday", "locator": "Daily/2026-09-26.md" },
+        { "externalKey": "Inbox/trip.md", "title": "Lisbon notes", "locator": "Inbox/trip.md" },
+        { "externalKey": "Inbox/untitled.md", "title": "untitled", "locator": "Inbox/untitled.md" }
+      ],
+      "complete": true
+    },
+    "contains": ["stand-up at ten", "Pasteis de nata first", "Just a thought"]
+  }
+}

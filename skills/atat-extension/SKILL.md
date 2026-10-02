@@ -29,7 +29,11 @@ host already has, or a button the user presses?) and **what does the user get ba
 | "when I copy X, clean it up / expand it / retitle it" | `clipboardIngest` hook |
 | "when I take a screenshot, do X to it first" | `capture` hook |
 | "every time I ask AtAt something, bring in X" | `contextAssembled` hook |
+| "change what I send before it goes" | `contextAssembled` hook returning `rewrite.prompt` / `rewrite.items` |
+| "stop this from being sent, and tell me why" | `contextAssembled` hook returning `block.reason` |
 | "after AtAt answers, record / send / count X" | `response` hook (fire and forget) |
+| "change the answer before I see it" | `answerAssembled` hook returning `rewrite.responseText` |
+| "detect names/emails/… locally" or "use a local model" | a `models` declaration + `ctx.model.run` |
 | a button on selected text | action, `surfaces: ["selectionBar"]` |
 | a button on a clipboard history entry | action, `surfaces: ["clipboardHistory"]` |
 | a button on the finished capture | action, `surfaces: ["captureQuickAccess"]` |
@@ -43,14 +47,16 @@ host already has, or a button the user presses?) and **what does the user get ba
 | "read what <other app> left on disk" | a `reads` declaration per app, and `files.roots` to find out whether it is installed |
 | the user supplies an API key or token | `secret` option |
 | "use AI to …" | `ctx.agent.ask` and the `agent` entitlement |
-| "translate with the Mac's own translation" | `ctx.translate` and the `translation` entitlement |
 | "call <service>" | `ctx.fetch`, the `network` entitlement, and exact `networkHosts` |
 | "open a URL" / "run my Shortcut" / "run this AppleScript" | the `automation` entitlement — `ctx.openUrl`, `ctx.runShortcut`, `ctx.runAppleScript` |
+| "…and let me open what I just created" (an issue, a page) | `<Action.OpenInBrowser url>` in a view — http(s) only, no entitlement |
+| "what does this word mean" | `define(text)` — the Mac's own dictionaries, offline, no entitlement |
 | "save it to my Favorites" | `ctx.favorites.add` — no entitlement |
 | "use AI with my <skill>" | `ctx.agent.ask(prompt, { skill })` and the `agent` entitlement |
 | "it drives <app>" (Bob, Things, …) | the action's `requiresApp` — the button greys out with the reason while the app is missing |
 | remember a few kilobytes between runs | `ctx.storage` — no entitlement |
 | keep the user's own documents | a `folder` option and `ctx.files` — no entitlement |
+| "it brings its own model and runs it here" | a `models` declaration — the format is one the host ships, the weights are `bundled` in `assets/` or `remote` |
 
 Zero entitlements is the default and the strong position: the local text tools (`counts`,
 `format-json`, `text-case`…) declare none. Reach for one only when
@@ -112,11 +118,15 @@ schema. What it cannot tell you:
 - **`entitlements` and `networkHosts` are a pair.** Exact lowercase hostnames, each one the code
   actually calls. Anything aspirational is a review finding.
 - **Every selection-bar action names an `icon`.** The bar is icon-only; the tooltip shows the
-  action's title and the extension's name, but the glyph is what the user reads first. Use a name
-  from the bar's own set — `note`, `bookmark`, `translate`, `search`, `copy`, `download`,
-  `pin`, `star`, `tag`, `summarize`, `explain`, `link`, `globe`, `mail`, `code`, `image`… — and
-  anything else falls back to the generic extension glyph. `pnpm validate` refuses a
-  `selectionBar` action without one.
+  action's title and the extension's name, but the glyph is what the user reads first. Pick the
+  Hugeicons Free glyph that names the action's effect — `caseUpper`, `braces`, `textNumber`,
+  `noteAdd`, `languageCircle`, `translate`, `search`, `copy`… — from the names AtAt ships in
+  `SelectionAction.Icon`, or name a Hugeicons asset the app bundles directly: a service's own
+  mark (`github`, `notion01`, `apple-reminder`) or the glyph that says what the button does
+  (`sticky-note01`, `note-edit`, `source-code`, `file-braces`). Meaning comes first: a tick
+  says "done", not "add a reminder". A named case wins; anything the app does not ship falls
+  back to the generic extension glyph. `pnpm validate` refuses a `selectionBar` action
+  without one.
 - **`requiresApp` names the app an action drives.** `{ name, bundleIdentifiers, website? }` on the
   action. With the app missing, AtAt greys the button and says "<name> isn't installed", the
   click says the same, and the extension's page links to the website. Without it the click would
@@ -130,15 +140,27 @@ schema. What it cannot tell you:
   `files.read` and `files.list` inside those directories and nothing else — no write, no
   delete, no search — and `files.roots(identifier)` to learn which of them exist here. A
   folder option is the user handing over ground; this is the author pointing at somebody
-  else's. `extensions/memory/extension.json` declares eight of them.
+  else's. No extension here declares one today, so read the `reads` contract in the AtAt
+  repository's `docs/internal/features/extension-system.md` before you are the first.
 - **`minimumAppVersion` is the oldest AtAt the extension runs on.** Bump it when you use a host API
   that arrived in a newer build — `runAppleScript`, `favorites.add` and `agent.ask`'s `skill`
-  arrived in 0.10.0 — so an older AtAt lists the extension with "needs @@ x.y or newer" instead of
-  failing at the first call.
+  arrived in 0.10.0; `ctx.model.run`, `answerAssembled` and `contextAssembled`'s `rewrite` /
+  `block` arrived in 1.3.0 — so an older AtAt lists the extension with "needs @@ x.y or newer"
+  instead of failing at the first call.
+- **`models` declares a local model only this extension may run.** Capability routes
+  `ctx.model.run`; format must be one the host ships today (`gpu-pii-format-1` for `pii`).
+  Exactly one of `bundled` (paths under the directory, usually `assets/`) or `remote` (HTTPS
+  URL + `layoutUrl` + `size` + `sha256`, and the `network` entitlement). A weight file named
+  in `bundled` may be larger than ordinary source — still capped — and is the one binary a
+  submission may carry. `extensions/privacy-guard/extension.json` is the worked example.
+- **A hook's failure never holds a message.** The pipeline always moves on — there is no
+  `onTimeout` field, and the host refuses a manifest that writes one. The only way a check
+  stops a send is returning `block: { reason }` from `contextAssembled` itself, and the user
+  is always offered a way past it.
 - **Options are few or the design is wrong.** Each one answers a question a real user has ("I
   want it somewhere else", "I don't want to be recorded"). There is no grouping heading, because
-  a list long enough to need grouping is the problem. `extensions/memory/extension.json` ships one
-  option for a extension with a hook, an action on three surfaces and a panel.
+  a list long enough to need grouping is the problem. `extensions/translate/extension.json` ships
+  ten of them for one action and one view, and `privacy-guard` ships a single boolean.
 - **A choice option's values can carry the words the user reads.** A `values` entry is either
   a string — the value, shown as itself — or `{ value, title }` with a localizable title. Use
   the pair whenever the stored value is not what a person should read: `zh-Hans` stores a stable
@@ -178,12 +200,23 @@ Then the rules that bite:
 - **A hook swallows its own failures.** No match, an index still building, a file that moved, a
   grant that has gone: catch it, `ctx.log()` a metadata-only line, return nothing. Three
   consecutive throws and AtAt pauses the extension, so a temporary condition raised as an error
-  costs the user the whole feature. `extensions/memory/src/recall.ts` is the worked example.
+  costs the user the whole feature. `extensions/privacy-guard/src/index.ts` is the worked example:
+  `detect` catches, logs the metadata only, and rethrows — a failure means the check did not
+  run, never that the message is held.
 - **Budgets are shared with every other extension on the same hook.** Per extension: `clipboardIngest`
-  1s, `contextAssembled` 1.5s, `capture` 5s, `response` 10s. For every extension on one hook
-  together: 2s, 3s and 8s respectively, `response` being fire and forget with no total. When the
-  budget runs out the pipeline moves on without you. Spend it on one search and a handful of
-  reads, not on a crawl. Actions are user-initiated and have no timeout.
+  1s, `contextAssembled` 1.5s, `answerAssembled` 1.5s, `capture` 5s, `response` 10s. For every
+  extension on one hook together: 2s, 3s and 8s respectively, `response` being fire and forget
+  with no total. When the budget runs out the pipeline moves on without you. Spend a
+  budget on one search and a handful of reads, or one `ctx.model.run`, not on a crawl. Actions
+  are user-initiated and have no timeout.
+- **`ctx.model.run` only sees models this extension declared.** Capability is the key; there is
+  no fallback to another extension's weights or to a model the host happens to keep. Spans come
+  back in UTF-16 code units over the same string you handed in. Catch a miss and return nothing
+  — three consecutive throws pause the extension.
+- **`rewrite` and `block` on `contextAssembled` change what leaves; `answerAssembled` changes
+  what comes back.** One extension rewrites a given prompt or answer. A `block` always leaves
+  the user a way past it. `response` stays fire-and-forget after the answer is already on
+  screen — use `answerAssembled` when the user must see the restored text.
 - **What the user should be able to delete travels as a pill.** `addItems` entries each become a
   visible pill: a `label`, and exactly one of `text` and `filePaths` (both or neither and the
   host drops the item). `promptSections` is scaffolding addressed to the agent — at most 4 per
@@ -205,14 +238,16 @@ Then the rules that bite:
 - **`files.search` is how a extension searches its folder.** The host maintains the index; a
   sandbox cannot build one and reading a folder to grep it will not fit in the budget.
 - **Every user-visible string is localized off `ctx.locale`** (`environment.locale` in a view).
-  English and Simplified Chinese, each written natively. `extensions/memory/src/text.ts` is the
-  pattern: one strings table, one lookup. Text addressed to the *agent* stays in English.
+  English and Simplified Chinese, each written natively. `extensions/translate/src/text.ts` is the
+  pattern: one record per language, picked once, so a missing translation is a type error rather
+  than an English word in a Chinese window. Text addressed to the *agent* stays in English.
 - **Nothing survives a call.** Each hook and action call gets a fresh JavaScriptCore context, so
   module-level state is gone by the next one. `ctx.storage` holds settings and small indexes up
   to the host's per-extension storage budget — `set` rejects past it, and the host says so in its
   log line; a granted folder holds the user's data.
 - **`files.read` and `files.write` carry base64**, and `btoa` is Latin-1 only — it throws on
-  Chinese text. Encode UTF-8 by hand; `extensions/memory/src/notes.ts` has both directions.
+  Chinese text. Encode UTF-8 by hand; `types/atat-extension.d.ts` documents both directions, and
+  the smoke harness's `{ folder }` placeholder is how you test one.
 
 `<List selection>` is what makes a list multi-selectable: each `<Action>` inside it is a batch
 action, handed the `id` of every selected row (`<List.Item id>`, defaulting to the row's key).
@@ -351,8 +386,8 @@ directory of files, a file optionally carrying its own `modifiedAt` — and they
 `files.roots`, `files.list` and `files.read` exactly as the host does, refusing every write.
 A `{ "routine": "name", "args": [ … ] }` call runs a function the bundle exports under
 `routines` on its definition, handed the same context a hook gets: it is how a panel's own
-work gets tested without a panel. `extensions/memory/smoke/` holds nine worked scenarios
-covering a hook, an action and six converters.
+work gets tested without a panel. `extensions/translate/smoke/` holds eleven worked scenarios
+covering a view action across providers, OCR, speech and a Favorite.
 
 Write one scenario per declared hook and action, and make the first one the exact situation the
 user described, with their input and their expected output.
@@ -438,14 +473,18 @@ Before opening the pull request, check `REVIEW_POLICY.md` against the change:
 |---|---|
 | the smallest possible action, `requiresApp`, `runAppleScript` and the `automation` entitlement | `extensions/bob-translate/` |
 | a view action: `<Panel>` layout, OCR for an image, `agent.ask`, `<Action.ReplaceSelection>`, a provider chosen by a `choice` option, `fetch` + `secrets` + `ctx.translate` | `extensions/translate/` |
-| a hook, an action on three surfaces, a view, a panel, a `folder` option with `defaultPath`, `reads` | `extensions/memory/` |
+| a hook, an action on three surfaces, a view, a panel, a `folder` option with `defaultPath`, `reads` | no extension here yet — the contracts are in the AtAt repo's `docs/internal/features/extension-system.md` |
 | a zero-entitlement action that only computes | `extensions/format-json/` |
-| a hook that swallows its own failures, inside a budget | `extensions/memory/src/recall.ts` |
-| UTF-8 base64, front matter, path joins | `extensions/memory/src/notes.ts` |
-| localized user-visible strings | `extensions/memory/src/text.ts` |
-| a panel: list, detail, page-level action, confirmed delete | `extensions/memory/src/panel.tsx` |
-| `reads`, `files.roots`, and parsing another app's files as data | `extensions/memory/src/import/` |
-| smoke scenarios | `extensions/memory/smoke/` |
+| a hook that swallows its own failures, inside a budget | `extensions/privacy-guard/src/index.ts` |
+| `rewrite` / `block` on `contextAssembled`, `answerAssembled`, a `models` declaration, `ctx.model.run` | `extensions/privacy-guard/` |
+| localized user-visible strings | `extensions/translate/src/text.ts` |
+| a panel: list, detail, page-level action, confirmed delete | no extension here yet — see the `<Panel>` section above |
+| a "save it somewhere" form: fields in a `<Panel.Section>`, one page-level Save, a success card with `<Detail.Metadata>` and `<Action.OpenInBrowser>` | `extensions/github/`, `extensions/notion/` |
+| writing Markdown into a granted `folder` (UTF-8 base64 both ways, no path escaping the folder) | `extensions/obsidian/` |
+| a panel driving another app through `runAppleScript`, with the user's text passed as data and never spliced into the script | `extensions/reminders/`, `extensions/apple-notes/` |
+| the Mac's own dictionary through `define`, with fallbacks | `extensions/translate/src/dictionary.ts` |
+| `reads`, `files.roots`, and parsing another app's files as data | no extension here yet — the contracts are in the AtAt repo's `docs/internal/features/extension-system.md` |
+| smoke scenarios | `extensions/counts/smoke/`, `extensions/translate/smoke/` |
 
 ## Reference: gotchas
 
@@ -466,10 +505,6 @@ Before opening the pull request, check `REVIEW_POLICY.md` against the change:
 - `capture` transforms by writing the new file to `input.outputPath` and returning
   `{ action: "replace" }`; the original is left alone otherwise.
 - `ctx.ocr` accepts only a path this call was handed.
-- `ctx.translate(text, { target })` is Apple's on-device translation, the one macOS itself uses,
-  and the language pair has to be downloaded on the Mac already (System Settings › General ›
-  Language & Region). A pair that could only be offered as a download rejects instead of
-  prompting: an extension cannot show the system's download sheet.
 - `networkHosts` is this directory's review rule — exact hostnames, no wildcards, each one the
   code calls — and `pnpm smoke` enforces it. The app itself enforces `https` everywhere, plus
   plain `http` to `127.0.0.1` and `localhost` for a service the user runs themselves.

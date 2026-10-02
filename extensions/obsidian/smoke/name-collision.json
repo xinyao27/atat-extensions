@@ -1,0 +1,13 @@
+{
+  "description": "a note whose name is taken gets a number instead of overwriting the old one",
+  "options": { "vault": "{folder}", "inboxFolder": "" },
+  "files": { "Ideas.md": "older note" },
+  "call": { "routine": "save", "args": ["note", "Ideas", "a newer idea", "2026-09-26T09:00:00"] },
+  "expect": {
+    "result": { "relativePath": "Ideas 2.md" },
+    "files": [
+      { "path": "Ideas.md", "count": 1, "contains": ["older note"] },
+      { "path": "Ideas 2.md", "count": 1, "contains": ["a newer idea"] }
+    ]
+  }
+}

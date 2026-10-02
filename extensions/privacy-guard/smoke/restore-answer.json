@@ -1,0 +1,23 @@
+{
+  "description": "puts the real name back in the answer before it is shown",
+  "storage": {
+    "restore": {
+      "Jane Doe": "Alice Smith"
+    }
+  },
+  "call": {
+    "hook": "answerAssembled",
+    "input": {
+      "prompt": "Who am I?",
+      "responseText": "You are Jane Doe.",
+      "items": []
+    }
+  },
+  "expect": {
+    "result": {
+      "rewrite": {
+        "responseText": "You are Alice Smith."
+      }
+    }
+  }
+}

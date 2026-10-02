@@ -1,0 +1,15 @@
+{
+  "description": "a selection becomes a note whose first line is its title, and markup it contains stays text",
+  "appleScript": { "make new note": "Meeting notes" },
+  "call": {
+    "routine": "create",
+    "args": ["x-coredata://B0BF/ICFolder/p2", "Meeting notes", "Ship <Panel> by Friday\n\nOwners: Mia & Leo"]
+  },
+  "expect": {
+    "result": "Meeting notes",
+    "appleScripts": [
+      "on atatSelection(selectedText)",
+      "x-coredata://B0BF/ICFolder/p2\u001f<div><h1>Meeting notes</h1></div><div>Ship &lt;Panel&gt; by Friday</div><div><br></div><div>Owners: Mia &amp; Leo</div>"
+    ]
+  }
+}

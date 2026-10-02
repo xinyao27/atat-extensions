@@ -1,0 +1,18 @@
+{
+  "description": "leaves a clean prompt alone when the detector finds nothing",
+  "call": {
+    "hook": "contextAssembled",
+    "input": {
+      "prompt": "Summarise the release notes",
+      "items": [],
+      "interactionSource": "composer"
+    }
+  },
+  "model": {
+    "pii": { "spans": [] }
+  },
+  "expect": {
+    "result": null,
+    "modelRuns": ["Summarise the release notes"]
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "description": "the agent drafts the title and a summary; the selection stays in the body as a quote",
+  "agent": "{\"title\":\"Helper crashes with exit 141.\",\"summary\":\"The extension host dies on the first translation.\"}",
+  "call": { "routine": "draft", "args": ["AtAtExtensionHost exited with 141 the first time I translated."] },
+  "expect": {
+    "result": {
+      "title": "Helper crashes with exit 141",
+      "body": "The extension host dies on the first translation.\n\n> AtAtExtensionHost exited with 141 the first time I translated."
+    }
+  }
+}

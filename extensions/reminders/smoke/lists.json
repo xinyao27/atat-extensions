@@ -1,0 +1,8 @@
+{
+  "description": "the lists come back default first, each with its id",
+  "appleScript": { "default list": "337C\tAgentStart\nDEF8\t提醒\n" },
+  "call": { "routine": "lists", "args": [] },
+  "expect": {
+    "result": [ { "id": "337C", "name": "AgentStart" }, { "id": "DEF8", "name": "提醒" } ]
+  }
+}

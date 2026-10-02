@@ -1,0 +1,20 @@
+{
+  "description": "masks an email in the prompt and remembers the mapping for restore",
+  "call": {
+    "hook": "contextAssembled",
+    "input": {
+      "prompt": "Email alice@example.com please",
+      "items": [],
+      "interactionSource": "composer"
+    }
+  },
+  "model": {
+    "pii": {
+      "spans": [{ "label": "EMAIL", "start": 6, "end": 23 }]
+    }
+  },
+  "expect": {
+    "result": { "rewrite": {} },
+    "modelRuns": ["Email alice@example.com please"]
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "description": "folders from two accounts are told apart by account, and the trash is left out",
+  "appleScript": {
+    "folders of anAccount": "id-g\tGoogle\tNotes\nid-i\tiCloud\tNotes\nid-t\tiCloud\tRecently Deleted\nid-x\tiCloud\t导入的备忘录\n"
+  },
+  "call": { "routine": "folders", "args": [] },
+  "expect": {
+    "result": [
+      { "id": "id-g", "name": "Google › Notes" },
+      { "id": "id-i", "name": "iCloud › Notes" },
+      { "id": "id-x", "name": "iCloud › 导入的备忘录" }
+    ]
+  }
+}

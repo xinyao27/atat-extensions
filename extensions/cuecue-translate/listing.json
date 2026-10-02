@@ -1,0 +1,13 @@
+{
+  "category": "writing",
+  "keywords": [
+    "translate",
+    "translation",
+    "cuecue",
+    "selection"
+  ],
+  "releaseNotes": {
+    "en": "Initial release.",
+    "zh-hans": "首个版本。"
+  }
+}

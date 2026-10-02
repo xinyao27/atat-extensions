@@ -1,0 +1,134 @@
+{
+  "format": 1,
+  "architecture": {
+    "vocabSize": 8744,
+    "embeddingSize": 96,
+    "hiddenSize": 96,
+    "featureCount": 6,
+    "convKernelSize": 3,
+    "convDilations": [
+      1,
+      2,
+      4,
+      8,
+      16
+    ],
+    "classCount": 17,
+    "windowSize": 512,
+    "coreSize": 450,
+    "haloSize": 31
+  },
+  "labels": [
+    "O",
+    "B-PERSON",
+    "I-PERSON",
+    "B-EMAIL",
+    "I-EMAIL",
+    "B-PHONE",
+    "I-PHONE",
+    "B-ADDRESS",
+    "I-ADDRESS",
+    "B-DATE_OF_BIRTH",
+    "I-DATE_OF_BIRTH",
+    "B-US_SSN",
+    "I-US_SSN",
+    "B-PAYMENT_CARD",
+    "I-PAYMENT_CARD",
+    "B-IP_ADDRESS",
+    "I-IP_ADDRESS"
+  ],
+  "byteLength": 3919172,
+  "sha256": "5b49b9c81391ff3c1937a6058aadf3bede866482225397846e77dee76f529654",
+  "tensors": {
+    "embedding": {
+      "shape": [
+        8744,
+        96
+      ],
+      "offset": 0
+    },
+    "conv0Weight": {
+      "shape": [
+        96,
+        96,
+        3
+      ],
+      "offset": 839424
+    },
+    "conv0Bias": {
+      "shape": [
+        96
+      ],
+      "offset": 867072
+    },
+    "conv1Weight": {
+      "shape": [
+        96,
+        96,
+        3
+      ],
+      "offset": 867168
+    },
+    "conv1Bias": {
+      "shape": [
+        96
+      ],
+      "offset": 894816
+    },
+    "conv2Weight": {
+      "shape": [
+        96,
+        96,
+        3
+      ],
+      "offset": 894912
+    },
+    "conv2Bias": {
+      "shape": [
+        96
+      ],
+      "offset": 922560
+    },
+    "conv3Weight": {
+      "shape": [
+        96,
+        96,
+        3
+      ],
+      "offset": 922656
+    },
+    "conv3Bias": {
+      "shape": [
+        96
+      ],
+      "offset": 950304
+    },
+    "conv4Weight": {
+      "shape": [
+        96,
+        96,
+        3
+      ],
+      "offset": 950400
+    },
+    "conv4Bias": {
+      "shape": [
+        96
+      ],
+      "offset": 978048
+    },
+    "classifierWeight": {
+      "shape": [
+        17,
+        96
+      ],
+      "offset": 978144
+    },
+    "classifierBias": {
+      "shape": [
+        17
+      ],
+      "offset": 979776
+    }
+  }
+}

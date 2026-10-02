@@ -1,0 +1,15 @@
+{
+  "description": "the repository picker lists repositories that take issues, archived ones left out",
+  "secrets": { "token": "github_pat_test" },
+  "fetch": {
+    "api.github.com": {
+      "json": [
+        { "full_name": "xinyao27/atat", "private": true, "has_issues": true, "archived": false },
+        { "full_name": "xinyao27/old", "private": false, "has_issues": true, "archived": true },
+        { "full_name": "xinyao27/docs", "private": false, "has_issues": false, "archived": false }
+      ]
+    }
+  },
+  "call": { "routine": "repositories", "args": [] },
+  "expect": { "result": [ { "fullName": "xinyao27/atat", "isPrivate": true } ] }
+}

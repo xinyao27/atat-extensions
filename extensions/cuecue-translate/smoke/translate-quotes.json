@@ -1,0 +1,18 @@
+{
+  "description": "the selection travels as the handler's input, quoted, never spliced into the script",
+  "appleScript": "你好",
+  "call": {
+    "action": "translate",
+    "input": {
+      "surface": "selectionBar",
+      "text": "say \"hi\"\n$HOME && `whoami`"
+    }
+  },
+  "expect": {
+    "result": "你好",
+    "appleScripts": [
+      "say \"hi\"\n$HOME && `whoami`",
+      "translate selectedText"
+    ]
+  }
+}

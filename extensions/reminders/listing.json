@@ -1,0 +1,8 @@
+{
+  "category": "productivity",
+  "keywords": ["reminders", "todo", "task", "due date", "apple"],
+  "releaseNotes": {
+    "en": "Turn what you select or copy into a reminder, with a due date if you want one.",
+    "zh-hans": "把选中或复制的内容变成一条提醒，需要的话再定个日期。"
+  }
+}

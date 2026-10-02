@@ -1,0 +1,6 @@
+{
+  "description": "a long selection is shortened to a to-do by the agent; a short one is kept as it is",
+  "agent": "Book the flight to Tokyo",
+  "call": { "routine": "suggestTitle", "args": ["Hey, can you remember to book the flight to Tokyo before prices go up next week? Ideally the morning one."] },
+  "expect": { "result": "Book the flight to Tokyo" }
+}

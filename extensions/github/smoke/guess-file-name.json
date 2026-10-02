@@ -1,0 +1,5 @@
+{
+  "description": "a Python snippet is named .py so GitHub highlights it",
+  "call": { "routine": "guessFileName", "args": ["def main():\n    print('hi')"] },
+  "expect": { "result": "snippet.py" }
+}

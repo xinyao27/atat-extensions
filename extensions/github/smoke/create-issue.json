@@ -1,0 +1,22 @@
+{
+  "description": "a selection becomes an issue in the chosen repository, with the token, labels and a quoted body",
+  "secrets": { "token": "github_pat_test" },
+  "fetch": {
+    "https://api.github.com/repos/xinyao27/atat/issues": {
+      "status": 201,
+      "json": { "number": 57, "html_url": "https://github.com/xinyao27/atat/issues/57" }
+    }
+  },
+  "call": {
+    "routine": "createIssue",
+    "args": ["xinyao27/atat", "Translate panel crashes on first run", "The helper exits with 141.\n\n> AtAtExtensionHost exit 141", ["bug"]]
+  },
+  "expect": {
+    "result": { "url": "https://github.com/xinyao27/atat/issues/57", "label": "#57" },
+    "requests": [
+      "POST https://api.github.com/repos/xinyao27/atat/issues",
+      "\"title\":\"Translate panel crashes on first run\"",
+      "\"labels\":[\"bug\"]"
+    ]
+  }
+}

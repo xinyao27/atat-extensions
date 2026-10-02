@@ -1,0 +1,46 @@
+{
+  "identifier": "cuecue-translate",
+  "name": {
+    "en": "CueCue Translate",
+    "zh-hans": "CueCue 翻译"
+  },
+  "description": {
+    "en": "Send what you select, or the text in a screenshot, to CueCue to translate.",
+    "zh-hans": "把选中的文字或截图里的文字交给 CueCue 翻译。"
+  },
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "minimumAppVersion": "0.10.0",
+  "author": "@@",
+  "entitlements": [
+    "automation"
+  ],
+  "actions": [
+    {
+      "identifier": "translate",
+      "title": {
+        "en": "Translate with CueCue",
+        "zh-hans": "用 CueCue 翻译"
+      },
+      "icon": "translate",
+      "surfaces": [
+        "selectionBar",
+        "captureQuickAccess"
+      ],
+      "requirements": {
+        "contentTypes": [
+          "text",
+          "image"
+        ]
+      },
+      "requiresApp": {
+        "name": "CueCue",
+        "bundleIdentifiers": [
+          "com.cuecue.app"
+        ],
+        "website": "https://cuecueapp.com"
+      },
+      "after": "show"
+    }
+  ]
+}

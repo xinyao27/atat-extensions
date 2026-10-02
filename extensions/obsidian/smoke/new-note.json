@@ -1,0 +1,14 @@
+{
+  "description": "a selection becomes a new note in the Inbox folder, named by its title, Chinese intact",
+  "options": { "vault": "{folder}", "inboxFolder": "Inbox", "dailyFolder": "", "dailyFormat": "YYYY-MM-DD", "suggestTitle": true },
+  "call": {
+    "routine": "save",
+    "args": ["note", "Reading list: 设计笔记", "Refactoring UI 这本书讲了间距与层级。", "2026-09-26T21:30:00+08:00"]
+  },
+  "expect": {
+    "result": { "relativePath": "Inbox/Reading list 设计笔记.md", "destination": "note" },
+    "files": [
+      { "path": "Inbox/Reading list 设计笔记.md", "count": 1, "contains": ["source: AtAt", "Refactoring UI 这本书讲了间距与层级。"] }
+    ]
+  }
+}

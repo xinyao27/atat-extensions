@@ -1,0 +1,9 @@
+{
+  "description": "without a date the five date fields stay empty, and a multi-line title becomes one line",
+  "appleScript": { "make new reminder": "Inbox" },
+  "call": { "routine": "add", "args": ["LIST-1", "Buy milk\nand eggs", "", ""] },
+  "expect": {
+    "result": "Inbox",
+    "appleScripts": ["LIST-1\u001fBuy milk and eggs\u001f\u001f\u001f\u001f\u001f\u001f"]
+  }
+}

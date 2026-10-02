@@ -1,0 +1,7 @@
+{
+  "description": "a page the integration cannot reach says to share it, not a generic failure",
+  "secrets": { "token": "ntn_test" },
+  "fetch": { "api.notion.com": { "status": 404, "json": { "object": "error", "code": "object_not_found" } } },
+  "call": { "routine": "append", "args": [{ "id": "gone", "kind": "page", "title": "x", "url": "https://www.notion.so/x" }, "text"] },
+  "expect": { "result": { "error": "notShared" } }
+}

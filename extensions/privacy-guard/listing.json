@@ -1,0 +1,17 @@
+{
+  "category": "utilities",
+  "keywords": [
+    "privacy",
+    "pii",
+    "mask",
+    "redact",
+    "local",
+    "names",
+    "email",
+    "phone"
+  ],
+  "releaseNotes": {
+    "en": "Clearer icons for the selection bar and the extension tile.",
+    "zh-hans": "选择栏和扩展图标换成了更贴切的样子。"
+  }
+}

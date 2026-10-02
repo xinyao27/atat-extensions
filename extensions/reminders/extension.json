@@ -1,0 +1,66 @@
+{
+  "identifier": "reminders",
+  "name": {
+    "en": "Reminders",
+    "zh-hans": "提醒事项"
+  },
+  "description": {
+    "en": "Turns what you select or copy into a reminder, with a due date if you want one.",
+    "zh-hans": "把选中或复制的内容变成一条提醒，需要的话再定个日期。"
+  },
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "minimumAppVersion": "1.2.0",
+  "author": "@@",
+  "entitlements": [
+    "agent",
+    "automation"
+  ],
+  "options": [
+    {
+      "identifier": "suggestTitle",
+      "type": "boolean",
+      "label": {
+        "en": "Suggest a title",
+        "zh-hans": "自动拟标题"
+      },
+      "description": {
+        "en": "Your agent turns a long selection into a short to-do.",
+        "zh-hans": "内容较长时，由你的助手概括成一句待办。"
+      },
+      "defaultValue": true
+    }
+  ],
+  "views": [
+    {
+      "identifier": "add"
+    }
+  ],
+  "actions": [
+    {
+      "identifier": "addReminder",
+      "title": {
+        "en": "Add to Reminders",
+        "zh-hans": "加到提醒事项"
+      },
+      "icon": "apple-reminder",
+      "surfaces": [
+        "selectionBar",
+        "clipboardHistory",
+        "captureQuickAccess"
+      ],
+      "requirements": {
+        "contentTypes": [
+          "text"
+        ]
+      },
+      "requiresApp": {
+        "name": "Reminders",
+        "bundleIdentifiers": [
+          "com.apple.reminders"
+        ]
+      },
+      "view": "add"
+    }
+  ]
+}

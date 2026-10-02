@@ -1,0 +1,19 @@
+{
+  "description": "a selection is handed to CueCue through its translate command and its translation is returned",
+  "appleScript": "2026",
+  "call": {
+    "action": "translate",
+    "input": {
+      "surface": "selectionBar",
+      "text": "Bonjour le monde"
+    }
+  },
+  "expect": {
+    "result": "2026",
+    "appleScripts": [
+      "on atatSelection(selectedText)",
+      "Bonjour le monde",
+      "translate selectedText"
+    ]
+  }
+}

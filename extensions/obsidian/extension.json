@@ -1,0 +1,129 @@
+{
+  "identifier": "obsidian",
+  "name": {
+    "en": "Obsidian",
+    "zh-hans": "Obsidian"
+  },
+  "description": {
+    "en": "Saves what you select or copy to today's note, or to a new note in your vault.",
+    "zh-hans": "把选中或复制的内容记进今天的日记，或存成库里的一篇新笔记。"
+  },
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "minimumAppVersion": "1.2.0",
+  "author": "@@",
+  "entitlements": [
+    "agent",
+    "memorySource"
+  ],
+  "options": [
+    {
+      "identifier": "vault",
+      "type": "folder",
+      "label": {
+        "en": "Vault",
+        "zh-hans": "笔记库"
+      },
+      "description": {
+        "en": "The folder that holds your Obsidian vault.",
+        "zh-hans": "你的 Obsidian 笔记库所在的文件夹。"
+      }
+    },
+    {
+      "identifier": "dailyFolder",
+      "type": "string",
+      "label": {
+        "en": "Daily notes folder",
+        "zh-hans": "日记文件夹"
+      },
+      "description": {
+        "en": "Where today's note lives inside the vault. Leave empty for the top level.",
+        "zh-hans": "今天的日记放在库里的哪个文件夹。留空就放在最外层。"
+      },
+      "defaultValue": ""
+    },
+    {
+      "identifier": "dailyFormat",
+      "type": "choice",
+      "label": {
+        "en": "Daily note name",
+        "zh-hans": "日记文件名"
+      },
+      "description": {
+        "en": "Match the date format in Obsidian's Daily notes settings.",
+        "zh-hans": "和 Obsidian「日记」设置里的日期格式保持一致。"
+      },
+      "defaultValue": "YYYY-MM-DD",
+      "values": [
+        "YYYY-MM-DD",
+        "YYYY.MM.DD",
+        "YYYYMMDD",
+        "DD-MM-YYYY",
+        "MM-DD-YYYY"
+      ]
+    },
+    {
+      "identifier": "inboxFolder",
+      "type": "string",
+      "label": {
+        "en": "New notes folder",
+        "zh-hans": "新笔记文件夹"
+      },
+      "description": {
+        "en": "Where new notes go inside the vault. Leave empty for the top level.",
+        "zh-hans": "新笔记放在库里的哪个文件夹。留空就放在最外层。"
+      },
+      "defaultValue": "Inbox"
+    },
+    {
+      "identifier": "suggestTitle",
+      "type": "boolean",
+      "label": {
+        "en": "Suggest a title",
+        "zh-hans": "自动拟标题"
+      },
+      "description": {
+        "en": "Your agent names a new note from what you saved.",
+        "zh-hans": "新建笔记时，由你的助手根据内容拟一个标题。"
+      },
+      "defaultValue": true
+    }
+  ],
+  "views": [
+    {
+      "identifier": "save"
+    }
+  ],
+  "memorySources": [
+    {
+      "identifier": "vault",
+      "title": {
+        "en": "Obsidian vault",
+        "zh-hans": "Obsidian 笔记库"
+      },
+      "icon": "note-edit",
+      "scope": "global"
+    }
+  ],
+  "actions": [
+    {
+      "identifier": "saveToObsidian",
+      "title": {
+        "en": "Save to Obsidian",
+        "zh-hans": "存到 Obsidian"
+      },
+      "icon": "note-edit",
+      "surfaces": [
+        "selectionBar",
+        "clipboardHistory",
+        "captureQuickAccess"
+      ],
+      "requirements": {
+        "contentTypes": [
+          "text"
+        ]
+      },
+      "view": "save"
+    }
+  ]
+}
