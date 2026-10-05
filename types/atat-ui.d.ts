@@ -46,6 +46,13 @@ declare module "@atat/api" {
      * confirms itself with `confirmAlert`, and should say how many rows it is about.
      */
     selection?: ReactNode;
+    /**
+     * Shows a pane beside the rows with the focused row's `detail`. The first click on a row
+     * shows it in the pane; a second click runs the row's action.
+     */
+    isShowingDetail?: boolean;
+    /** A `<List.Dropdown>` drawn beside the search field, for filtering. */
+    searchBarAccessory?: ReactElement;
   }
 
   export interface ListSectionProps {
@@ -53,9 +60,48 @@ declare module "@atat/api" {
     children?: ReactNode;
   }
 
-  /** `{ text }` is the one accessory shape a native list row can render. */
-  export interface ListAccessory {
-    text: string;
+  /**
+   * The only colours an extension can name. The host maps each to its own semantic colour,
+   * so an extension cannot paint something to look like a warning the app did not give.
+   */
+  export const Color: {
+    Blue: "blue";
+    Green: "green";
+    Orange: "orange";
+    Red: "red";
+    Purple: "purple";
+    Yellow: "yellow";
+    SecondaryText: "secondaryText";
+  };
+  export type ColorName = (typeof Color)[keyof typeof Color];
+
+  /** One accessory at the trailing end of a row. At most three are drawn. */
+  export type ListAccessory = (
+    | { text: string | { value: string; color?: ColorName } }
+    | { tag: string | { value: string; color?: ColorName } }
+    | { date: Date }
+    | { icon: string }
+  ) & { tooltip?: string };
+
+  export interface ListEmptyViewProps {
+    /** An @@ icon name or a package image. */
+    icon?: string;
+    title?: string;
+    description?: string;
+    actions?: ReactElement;
+  }
+
+  export interface ListDropdownProps {
+    tooltip?: string;
+    value?: string;
+    defaultValue?: string;
+    onChange?: (value: string) => void;
+    children?: ReactNode;
+  }
+
+  export interface ListItemDetailProps {
+    markdown?: string;
+    metadata?: ReactElement;
   }
 
   export interface ListItemProps {
@@ -67,8 +113,10 @@ declare module "@atat/api" {
     title: string;
     /** One line. Anything longer is truncated rather than wrapped. */
     subtitle?: string;
-    /** Only the first one is drawn: a row ends in one piece of trailing text, not a table. */
+    /** Text, tags, dates or icons; at most three are drawn. Hidden while a detail pane is open. */
     accessories?: ListAccessory[];
+    /** What the pane shows for this row when the list has `isShowingDetail`. */
+    detail?: ReactElement;
     /** An @@ icon name (`clipboard`, `camera01`), or a file name inside the extension package. */
     icon?: string;
     /**
@@ -81,17 +129,80 @@ declare module "@atat/api" {
   export const List: {
     (props: ListProps): ReactElement;
     Section: (props: ListSectionProps) => ReactElement;
-    Item: (props: ListItemProps) => ReactElement;
+    Item: {
+      (props: ListItemProps): ReactElement;
+      Detail: {
+        (props: ListItemDetailProps): ReactElement;
+        Metadata: typeof Detail.Metadata;
+      };
+    };
+    EmptyView: (props: ListEmptyViewProps) => ReactElement;
+    Dropdown: {
+      (props: ListDropdownProps): ReactElement;
+      Item: (props: FormDropdownItemProps) => ReactElement;
+    };
+  };
+
+  export interface GridProps extends NavigationTitleProps {
+    children?: ReactNode;
+    /** 2 to 8. Defaults to 4. */
+    columns?: number;
+    /** How a picture sits in its tile. */
+    fit?: "contain" | "fill";
+    searchBarPlaceholder?: string;
+    onSearchTextChange?: (text: string) => void;
+    searchBarAccessory?: ReactElement;
+    isLoading?: boolean;
+    actions?: ReactNode;
+  }
+
+  export interface GridItemProps {
+    id?: string;
+    title?: string;
+    subtitle?: string;
+    /**
+     * An @@ icon name, a package image, or `{ source: "/absolute/path" }` for a file the
+     * extension may already read — its data directory, a granted folder, the view's input.
+     * Any other path draws nothing.
+     */
+    content: string | { source: string };
+    tooltip?: string;
+    /** The first action runs on a click on the tile; the rest are in its ••• menu. */
+    actions?: ReactElement;
+  }
+
+  export const Grid: {
+    (props: GridProps): ReactElement;
+    Section: (props: { title?: string; children?: ReactNode }) => ReactElement;
+    Item: (props: GridItemProps) => ReactElement;
+    EmptyView: (props: ListEmptyViewProps) => ReactElement;
+    Dropdown: typeof List.Dropdown;
+    Fit: { Contain: "contain"; Fill: "fill" };
   };
 
   export interface DetailProps extends NavigationTitleProps {
     /** Headings, paragraphs, bullet lists, code blocks and inline emphasis. */
     markdown: string;
+    /** A `<Detail.Metadata>` column of labelled facts under the text. */
+    metadata?: ReactElement;
     /** Drawn at the trailing end of the title bar, because they act on the whole page. */
     actions?: ReactElement;
   }
 
-  export const Detail: (props: DetailProps) => ReactElement;
+  export const Detail: {
+    (props: DetailProps): ReactElement;
+    Metadata: {
+      (props: { children?: ReactNode }): ReactElement;
+      Label: (props: { title: string; text?: string; icon?: string }) => ReactElement;
+      /** `target` must be http(s); the host opens it. */
+      Link: (props: { title: string; target: string; text?: string }) => ReactElement;
+      TagList: {
+        (props: { title: string; children?: ReactNode }): ReactElement;
+        Item: (props: { text: string; color?: ColorName }) => ReactElement;
+      };
+      Separator: () => ReactElement;
+    };
+  };
 
   /**
    * The generic page root: a vertical stack of sections and text, with the mount's actions
@@ -203,29 +314,40 @@ declare module "@atat/api" {
     actions?: ReactElement;
   }
 
-  export interface FormTextFieldProps {
+  /** Shared by every field. `error` is drawn under the field until the extension clears it. */
+  interface FormFieldProps {
     id: string;
     title?: string;
     /** Explanatory text under the label. */
     info?: string;
+    error?: string;
+  }
+
+  export interface FormTextFieldProps extends FormFieldProps {
     placeholder?: string;
     value?: string;
+    defaultValue?: string;
+    /** Reported on Return and when editing ends. */
     onChange?: (value: string) => void;
   }
 
-  export interface FormCheckboxProps {
-    id: string;
-    title?: string;
-    info?: string;
+  /** Several lines. There is no password style: a panel never draws a credential box. */
+  export interface FormTextAreaProps extends FormFieldProps {
+    value?: string;
+    defaultValue?: string;
+    /** Reported as the user types, debounced by the host. */
+    onChange?: (value: string) => void;
+  }
+
+  export interface FormCheckboxProps extends FormFieldProps {
     value?: boolean;
+    defaultValue?: boolean;
     onChange?: (value: boolean) => void;
   }
 
-  export interface FormDropdownProps {
-    id: string;
-    title?: string;
-    info?: string;
+  export interface FormDropdownProps extends FormFieldProps {
     value?: string;
+    defaultValue?: string;
     onChange?: (value: string) => void;
     children?: ReactNode;
   }
@@ -235,14 +357,40 @@ declare module "@atat/api" {
     title?: string;
   }
 
+  export interface FormDatePickerProps extends FormFieldProps {
+    value?: Date | null;
+    defaultValue?: Date | null;
+    type?: "date" | "dateTime";
+    onChange?: (value: Date | null) => void;
+  }
+
+  export interface FormTagPickerProps extends FormFieldProps {
+    value?: string[];
+    defaultValue?: string[];
+    onChange?: (value: string[]) => void;
+    children?: ReactNode;
+  }
+
   export const Form: {
     (props: FormProps): ReactElement;
     TextField: (props: FormTextFieldProps) => ReactElement;
+    TextArea: (props: FormTextAreaProps) => ReactElement;
     Checkbox: (props: FormCheckboxProps) => ReactElement;
     Dropdown: {
       (props: FormDropdownProps): ReactElement;
       Item: (props: FormDropdownItemProps) => ReactElement;
     };
+    DatePicker: {
+      (props: FormDatePickerProps): ReactElement;
+      Type: { Date: "date"; DateTime: "dateTime" };
+    };
+    TagPicker: {
+      (props: FormTagPickerProps): ReactElement;
+      Item: (props: { value: string; title?: string }) => ReactElement;
+    };
+    /** A read-only sentence between fields. */
+    Description: (props: { title?: string; text: string }) => ReactElement;
+    Separator: () => ReactElement;
   };
 
   export interface ActionPanelProps {
@@ -252,13 +400,26 @@ declare module "@atat/api" {
   export const ActionPanel: {
     (props: ActionPanelProps): ReactElement;
     Section: (props: ListSectionProps) => ReactElement;
+    /** A titled group that opens one level deeper in the same menu. */
+    Submenu: (props: { title: string; icon?: string; children?: ReactNode }) => ReactElement;
   };
+
+  /**
+   * A key for an action, shown in its menu and bound while the page is on screen. At least
+   * one modifier is required, and keys the app owns (⌘Q, ⌘W, ⌘H, ⌘M, ⌘, ⌘A, ⌘C, ⌘V, ⌘X,
+   * ⌘Z) are ignored rather than taken.
+   */
+  export interface KeyboardShortcut {
+    modifiers: Array<"cmd" | "ctrl" | "opt" | "shift">;
+    key: string;
+  }
 
   export type ActionStyle = "regular" | "destructive";
 
   export interface ActionProps {
     title: string;
     icon?: string;
+    shortcut?: KeyboardShortcut;
     /**
      * A destructive action is confirmed by the host before it runs. The runtime adds that
      * confirmation itself, so an irreversible action cannot ship without one.
@@ -282,15 +443,63 @@ declare module "@atat/api" {
     CopyToClipboard: (props: {
       title: string;
       icon?: string;
+      shortcut?: KeyboardShortcut;
       content: string;
       onCopy?: () => void;
     }) => ReactElement;
     /** Needs the `automation` entitlement, like `ctx.openUrl`. */
-    Open: (props: { title: string; icon?: string; target: string }) => ReactElement;
+    Open: (props: {
+      title: string;
+      icon?: string;
+      shortcut?: KeyboardShortcut;
+      target: string;
+    }) => ReactElement;
+    /**
+     * Opens a web page in the default browser — the issue, gist or page just created. No
+     * entitlement: http(s) only, so it shows a page and never hands a custom scheme to
+     * another app. Panels only.
+     */
+    OpenInBrowser: (props: {
+      title: string;
+      icon?: string;
+      shortcut?: KeyboardShortcut;
+      url: string;
+    }) => ReactElement;
     Push: (props: {
       title: string;
       icon?: string;
+      shortcut?: KeyboardShortcut;
       target: ReactElement;
+    }) => ReactElement;
+    /**
+     * Reveals a file in Finder. Only a path the extension may already read is revealed —
+     * its data directory, a granted folder, the view's input.
+     */
+    ShowInFinder: (props: {
+      title: string;
+      icon?: string;
+      shortcut?: KeyboardShortcut;
+      path: string;
+    }) => ReactElement;
+    /**
+     * Moves files to the Trash after the destructive confirmation. Only inside a granted
+     * folder, like `files.remove`.
+     */
+    Trash: (props: {
+      title: string;
+      icon?: string;
+      shortcut?: KeyboardShortcut;
+      paths: string | string[];
+      confirmTitle?: string;
+      confirmMessage?: string;
+      onTrash?: (paths: string[]) => void;
+    }) => ReactElement;
+    /** Hands every field of the form it sits in to `onSubmit`, keyed by field `id`. */
+    SubmitForm: (props: {
+      title: string;
+      icon?: string;
+      shortcut?: KeyboardShortcut;
+      onSubmit: (values: Record<string, unknown>) => void | Promise<void>;
     }) => ReactElement;
     /** Opens a Composer interaction with the content attached as a visible pill. */
     SendToComposer: (props: {
@@ -436,6 +645,14 @@ declare module "@atat/api" {
   /** Entitlement: `automation`. */
   export function openUrl(url: string): Promise<void>;
 
+  /**
+   * Runs an AppleScript, like `ctx.runAppleScript`: needs the `automation` entitlement. With
+   * `input`, the script's `on atatSelection(selectedText)` handler is called with it;
+   * without, it runs top to bottom. Resolves with the script's result as text, or `null`.
+   * Source ≤ 64 KB.
+   */
+  export function runAppleScript(source: string, input?: string): Promise<string | null>;
+
   export function ocr(path: string): Promise<string>;
 
   /**
@@ -459,6 +676,20 @@ declare module "@atat/api" {
 
   /** Stops whatever `speak` is reading, if anything. No entitlement. */
   export function stopSpeaking(): Promise<void>;
+
+  /**
+   * The entry the Mac's own dictionaries have for a word or short phrase — the one Look Up
+   * shows — as one plain-text paragraph, or `null` when no enabled dictionary has it.
+   * Offline, and limited to the dictionaries enabled in the Dictionary app. No
+   * entitlement. Refuses input longer than 64 characters.
+   */
+  export function define(text: string): Promise<string | null>;
+
+  /**
+   * Opens a web page in the default browser. No entitlement: panels only, http(s) only.
+   * `openUrl` (which needs `automation`) remains the way to reach a custom scheme.
+   */
+  export function openLink(url: string): Promise<void>;
 
   /**
    * The user's configuration, as a snapshot. Secret-typed options are absent by
@@ -487,9 +718,23 @@ declare module "@atat/api" {
   export function notify(message: string): Promise<void>;
   export function log(message: string): Promise<void>;
 
-  /** A non-modal message. The host owns how it looks. */
+  /**
+   * What a toast means. The host maps each to its own style; `Animated` (in progress) shows
+   * as the neutral toast.
+   */
+  export const Toast: {
+    Style: { Success: "success"; Failure: "failure"; Animated: "animated" };
+  };
+
+  /** A non-modal message. The host owns how it looks; `style` says what it means. */
   export function showToast(
-    input: string | { title?: string; message?: string }
+    input:
+      | string
+      | {
+          title?: string;
+          message?: string;
+          style?: "success" | "failure" | "animated";
+        }
   ): Promise<void>;
 
   /** Presented by the host, so the user can trust what they are agreeing to. */

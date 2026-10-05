@@ -122,18 +122,6 @@ declare module "@atat/api" {
     ocr(filePath: string): Promise<string>;
 
     /**
-     * Entitlement: `translation`. Apple's on-device translation, the one macOS itself uses.
-     * The language pair has to be downloaded on this Mac already: a pair the system could
-     * only offer to download cannot be requested from here, and rejects instead. Resolves
-     * with the translated text and the language it ran from — the pinned `source`, or the
-     * one the system recognised when the caller left it out.
-     */
-    translate(
-      text: string,
-      options: { target: string; source?: string; timeoutMs?: number }
-    ): Promise<{ text: string; source: string }>;
-
-    /**
      * Reads text aloud with the Mac's own voice, choosing a voice for `language` when one is
      * installed. No entitlement: it is local and as harmless as `notify`. Resolves when the
      * utterance finishes or is stopped, so a button can toggle on the same promise.
@@ -141,6 +129,11 @@ declare module "@atat/api" {
     speak(text: string, options?: { language?: string }): Promise<void>;
     /** Stops whatever `speak` is reading, if anything. No entitlement. */
     stopSpeaking(): Promise<void>;
+    /**
+     * The entry the Mac's own dictionaries have for a word or short phrase, as one
+     * plain-text paragraph, or `null`. Offline; no entitlement; ≤ 64 characters.
+     */
+    define(text: string): Promise<string | null>;
 
     /** Entitlement: `automation`. */
     openUrl(url: string): Promise<void>;
@@ -154,8 +147,7 @@ declare module "@atat/api" {
      */
     runAppleScript(source: string, input?: string): Promise<string | null>;
 
-    /**
-     * Entitlement: `agent`. Ten calls a minute, per extension. `skill` names one of the user's
+    /** Entitlement: `agent`. Ten calls a minute, per extension. `skill` names one of the user's
      * installed skills (`~/.agents/skills/<name>`); the host expands it for whichever agent
      * answers, and rejects when no such skill is installed.
      */
@@ -163,7 +155,38 @@ declare module "@atat/api" {
       ask(prompt: string, opts?: { timeoutMs?: number; skill?: string }): Promise<string>;
     };
 
+    /**
+     * A local model this extension declared in `models`. Capability routes to the
+     * declaration in *this* extension's manifest — never another extension's weights, and
+     * there is no fallback to a model the host happens to have. No entitlement: the model
+     * runs on this Mac.
+     *
+     * `pii` answers with spans over the text handed in; a `generation` capability answers
+     * with text. Offsets are UTF-16 code units, so the string sliced here is the string
+     * returned with the same boundaries. `timeoutMs` defaults to 3s and is capped at 5s.
+     */
+    model: {
+      run(request: {
+        capability: string;
+        input: { text: string };
+        timeoutMs?: number;
+      }): Promise<ModelRunResult>;
+    };
+
     log(message: string): void;
+  }
+
+  /** One labelled, contiguous range of the input text, in UTF-16 code units. */
+  export interface ModelSpan {
+    label: string;
+    start: number;
+    end: number;
+  }
+
+  /** `{ spans }` from a classifier, or `{ text }` from a generator. */
+  export interface ModelRunResult {
+    spans?: ModelSpan[];
+    text?: string;
   }
 
   // -------------------------------------------------------------------- hooks
@@ -200,6 +223,42 @@ declare module "@atat/api" {
     addItems?: ExtensionContextItem[];
     removeItemIDs?: string[];
     promptSections?: PromptSection[];
+    /**
+     * Replace what is about to be sent, rather than adding to it. `items` addresses the
+     * snapshots by `id`; a path is deliberately out of reach — it chooses which file the
+     * agent opens.
+     */
+    rewrite?: {
+      prompt?: string;
+      items?: { id: string; text?: string }[];
+    };
+    /**
+     * Say this interaction should not be sent. The user is always offered a way past it —
+     * a wrong block must not be able to break the entry point — and the reason is shown.
+     */
+    block?: { reason: string };
+  }
+
+  /**
+   * The answer the moment the agent finishes it, before it is shown or recorded — the
+   * answer-side mirror of `contextAssembled`. `responseText` is not truncated here (the
+   * read-only `response` hook's input is), because an extension restoring placeholders has
+   * to see the whole thing.
+   */
+  export interface AnswerAssembledInput {
+    prompt: string;
+    responseText: string;
+    items: ContextItemSnapshot[];
+  }
+
+  /**
+   * A whole replacement for the answer: whatever comes back is what the user sees, the
+   * session records, and a later chat turn sends back. Past 400,000 characters the result
+   * is refused rather than truncated. Only `contextAssembled` and `answerAssembled` may
+   * return one, and one extension rewrites a given answer.
+   */
+  export interface AnswerAssembledResult {
+    rewrite?: { responseText: string };
   }
 
   export interface ResponseInput {
@@ -264,6 +323,14 @@ declare module "@atat/api" {
       input: ContextAssembledInput,
       ctx: HostContext
     ) => Promise<ContextAssembledResult | void>;
+    /**
+     * Awaited before the answer is shown or recorded, so a later chat turn sees what this
+     * returned. Failures skip the extension, and the answer on screen stays the model's own.
+     */
+    answerAssembled?: (
+      input: AnswerAssembledInput,
+      ctx: HostContext
+    ) => Promise<AnswerAssembledResult | void>;
     response?: (input: ResponseInput, ctx: HostContext) => Promise<void>;
   }
 
@@ -294,10 +361,76 @@ declare module "@atat/api" {
   export interface ExtensionDefinition {
     hooks?: ExtensionHooks;
     actions?: Record<string, ExtensionAction>;
+    /**
+     * Collections this extension hands to @@ Memory to import. Each key matches a
+     * `memorySources` entry in the manifest, and the host calls it in pages rather than
+     * once — a vault or a workspace is larger than one call should carry.
+     *
+     * Entitlement: `memorySource`. It is supply-only: the handler answers with items, and
+     * the host decides what becomes a memory. Nothing here can read what Memory already
+     * holds, and there is no write-back to the collection an item came from.
+     */
+    memorySources?: Record<string, ExtensionMemorySource>;
     // Each view declares its own narrower input type; the host entry that mounts it is the
     // one that knows which shape it passes.
     views?: Record<string, ComponentType<ViewProps<any>>>;
   }
+
+  /**
+   * One page request. `cursor` is whatever `nextCursor` this handler returned last, handed
+   * back unchanged; `since` is the last complete read of this source as ISO 8601, present
+   * only when there has been one.
+   */
+  export interface MemorySourceRequest {
+    cursor?: string;
+    since?: string;
+    limit: number;
+  }
+
+  /**
+   * One item to import.
+   *
+   * `externalKey` is the item's identity and the whole reason a second import does not
+   * duplicate the first: it must be stable for the item's lifetime — never its title, its
+   * URL, or its body, all of which change.
+   */
+  export interface ExtensionMemoryItem {
+    /** Stable id inside the collection. Becomes the stored item's `native_key`. */
+    externalKey: string;
+    title: string;
+    /** Plain text or Markdown. The host trims it to a single item's budget. */
+    body: string;
+    /** `http(s)` only, for the "open the original" affordance. */
+    url?: string;
+    /** Where it sat in the collection, in the source's own words. */
+    locator?: string;
+    /** A starting value for the user's review, never an assertion about them. */
+    kind?: "fact" | "preference" | "decision" | "state" | "reference" | "procedure" | "conversation";
+    /** ISO 8601. Omit when the collection does not say; the host does not guess. */
+    observedAt?: string;
+    updatedAt?: string;
+  }
+
+  /**
+   * One page of a collection.
+   *
+   * `complete` is load-bearing: it is what authorizes the host to treat items it did not
+   * receive as deleted. Say `false`, or stop early, whenever the read did not see
+   * everything — a page reported as complete when it was not can delete the user's
+   * memories at the source's word alone.
+   */
+  export interface MemorySourcePage {
+    items: ExtensionMemoryItem[];
+    /** Where the next page resumes. Omit or return the same value and the read ends. */
+    nextCursor?: string;
+    complete: boolean;
+  }
+
+  /** Pages this extension's collection for Memory's import pipeline. */
+  export type ExtensionMemorySource = (
+    request: MemorySourceRequest,
+    ctx: HostContext
+  ) => Promise<MemorySourcePage>;
 
   export function defineExtension<Definition extends ExtensionDefinition>(
     extension: Definition

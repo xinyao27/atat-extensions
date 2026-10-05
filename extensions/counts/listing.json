@@ -8,7 +8,7 @@
     "text"
   ],
   "releaseNotes": {
-    "en": "Counts words, characters, and lines in a selection.",
-    "zh-hans": "统计选中文字的词数、字符数和行数。"
+    "en": "Counts now include rare Han characters and treat joined emoji and accented letters as one character.",
+    "zh-hans": "生僻汉字也能计入字数；组合表情和带重音的字母按一个字符计算。"
   }
 }

@@ -9,7 +9,7 @@
     "text"
   ],
   "releaseNotes": {
-    "en": "Uppercase, lowercase, title case and sentence case, for any selection.",
-    "zh-hans": "选中英文就能改成全大写、全小写、标题式或句首大写。"
+    "en": "Title and sentence case now keep punctuation in place and preserve names such as iPhone.",
+    "zh-hans": "标题式和句首大写会保留标点，也不会改坏 iPhone 这样的名字。"
   }
 }

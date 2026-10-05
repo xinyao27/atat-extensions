@@ -7,7 +7,7 @@
     "applescript"
   ],
   "releaseNotes": {
-    "en": "Built for @@ 0.10 and later, where extensions describe themselves in extension.json.",
-    "zh-hans": "面向 @@ 0.10 及以后：扩展的描述文件改叫 extension.json。"
+    "en": "Clearer icons for the selection bar and the extension tile.",
+    "zh-hans": "选择栏和扩展图标换成了更贴切的样子。"
   }
 }

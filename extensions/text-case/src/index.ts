@@ -1,7 +1,7 @@
 // text-case — the entry point.
 //
-// Four actions over the same rules, English only. A word that already carries a capital of
-// its own — iPhone, McDonald’s — is a name, and a name is not the action’s to respell.
+// Four actions over the same English casing rules. Uppercase and lowercase transform the
+// entire selection; title and sentence case preserve deliberate capitals inside names.
 
 import { defineExtension } from "@atat/api";
 import type { ExtensionAction } from "@atat/api";
@@ -22,33 +22,32 @@ function lowerCase(text: string): string {
 
 /** The first letter of each word, small words left alone unless they open or close it. */
 function titleCase(text: string): string {
-  const pieces = text.split(/(\s+)/);
-  const wordIndexes = pieces
-    .map((piece, index) => (piece.trim().length > 0 ? index : -1))
-    .filter((index) => index >= 0);
-  const first = wordIndexes[0];
-  const last = wordIndexes[wordIndexes.length - 1];
-  return pieces
-    .map((piece, index) => {
-      if (piece.trim().length === 0) return piece;
-      if (/[A-Z]/.test(piece.slice(1))) return piece;
-      const lowered = piece.toLowerCase();
-      const bare = lowered.replace(/[^a-z']/g, "");
-      if (index !== first && index !== last && SMALL_WORDS.has(bare)) return lowered;
-      return lowered.replace(/[a-z]/, (letter) => letter.toUpperCase());
-    })
-    .join("");
+  const words = [...text.matchAll(/[A-Za-z]+(?:[’'-][A-Za-z]+)*/g)];
+  const first = words[0]?.index;
+  const last = words[words.length - 1]?.index;
+  return text.replace(/[A-Za-z]+(?:[’'-][A-Za-z]+)*/g, (word, index: number) => {
+    if (/[a-z][A-Z]/.test(word)) return word;
+    const lowered = word.toLowerCase();
+    if (index !== first && index !== last && SMALL_WORDS.has(lowered)) return lowered;
+    return lowered.replace(/^[a-z]/, (letter) => letter.toUpperCase());
+  });
 }
 
-/** Everything lowercase, then the first letter of every sentence put back up. */
+/** Lowercase ordinary words, keeping embedded capitals in names and sentence starts. */
 function sentenceCase(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(
-      /(^\s*|[.!?]\s+)([^a-z]*)([a-z])/g,
-      (_, lead: string, between: string, letter: string) =>
-        lead + between + letter.toUpperCase()
-    );
+  let startsSentence = true;
+  return text.replace(/[A-Za-z]+(?:[’'-][A-Za-z]+)*|[.!?][”"'’)]*|[^A-Za-z.!?]+/g, (piece) => {
+    if (/^[.!?]/.test(piece)) {
+      startsSentence = true;
+      return piece;
+    }
+    if (!/^[A-Za-z]/.test(piece)) return piece;
+    const isName = /[a-z][A-Z]/.test(piece);
+    const word = isName ? piece : piece.toLowerCase();
+    if (!startsSentence) return word;
+    startsSentence = false;
+    return isName ? word : word.replace(/^[a-z]/, (letter) => letter.toUpperCase());
+  });
 }
 
 const uppercase: ExtensionAction = async (input) => upperCase(input.text ?? "");

@@ -8,7 +8,7 @@
     "data"
   ],
   "releaseNotes": {
-    "en": "Formats selected JSON with two-space indentation.",
-    "zh-hans": "把选中的 JSON 排成两空格缩进。"
+    "en": "Numbers that would change during formatting now leave your text untouched.",
+    "zh-hans": "遇到格式化后会变样的数字时，原文不会被改动。"
   }
 }

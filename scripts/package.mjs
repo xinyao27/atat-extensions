@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { execFileSync, spawnSync } from "node:child_process";
 import { copyFile, mkdir, readFile, readdir, rm, stat, utimes, writeFile } from "node:fs/promises";
-import { basename, join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const EXTENSIONS = join(ROOT, "extensions");
@@ -11,13 +11,20 @@ const NORMALIZED_DATE = new Date("1980-01-01T00:00:00.000Z");
 /// Where the release workflow publishes every artifact: one rolling GitHub Release, tagged
 /// `extensions`, so the app has one stable URL for the catalog and one per archive.
 const EXTENSIONS_DOWNLOAD_BASE = "https://github.com/xinyao27/atat-extensions/releases/download/extensions";
+// Bob depends on an external app and is deferred from this release, including explicit
+// packaging requests. Keep the source for a later decision, never publish it by accident.
+const DEFERRED = new Set(["bob-translate"]);
 const requested = process.argv.slice(2);
 const identifiers = requested.length > 0
   ? requested.map((identifier) => basename(identifier))
   : (await readdir(EXTENSIONS, { withFileTypes: true }))
-      .filter((entry) => entry.isDirectory() && !entry.name.startsWith("."))
+      .filter((entry) => entry.isDirectory() && !entry.name.startsWith(".") && !DEFERRED.has(entry.name))
       .map((entry) => entry.name)
       .sort();
+
+if (requested.length > 0 && identifiers.some((identifier) => DEFERRED.has(identifier))) {
+  throw new Error("bob-translate is deferred from the release catalog");
+}
 
 const validation = spawnSync(process.execPath, [join(ROOT, "scripts/validate.mjs"), ...identifiers], { cwd: ROOT, encoding: "utf8" });
 if (validation.status !== 0) throw new Error(validation.stderr || validation.stdout || "validation failed");
@@ -63,6 +70,19 @@ try {
     for (const optional of ["icon.png", "README.md"]) {
       try { await copyFile(join(source, optional), join(packageDirectory, optional)); } catch (error) {
         if (error.code !== "ENOENT") throw error;
+      }
+    }
+    // A `bundled` model travels with the package, path for path: the manifest names
+    // `assets/model.bin`, and the loader resolves exactly that against the installed
+    // directory. Nothing else under `assets/` is copied — the manifest is the list.
+    for (const model of manifest.models ?? []) {
+      const bundled = model?.bundled;
+      if (!bundled) continue;
+      for (const relative of [bundled.weights, bundled.layout]) {
+        if (typeof relative !== "string") continue;
+        const target = join(packageDirectory, relative);
+        await mkdir(dirname(target), { recursive: true });
+        await copyFile(join(source, relative), target);
       }
     }
     // A service's own mark travels with the package: a PNG at the extension's root, other
@@ -119,6 +139,13 @@ try {
       entitlements: manifest.entitlements ?? [],
       networkHosts: manifest.networkHosts ?? [],
       hooks: (manifest.hooks ?? []).map((hook) => hook.hook),
+      // Only the capability and format: the app resolves those against its own registry,
+      // and the weights it already has inside the archive.
+      models: (manifest.models ?? []).map((model) => ({
+        capability: model.capability,
+        format: model.format,
+        source: model.bundled ? "bundled" : "remote",
+      })),
       catalog: {
         name: manifest.name,
         description: manifest.description,

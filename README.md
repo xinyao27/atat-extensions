@@ -52,10 +52,12 @@ updated automatically.
 
 ## Extensions
 
-- `memory`: context recall over the host's folder search, response recording, three action
-  surfaces, and a native management panel — with no entitlements at all.
-- `bob-translate`: one action that hands selected text to Bob through AppleScript; the
-  smallest extension here, and the one that shows `requiresApp` and the `automation` entitlement.
+- `bob-translate`: kept as a source example of `requiresApp` and `automation`, but deferred
+  from the release catalog and artifacts until its external-app behavior is reviewed.
+- `translate`: a view action with provider choice, OCR, and a panel.
+- `privacy-guard`: the hook pair that rewrites what leaves and restores what comes back,
+  with a `models` declaration and a bundled local model.
+- `counts`, `format-json`, `text-case`: local text tools that declare no entitlements at all.
 
 Every extension imports only `@atat/api`. The checked-in `types/` directory is a temporary
 declaration bridge until the package is published; after publication CI installs the pinned

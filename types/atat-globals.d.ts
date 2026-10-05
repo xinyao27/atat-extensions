@@ -10,6 +10,13 @@
 /** Resolves after `milliseconds`. Backed by the same host timer as `setTimeout`. */
 declare function sleep(milliseconds: number): Promise<void>;
 
+/**
+ * Base64 over Latin-1, as on the web: `btoa` throws on any character above U+00FF, so text
+ * goes through `TextEncoder` to bytes first and each byte becomes one character.
+ */
+declare function btoa(data: string): string;
+declare function atob(data: string): string;
+
 /** UTF-8 only. The runtime's shim carries one encoding, which is the one the contract names. */
 declare class TextEncoder {
   readonly encoding: "utf-8";

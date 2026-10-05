@@ -8,7 +8,8 @@ Select JSON in any app, or a clipboard card that holds some, and choose **Format
 tidied copy is written back over the selection; on a clipboard card it is copied instead.
 
 The button appears only on text that opens with `{` or `[`. Text that still does not parse
-gets a short message rather than a broken answer.
+gets a short message rather than a broken answer. Numbers that JavaScript would round or
+change (including large integers and precise decimals) are refused rather than silently altered.
 
 ## What it touches
 

@@ -25,8 +25,11 @@ and an icon — and the repository owns the toolchain, not the author.
 - A lint, format or editor configuration of the author's own, or hunks that only reformat
   code. Code standards belong to the repository — VitePlus for format and lint,
   `pnpm typecheck` for types — not to a submission.
-- Analytics, a bundled or downloaded binary, or a wrapper that asks the user to install
-  something else. An extension computes over what the host hands it.
+- Analytics, an undeclared binary, or a wrapper that asks the user to install something else.
+  An extension computes over what the host hands it. The one exception is a model weight
+  named under `models[].bundled` in the manifest (usually `assets/model.bin`): it travels
+  with the package because the host runs it locally, and `pnpm validate` already bounds its
+  size. Anything else binary-shaped is refused.
 
 ## Suggested, never required
 
@@ -59,3 +62,10 @@ is complete without them.
 The author keeps their extension working and answers issues. An extension that breaks and
 is abandoned may be fixed by a maintainer without the author; a `@@` extension is the
 repository's own and is maintained here.
+
+## Icons
+
+A selection-bar button is icon-only, so its glyph is its name. Review it for meaning first:
+the service's own mark, or the Hugeicons glyph that says what the button does — picked from
+the whole catalog, not the handful already in use. A tick for "add a reminder" or a generic
+document for "save to Notion" is a review finding.

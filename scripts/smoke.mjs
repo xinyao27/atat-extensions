@@ -28,6 +28,7 @@ const HOOK_BUDGET_MS = {
   clipboardIngest: 1000,
   capture: 5000,
   contextAssembled: 1500,
+  answerAssembled: 1500,
   response: 10000,
 };
 const ENTITLEMENTS = [
@@ -39,6 +40,7 @@ const ENTITLEMENTS = [
   "clipboardRead",
   "favoritesRead",
   "capturesRead",
+  "memorySource",
 ];
 const MAXIMUM_READ_BYTES = 10_000_000;
 const MAXIMUM_STORAGE_BYTES = 5_000_000;
@@ -71,10 +73,15 @@ A scenario is one hook call or one action call, with the world it happens in:
   },
   "fetch":  { "https://host/path": { "status": 200, "body": "…" } },  // or "*" for any URL
   "agent":  "the reply agent.ask returns",        // or { "substring of prompt": "reply" }
-  "appleScript": "the text runAppleScript returns", // default null
+  "model":  { "pii": { "spans": [ { "label": "PERSON", "start": 0, "end": 4 } ] } },
+                                          // per capability; a function (text) => result is
+                                          // given the input text, for a classifier whose
+                                          // answer depends on it
+  "appleScript": "the text runAppleScript returns", // or { "substring of script": "reply" }; default null
   "ocr":    "the text ocr() returns",
   "translation": "the text translate() returns",
   "translationSource": "the language translate() reports it ran from", // default: the pinned source, else "en"
+  "definition": "the entry define() returns",    // default null: no dictionary has it
   "sources": {                          // the records ctx.sources hands over, per source name;
     "favorites": [{                     // summaries come from query(), text and filePaths from get()
       "id": "fav-1", "title": "…", "excerpt": "…", "text": "…",
@@ -87,6 +94,10 @@ A scenario is one hook call or one action call, with the world it happens in:
                                                               // for a routine the bundle exports
                                                               // under routines — a panel's own
                                                               // code, called with (ctx, …args)
+                                                              // or { "memorySource": "name", "input": { "cursor": …, "since": … } }
+                                                              // for a collection Memory imports;
+                                                              // a page request needs only a limit,
+                                                              // which defaults to the host's 200
   "expect": {
     "result":        { "addItems": [ { "label": "Memory · …" } ] },  // deep subset, null = nothing
     "contains":      ["substring of the returned JSON"],
@@ -98,6 +109,8 @@ A scenario is one hook call or one action call, with the world it happens in:
     "favorites":     ["substring of ctx.favorites.add"],
     "spoken":        ["substring of a speak() text"],
     "appleScripts":  ["substring of a runAppleScript source or input"],
+    "requests":      ["substring of a fetch: \"POST https://…\" or the request body"],
+    "modelRuns":     ["substring of a ctx.model.run input text"],
     "storage":       { "key": { "any": "json" } }              // deep subset, after the call
   }
 }
@@ -389,7 +402,12 @@ function makeContext(manifest, scenario, roots, state) {
           `fetch refused ${target.hostname}: add it to networkHosts in extension.json`
         );
       }
-      state.requests.push({ url: String(url), method: init?.method ?? "GET" });
+      state.requests.push({
+        url: String(url),
+        method: init?.method ?? "GET",
+        headers: init?.headers ?? {},
+        body: typeof init?.body === "string" ? init.body : init?.body ? JSON.stringify(init.body) : "",
+      });
       const canned =
         (scenario.fetch ?? {})[String(url)] ??
         (scenario.fetch ?? {})[target.hostname] ??
@@ -498,6 +516,15 @@ function makeContext(manifest, scenario, roots, state) {
     },
     async stopSpeaking() {},
 
+    // The Mac's own dictionaries: offline and ungated, like speak(). A scenario that
+    // looks a word up says what the dictionary would answer; the default is no entry.
+    async define(text) {
+      const term = String(text).trim();
+      if (term.length === 0 || term.length > 64) throw new Error("define takes a word or a short phrase");
+      state.definitions.push(term);
+      return scenario.definition === undefined ? null : String(scenario.definition);
+    },
+
     async translate(text, options) {
       gate("translation");
       state.translations.push({
@@ -540,7 +567,15 @@ function makeContext(manifest, scenario, roots, state) {
         );
       }
       state.appleScripts.push({ source: script, input: hasInput ? String(input) : null });
-      return scenario.appleScript === undefined ? null : String(scenario.appleScript);
+      const canned = scenario.appleScript;
+      if (canned === undefined || canned === null) return null;
+      if (typeof canned === "object") {
+        // Keyed by a substring of the script, like "agent": a flow that lists first and
+        // creates second gets a different answer for each.
+        const key = Object.keys(canned).find((needle) => script.includes(needle));
+        return key === undefined ? null : String(canned[key]);
+      }
+      return String(canned);
     },
 
     agent: {
@@ -558,6 +593,37 @@ function makeContext(manifest, scenario, roots, state) {
       },
     },
 
+    model: {
+      // `ctx.model.run` against the declarations in this manifest. The fake host answers
+      // from the scenario the way the real one answers from Metal — and enforces the two
+      // contract rules an extension otherwise discovers at install: the capability has to
+      // be declared, and only `model.run`-shaped text goes in.
+      async run(request) {
+        const capability = String(request?.capability ?? "");
+        const declared = (manifest.models ?? []).some((model) => model.capability === capability);
+        if (!declared) {
+          throw new Error(
+            `${manifest.identifier} declares no model with capability "${capability}". ` +
+              "Add it under models in extension.json."
+          );
+        }
+        const text = String(request?.input?.text ?? "");
+        state.modelRuns.push({ capability, text });
+        const canned = scenario.model?.[capability];
+        if (canned === undefined) {
+          throw new Error(
+            `no canned reply for model.run("${capability}"): add "model" to the scenario`
+          );
+        }
+        // A capability may answer from the input — a classifier is a pure function of the
+        // text — or with one canned value. Spans are given in UTF-16 code units, exactly
+        // as the host reports them, so a scenario can name `{ "label": "PERSON", "start": 0,
+        // "end": 4 }` and the extension slices the same string it sent.
+        const value = typeof canned === "function" ? canned(text) : canned;
+        return value === undefined ? {} : value;
+      },
+    },
+
     log(message) {
       state.log.push(String(message));
       process.stdout.write(`    log: ${String(message)}\n`);
@@ -568,6 +634,57 @@ function makeContext(manifest, scenario, roots, state) {
 // ------------------------------------------------------------------ result inspection
 
 /** The host rules a returned value has to satisfy, checked here instead of after installing. */
+/** The ceiling `ExtensionMemorySourceRunner` enforces on one page request's `limit`. */
+const MAXIMUM_MEMORY_PAGE_SIZE = 1000;
+
+/**
+ * A `memorySources` page, checked against the host's own reader.
+ *
+ * Strict where the host is strict. An item without a usable `externalKey` is dropped by the
+ * host, a `url` that is not http(s) is dropped, and an item with no `title`/`body` fails the
+ * whole page — so a page that only looks right here would import differently in the app.
+ */
+function memoryPageErrors(result) {
+  const errors = [];
+  if (!result || typeof result !== "object" || Array.isArray(result)) {
+    return ["a memory source must answer with a page object"];
+  }
+  if (!Array.isArray(result.items)) errors.push("items must be an array");
+  if (typeof result.complete !== "boolean") {
+    errors.push(
+      "complete must be true or false — it is what authorizes the host to treat what it did " +
+        "not receive as deleted"
+    );
+  }
+  if (result.nextCursor !== undefined && typeof result.nextCursor !== "string") {
+    errors.push("nextCursor must be a string when present");
+  }
+  for (const [index, item] of (result.items ?? []).entries()) {
+    const field = `items[${index}]`;
+    if (typeof item?.externalKey !== "string" || item.externalKey.length === 0) {
+      errors.push(`${field}.externalKey is required and is the item's identity`);
+    }
+    if (typeof item?.title !== "string" || item.title.length === 0) {
+      errors.push(`${field}.title is required`);
+    }
+    if (typeof item?.body !== "string" || item.body.length === 0) {
+      errors.push(`${field}.body is required`);
+    }
+    if (item?.url !== undefined) {
+      const url = String(item.url);
+      if (!/^https?:\/\//.test(url)) {
+        errors.push(`${field}.url must be http(s); the host drops anything else`);
+      }
+    }
+    for (const key of ["observedAt", "updatedAt"]) {
+      if (item?.[key] !== undefined && Number.isNaN(Date.parse(String(item[key])))) {
+        errors.push(`${field}.${key} must be ISO 8601`);
+      }
+    }
+  }
+  return errors;
+}
+
 function contractErrors(result, roots) {
   const errors = [];
   if (!result || typeof result !== "object") return errors;
@@ -658,6 +775,9 @@ async function expectationErrors(expected, result, state, roots) {
     favorites: state.favorites,
     spoken: state.spoken,
     appleScripts: state.appleScripts.map((run) => `${run.source}\n${run.input ?? ""}`),
+    modelRuns: state.modelRuns.map((run) => run.text),
+    // One line per request: method, URL, then the body, so a needle can name any of them.
+    requests: state.requests.map((request) => `${request.method} ${request.url}\n${request.body ?? ""}`),
   };
   for (const [key, values] of Object.entries(collections)) {
     for (const needle of expected[key] ?? []) {
@@ -738,11 +858,13 @@ async function runScenario(manifest, definition, scenarioPath) {
     searches: [],
     requests: [],
     asked: [],
+    modelRuns: [],
     translations: [],
     spoken: [],
     opened: [],
     shortcuts: [],
     appleScripts: [],
+    definitions: [],
     favorites: [],
     skills: [],
     notifications: [],
@@ -782,12 +904,26 @@ async function runScenario(manifest, definition, scenarioPath) {
     if (typeof invoke !== "function") {
       return [`${label}: the bundle exports no action "${call.action}"`];
     }
+  } else if (call.memorySource) {
+    // A memory source is paged by the host rather than triggered by the user, so a scenario
+    // names the collection and hands it one page request. What comes back has to be a page:
+    // the host refuses to treat a malformed answer as an empty collection, because that is
+    // the one outcome it cannot tell apart from the user having deleted everything.
+    invoke = definition.memorySources?.[call.memorySource];
+    if (typeof invoke !== "function") {
+      return [`${label}: the bundle exports no memory source "${call.memorySource}"`];
+    }
   } else {
-    return [`${label}: the scenario needs a "call" naming a hook or an action`];
+    return [
+      `${label}: the scenario needs a "call" naming a hook, an action, a routine or a memory source`,
+    ];
   }
 
   const input = { ...(call.input ?? {}) };
   if (call.action && !Array.isArray(input.modifiers)) input.modifiers = [];
+  // The host always sends a limit, so a scenario that omits one gets the host's own page size
+  // rather than an undefined the handler has to defend against.
+  if (call.memorySource && typeof input.limit !== "number") input.limit = 200;
 
   const context = makeContext(manifest, scenario, roots, state);
   const started = Date.now();
@@ -842,6 +978,15 @@ async function runScenario(manifest, definition, scenarioPath) {
   }
 
   errors.push(...contractErrors(result, roots).map((message) => `${label}: ${message}`));
+  if (call.memorySource) {
+    if (input.limit > MAXIMUM_MEMORY_PAGE_SIZE) {
+      errors.push(
+        `${label}: the scenario asked for ${input.limit} items; the host caps a page at ` +
+          `${MAXIMUM_MEMORY_PAGE_SIZE}, so this proves nothing about the real call`
+      );
+    }
+    errors.push(...memoryPageErrors(result).map((message) => `${label}: ${message}`));
+  }
   errors.push(
     ...(await expectationErrors(scenario.expect ?? {}, result, state, roots)).map(
       (message) => `${label}: ${message}`
