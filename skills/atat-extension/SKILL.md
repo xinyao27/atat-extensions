@@ -109,6 +109,15 @@ schema. What it cannot tell you:
   one thing a user must supply by hand.
 - **Anything key-shaped is `type: "secret"`.** Secrets live in the Keychain, never appear in
   `ctx.options`, and are read by name through `ctx.secrets.get`.
+- **Tell the user where the key comes from.** A bare "paste your token" is where people give up.
+  Give every `secret` a `help: { url, title?, steps? }`: an `https` link straight to the page
+  that creates the key, and two or three one-line steps (which permission to tick, what to copy).
+- **Prefer a one-click sign-in when the host has one.** `oauth: { provider, scopes }` on a
+  `secret` adds a Connect button; the host runs the whole sign-in and stores the token in the
+  same Keychain account, so your code still reads `ctx.secrets.get`. The host owns the
+  providers (today: `github`) and the scopes each allows — you choose among them, you cannot
+  bring an endpoint. Keep `help` as well: it is the way for anyone who would rather paste a key.
+  A service the host does not list stays `help` only.
 - **`requirements` runs before any JavaScript.** `contentTypes`, `regex`, `sourceApps`,
   `excludedApps` and `optionEquals` are evaluated natively, so a filtered-out event costs
   nothing and a button appears only where it makes sense. Push every cheap precondition here.
@@ -479,8 +488,6 @@ Before opening the pull request, check `REVIEW_POLICY.md` against the change:
 | `rewrite` / `block` on `contextAssembled`, `answerAssembled`, a `models` declaration, `ctx.model.run` | `extensions/privacy-guard/` |
 | localized user-visible strings | `extensions/translate/src/text.ts` |
 | a panel: list, detail, page-level action, confirmed delete | no extension here yet — see the `<Panel>` section above |
-| a "save it somewhere" form: fields in a `<Panel.Section>`, one page-level Save, a success card with `<Detail.Metadata>` and `<Action.OpenInBrowser>` | `extensions/github/`, `extensions/notion/` |
-| writing Markdown into a granted `folder` (UTF-8 base64 both ways, no path escaping the folder) | `extensions/obsidian/` |
 | a panel driving another app through `runAppleScript`, with the user's text passed as data and never spliced into the script | `extensions/reminders/`, `extensions/apple-notes/` |
 | the Mac's own dictionary through `define`, with fallbacks | `extensions/translate/src/dictionary.ts` |
 | `reads`, `files.roots`, and parsing another app's files as data | no extension here yet — the contracts are in the AtAt repo's `docs/internal/features/extension-system.md` |

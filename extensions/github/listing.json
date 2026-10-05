@@ -1,8 +1,0 @@
-{
-  "category": "developer-tools",
-  "keywords": ["github", "issue", "gist", "bug", "code", "share"],
-  "releaseNotes": {
-    "en": "Turn what you select into a GitHub issue your agent drafts, or share code as a gist.",
-    "zh-hans": "把选中的内容建成由助手起草的 GitHub issue，或把代码分享成 gist。"
-  }
-}

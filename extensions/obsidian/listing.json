@@ -1,8 +1,0 @@
-{
-  "category": "productivity",
-  "keywords": ["obsidian", "notes", "daily note", "markdown", "vault", "save"],
-  "releaseNotes": {
-    "en": "Save what you select or copy to today's note, or to a new note with a suggested title.",
-    "zh-hans": "把选中或复制的内容记进今天的日记，或存成一篇带建议标题的新笔记。"
-  }
-}

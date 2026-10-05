@@ -39,7 +39,13 @@ const OPTION_FIELDS = new Set([
   "icon",
   "group",
   "systemSettingsLink",
+  "oauth",
+  "help",
 ]);
+/// The services the host can sign a user into, and the scopes each lets a plugin ask for. The
+/// host owns the client ID and the endpoints, so a manifest only chooses among these — the list
+/// mirrors `ExtensionOAuthProvider` in the app, and a provider the app does not ship cannot install.
+const OAUTH_PROVIDERS = new Map([["github", new Set(["repo", "public_repo", "gist", "read:user"])]]);
 /// Where the host creates and grants a `folder` option's directory at install time.
 const FOLDER_DEFAULT_PATHS = new Set(["shortcuts", "icloud", "documents"]);
 const ACTION_FIELDS = new Set([
@@ -400,6 +406,37 @@ function validateManifest(manifest, directoryName) {
       localizable(link.title, `${field}.systemSettingsLink.title`);
       const pane = string(link.pane, `${field}.systemSettingsLink.pane`);
       if (!SETTINGS_PANE.test(pane)) fail(`${field}.systemSettingsLink.pane must be a settings pane identifier`);
+    }
+    if (option.oauth !== undefined) {
+      if (type !== "secret") fail(`${identifier}: only a secret option can declare oauth`);
+      const oauth = object(option.oauth, `${field}.oauth`);
+      for (const key of Object.keys(oauth)) {
+        if (key !== "provider" && key !== "scopes") fail(`${identifier}: unsupported oauth field ${key}`);
+      }
+      const provider = string(oauth.provider, `${field}.oauth.provider`);
+      const allowed = OAUTH_PROVIDERS.get(provider);
+      if (allowed === undefined) fail(`${field}.oauth.provider ${provider} is not a service the host signs into`);
+      for (const scope of array(oauth.scopes ?? [], `${field}.oauth.scopes`)) {
+        if (!allowed.has(scope)) fail(`${field}.oauth.scopes: ${provider} does not allow ${scope}`);
+      }
+    }
+    if (option.help !== undefined) {
+      if (type !== "secret") fail(`${identifier}: only a secret option can declare help`);
+      const help = object(option.help, `${field}.help`);
+      for (const key of Object.keys(help)) {
+        if (!["url", "title", "steps"].includes(key)) fail(`${identifier}: unsupported help field ${key}`);
+      }
+      let url;
+      try {
+        url = new URL(string(help.url, `${field}.help.url`));
+      } catch {
+        fail(`${field}.help.url must be a URL`);
+      }
+      if (url.protocol !== "https:") fail(`${field}.help.url must be https`);
+      if (help.title !== undefined) localizable(help.title, `${field}.help.title`);
+      for (const [stepIndex, step] of array(help.steps ?? [], `${field}.help.steps`).entries()) {
+        localizable(step, `${field}.help.steps[${stepIndex}]`);
+      }
     }
     optionNames.set(name, { values });
     optionDeclarations.push({ name, option, field });

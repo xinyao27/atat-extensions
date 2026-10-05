@@ -1,8 +1,0 @@
-{
-  "category": "productivity",
-  "keywords": ["notion", "notes", "page", "database", "save", "wiki"],
-  "releaseNotes": {
-    "en": "Add what you select or copy to a Notion page, or save it as a new page or database row.",
-    "zh-hans": "把选中或复制的内容追加到 Notion 页面，或存成新页面、数据库里的一行。"
-  }
-}
