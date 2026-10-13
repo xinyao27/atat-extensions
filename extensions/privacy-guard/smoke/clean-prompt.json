@@ -5,14 +5,19 @@
     "input": {
       "prompt": "Summarise the release notes",
       "items": [],
-      "interactionSource": "composer"
+      "interactionSource": "composer",
+      "turnID": "t1"
     }
   },
   "model": {
-    "pii": { "spans": [] }
+    "pii": {
+      "spans": []
+    }
   },
   "expect": {
     "result": null,
-    "modelRuns": ["Summarise the release notes"]
+    "modelRuns": [
+      "Summarise the release notes"
+    ]
   }
 }

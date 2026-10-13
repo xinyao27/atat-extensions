@@ -11,7 +11,7 @@
     "phone"
   ],
   "releaseNotes": {
-    "en": "Clearer icons for the selection bar and the extension tile.",
-    "zh-hans": "选择栏和扩展图标换成了更贴切的样子。"
+    "en": "Leaves app and agent names like Claude or Cursor alone, and an answer that greets someone by name now shows their real name.",
+    "zh-hans": "不再把 Claude、Cursor 这类 app 和 agent 的名字当成人名替换；回答里按名字称呼对方时，显示的也是真名。"
   }
 }

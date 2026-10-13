@@ -1,0 +1,29 @@
+{
+  "description": "restores a stand-in only as a whole word",
+  "storage": {
+    "turns": {
+      "t1": {
+        "at": 0,
+        "restore": {
+          "Jack": "Sam"
+        }
+      }
+    }
+  },
+  "call": {
+    "hook": "answerAssembled",
+    "input": {
+      "prompt": "Who met whom?",
+      "responseText": "Jackson met Jack.",
+      "items": [],
+      "turnID": "t1"
+    }
+  },
+  "expect": {
+    "result": {
+      "rewrite": {
+        "responseText": "Jackson met Sam."
+      }
+    }
+  }
+}

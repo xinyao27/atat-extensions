@@ -1,0 +1,49 @@
+{
+  "description": "leaves alone what only looks personal to the detector: @@, agent names, a date, a lone +",
+  "call": {
+    "hook": "contextAssembled",
+    "input": {
+      "prompt": "Ask @@ whether Claude or Cursor has the Oct 14 plan, or call +",
+      "items": [],
+      "interactionSource": "composer",
+      "turnID": "t1"
+    }
+  },
+  "model": {
+    "pii": {
+      "spans": [
+        {
+          "label": "EMAIL",
+          "start": 3,
+          "end": 6
+        },
+        {
+          "label": "PERSON",
+          "start": 15,
+          "end": 21
+        },
+        {
+          "label": "PERSON",
+          "start": 25,
+          "end": 31
+        },
+        {
+          "label": "ADDRESS",
+          "start": 40,
+          "end": 46
+        },
+        {
+          "label": "PHONE",
+          "start": 61,
+          "end": 62
+        }
+      ]
+    }
+  },
+  "expect": {
+    "result": null,
+    "modelRuns": [
+      "Ask @@ whether Claude or Cursor has the Oct 14 plan, or call +"
+    ]
+  }
+}

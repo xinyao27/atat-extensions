@@ -21,13 +21,14 @@ keep mapping to the same stand-in across sessions.
 
 - A small detector that ships with this extension (about 4 MB). It runs on your
   Mac; nothing is sent to a server for detection.
-- A short-lived map of real values to stand-ins for the current turn, and across
-  sessions when Remember is on.
+- A map of real values to stand-ins that lasts one message and its answer, and the
+  stand-ins themselves across sessions when Remember is on.
 
 ## Limits worth knowing
 
 - A clean scan means "nothing obvious found", not "safe to share".
 - Scope is English plus common US formats — Chinese names and national IDs are
   outside it.
-- Stand-ins that happen to be common words can be restored in the wrong place.
+- Names of apps and agents, such as Claude or Cursor, are left as they are.
+- A stand-in is only put back in the answer to the message it was made for.
 - Every detected span is masked; there is no per-chip review yet.

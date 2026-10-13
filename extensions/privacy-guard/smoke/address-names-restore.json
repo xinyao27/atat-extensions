@@ -1,0 +1,50 @@
+{
+  "description": "also restores the name a model reads out of a stand-in address",
+  "storage": {
+    "memory": {
+      "email\u0000jordan.lee@example.com": {
+        "real": "jordan.lee@example.com",
+        "fake": "taylor.rodriguez78@mail.test",
+        "on": true
+      }
+    }
+  },
+  "call": {
+    "hook": "contextAssembled",
+    "input": {
+      "prompt": "Draft a one-line email asking jordan.lee@example.com to review the Q3 report.",
+      "items": [],
+      "interactionSource": "composer",
+      "turnID": "t1"
+    }
+  },
+  "model": {
+    "pii": {
+      "spans": [
+        {
+          "label": "EMAIL",
+          "start": 30,
+          "end": 52
+        }
+      ]
+    }
+  },
+  "expect": {
+    "result": {
+      "rewrite": {
+        "prompt": "Draft a one-line email asking taylor.rodriguez78@mail.test to review the Q3 report."
+      }
+    },
+    "storage": {
+      "turns": {
+        "t1": {
+          "restore": {
+            "taylor.rodriguez78@mail.test": "jordan.lee@example.com",
+            "Taylor": "Jordan",
+            "Rodriguez": "Lee"
+          }
+        }
+      }
+    }
+  }
+}

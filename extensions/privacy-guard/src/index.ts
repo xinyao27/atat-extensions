@@ -3,7 +3,8 @@
 // Lifecycle:
 //   1. contextAssembled  → ctx.model.run({ capability: "pii" }) → cloak
 //                        → rewrite.prompt (and rewrite.items for textual pills)
-//   2. answerAssembled   → restore fake→real in the answer before it is shown
+//   2. answerAssembled   → restore fake→real in the answer before it is shown,
+//                          using only the map its own turn made, then drop that map
 //
 // Failure policy: the host no longer lets a hook's failure hold the send —
 // contextAssembled returns an explicit `block` instead. Detection is local and
@@ -25,12 +26,21 @@ import type {
 } from "@atat/api";
 import {
   apply,
+  finishTurn,
   hydrate,
   persist,
   reveal,
   toItems,
   type CloakState,
 } from "./cloak.js";
+
+/**
+ * The turn both hooks share. A host that predates turn ids gets one shared slot, which
+ * still keeps a map from outliving the next answer.
+ */
+function turnOf(input: { turnID?: string }): string {
+  return typeof input.turnID === "string" && input.turnID ? input.turnID : "current";
+}
 
 function textualItems(input: ContextAssembledInput): ContextItemSnapshot[] {
   return input.items.filter(
@@ -70,7 +80,8 @@ const hooks: ExtensionHooks = {
   ): Promise<ContextAssembledResult | void> {
     const prompt = typeof input.prompt === "string" ? input.prompt : "";
     const items = textualItems(input);
-    const state = await hydrate(ctx);
+    const turnID = turnOf(input);
+    const state = await hydrate(ctx, turnID);
     const remember = ctx.options.rememberMappings !== false;
 
     let rewrittenPrompt = prompt;
@@ -102,7 +113,7 @@ const hooks: ExtensionHooks = {
     }
 
     if (maskedAnything) {
-      await persist(ctx, state.memory, state.restore, remember);
+      await persist(ctx, state, turnID, remember);
     }
 
     if (!maskedAnything) return;
@@ -121,8 +132,14 @@ const hooks: ExtensionHooks = {
       typeof input.responseText === "string" ? input.responseText : "";
     if (!responseText) return;
     try {
-      const state = await hydrate(ctx);
+      const turnID = turnOf(input);
+      const state = await hydrate(ctx, turnID);
       const restored = reveal(responseText, state.restore);
+      // The host also restores a turn's tool calls and requests through this hook, with no
+      // prompt, before the answer itself arrives; only the answer ends the turn.
+      if (typeof input.prompt === "string" && input.prompt.length > 0) {
+        await finishTurn(ctx, state, turnID);
+      }
       if (restored === responseText) return;
       return { rewrite: { responseText: restored } };
     } catch (error) {

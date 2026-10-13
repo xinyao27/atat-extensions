@@ -1,0 +1,25 @@
+{
+  "description": "never restores a stand-in another turn made, so an ordinary \"Jack\" stays Jack",
+  "storage": {
+    "turns": {
+      "t0": {
+        "at": 0,
+        "restore": {
+          "Jack": "Matt"
+        }
+      }
+    }
+  },
+  "call": {
+    "hook": "answerAssembled",
+    "input": {
+      "prompt": "Song?",
+      "responseText": "Hit the road, Jack.",
+      "items": [],
+      "turnID": "t1"
+    }
+  },
+  "expect": {
+    "result": null
+  }
+}

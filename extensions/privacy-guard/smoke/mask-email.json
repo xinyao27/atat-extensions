@@ -5,16 +5,27 @@
     "input": {
       "prompt": "Email alice@example.com please",
       "items": [],
-      "interactionSource": "composer"
+      "interactionSource": "composer",
+      "turnID": "t1"
     }
   },
   "model": {
     "pii": {
-      "spans": [{ "label": "EMAIL", "start": 6, "end": 23 }]
+      "spans": [
+        {
+          "label": "EMAIL",
+          "start": 6,
+          "end": 23
+        }
+      ]
     }
   },
   "expect": {
-    "result": { "rewrite": {} },
-    "modelRuns": ["Email alice@example.com please"]
+    "result": {
+      "rewrite": {}
+    },
+    "modelRuns": [
+      "Email alice@example.com please"
+    ]
   }
 }

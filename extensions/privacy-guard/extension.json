@@ -8,7 +8,7 @@
     "en": "Masks names, emails, phones and other personal details in what you send, then puts them back in the answer you see. Detection runs on your Mac — nothing leaves with the real values.",
     "zh-hans": "把你要发出去的姓名、邮箱、电话等个人信息先换成假值，收到回答后再换回来。识别只在你这台 Mac 上跑，真值不会跟着发出去。"
   },
-  "version": "1.0.2",
+  "version": "1.0.3",
   "apiVersion": 1,
   "minimumAppVersion": "1.2.0",
   "author": "@@",

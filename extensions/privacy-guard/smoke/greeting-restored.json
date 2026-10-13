@@ -1,0 +1,31 @@
+{
+  "description": "turns \"Hi Taylor\" written to a stand-in address back into the real name",
+  "storage": {
+    "turns": {
+      "t1": {
+        "at": 0,
+        "restore": {
+          "taylor.rodriguez78@mail.test": "jordan.lee@example.com",
+          "Taylor": "Jordan",
+          "Rodriguez": "Lee"
+        }
+      }
+    }
+  },
+  "call": {
+    "hook": "answerAssembled",
+    "input": {
+      "prompt": "Draft it",
+      "responseText": "Hi Taylor, could you please review the Q3 report? Thank you.",
+      "items": [],
+      "turnID": "t1"
+    }
+  },
+  "expect": {
+    "result": {
+      "rewrite": {
+        "responseText": "Hi Jordan, could you please review the Q3 report? Thank you."
+      }
+    }
+  }
+}

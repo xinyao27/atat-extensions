@@ -204,6 +204,12 @@ declare module "@atat/api" {
     prompt: string;
     items: ContextItemSnapshot[];
     interactionSource: string;
+    /**
+     * One request and its answer share this id. An extension that masks the request keeps
+     * its placeholder map under it (in `ctx.storage`) and finds it again in
+     * `answerAssembled`, which carries the same id.
+     */
+    turnID?: string;
   }
 
   /** Exactly one of `text` and `filePaths`; both or neither and the host drops the item. */
@@ -249,6 +255,10 @@ declare module "@atat/api" {
     prompt: string;
     responseText: string;
     items: ContextItemSnapshot[];
+    /** The turn this answer belongs to — the id `contextAssembled` carried for its request. */
+    turnID?: string;
+    /** The extension that masked this turn's request, which alone may rewrite this answer. */
+    maskedBy?: string;
   }
 
   /**
