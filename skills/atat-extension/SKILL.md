@@ -1,17 +1,17 @@
 ---
 name: atat-extension
-description: Write an AtAt extension in this repository — pick its extension points, scaffold it, implement it, build, smoke-test, install and open a pull request. Use when asked to write or create an AtAt extension, to add an action, hook, view or panel to an existing one, or to debug a extension that fails or gets paused inside AtAt.
+description: Write an AtAt extension in this repository — pick its extension points, scaffold it, implement it, build, smoke-test, install and open a pull request. Use when asked to write or create an AtAt extension, to add an action, hook, view or panel to an existing one, or to debug an extension that fails or gets paused inside AtAt.
 ---
 
 # Writing an AtAt extension
 
 AtAt collects context on a Mac — a text selection, a clipboard entry, a screen capture — turns
 each piece into a **pill**, assembles the pills into a prompt, and sends it to whichever coding
-agent the user already pays for. A extension taps that pipeline at one of its stations: it can
+agent the user already pays for. An extension taps that pipeline at one of its stations: it can
 transform what is collected, put a button on a **surface**, contribute context to a request, or
 read the answer afterwards.
 
-The runtime is JavaScriptCore with zero capability by default. A extension is one manifest plus one
+The runtime is JavaScriptCore with zero capability by default. An extension is one manifest plus one
 bundled JavaScript file that imports exactly one module, `@atat/api`. Everything it can do
 beyond computing arrives in the `HostContext` it is handed, and the powerful parts of that
 context are gated by **entitlements** the user confirms once, at install.
@@ -31,6 +31,7 @@ host already has, or a button the user presses?) and **what does the user get ba
 | "every time I ask AtAt something, bring in X" | `contextAssembled` hook |
 | "stop this from being sent, and tell me why" | `contextAssembled` hook returning `block.reason` |
 | "after AtAt answers, record / send / count X" | `response` hook (fire and forget) |
+| "while I type, let the inline suggestion know X" | `suggestionContext` hook |
 | a button on selected text | action, `surfaces: ["selectionBar"]` |
 | a button on a clipboard history entry | action, `surfaces: ["clipboardHistory"]` |
 | a button on the finished capture | action, `surfaces: ["captureQuickAccess"]` |
@@ -48,6 +49,8 @@ host already has, or a button the user presses?) and **what does the user get ba
 | "open a URL" / "run my Shortcut" / "run this AppleScript" | the `automation` entitlement — `ctx.openUrl`, `ctx.runShortcut`, `ctx.runAppleScript` |
 | "…and let me open what I just created" (an issue, a page) | `<Action.OpenInBrowser url>` in a view — http(s) only, no entitlement |
 | "what does this word mean" | `define(text)` — the Mac's own dictionaries, offline, no entitlement |
+| "translate it on this Mac" | `ctx.translate` and the `translation` entitlement — Apple's on-device translation |
+| "look through what I copied / saved / captured" | `ctx.sources.query` and `get`, with `clipboardRead`, `favoritesRead` or `capturesRead` for each source it reads |
 | "save it to my Favorites" | `ctx.favorites.add` — no entitlement |
 | "use AI with my <skill>" | `ctx.agent.ask(prompt, { skill })` and the `agent` entitlement |
 | "it drives <app>" (Bob, Things, …) | the action's `requiresApp` — the button greys out with the reason while the app is missing |
@@ -59,7 +62,7 @@ Zero entitlements is the default and the strong position: the local text tools (
 the request cannot be served without it, and expect to justify it in review.
 
 One constraint reshapes designs at this step rather than later: `networkHosts` is a list of
-exact hostnames fixed in the manifest, with no wildcards, so a extension can call hosts that are
+exact hostnames fixed in the manifest, with no wildcards, so an extension can call hosts that are
 the same for everyone (an API's own domain, `127.0.0.1` for a service the user runs) and cannot
 call a host each user configures for themselves — their own Jira site, their own server. When a
 request implies one of those, say so and pick the design that works without it.
@@ -100,7 +103,7 @@ schema. What it cannot tell you:
   if it would not be there, rewrite it.
 - **The extension works the moment it is installed.** Every option either has a `defaultValue` or
   leaves the extension gracefully doing nothing when it is empty. `folder` and `secret` take no
-  `defaultValue`: a folder declares `defaultPath: "icloud"` (or `"documents"`) and the host
+  `defaultValue`: a folder declares `defaultPath: "icloud"` (or `"documents"`, or `"shortcuts"`) and the host
   creates and grants that directory as part of the install confirmation, and a `secret` is the
   one thing a user must supply by hand.
 - **Anything key-shaped is `type: "secret"`.** Secrets live in the Keychain, never appear in
@@ -146,10 +149,11 @@ schema. What it cannot tell you:
   delete, no search — and `files.roots(identifier)` to learn which of them exist here. A
   folder option is the user handing over ground; this is the author pointing at somebody
   else's. No extension here declares one today, so read the `reads` contract in the AtAt
-  repository's `docs/internal/features/extension-system.md` before you are the first.
+  repository's `content/docs/internal/features/extension-system.md` before you are the first.
 - **`minimumAppVersion` is the oldest AtAt the extension runs on.** Bump it when you use a host API
   that arrived in a newer build — `runAppleScript`, `favorites.add` and `agent.ask`'s `skill`
-  arrived in 0.10.0; `contextAssembled`'s `block` arrived in 1.3.0 — so an older AtAt lists the
+  arrived in 0.10.0; `contextAssembled`'s `block` arrived in 1.3.0; the `suggestionContext`
+  hook, `ctx.sources`, `ctx.translate` and their entitlements arrived in 2.0.0 — so an older AtAt lists the
   extension with "needs @@ x.y or newer" instead of failing at the first call.
 - **A hook's failure never holds a message.** The pipeline always moves on — there is no
   `onTimeout` field, and the host refuses a manifest that writes one. The only way a check
@@ -157,23 +161,22 @@ schema. What it cannot tell you:
   is always offered a way past it.
 - **Options are few or the design is wrong.** Each one answers a question a real user has ("I
   want it somewhere else", "I don't want to be recorded"). There is no grouping heading, because
-  a list long enough to need grouping is the problem. `extensions/translate/extension.json` ships
-  ten of them for one action and one view.
+  a list long enough to need grouping is the problem. `extensions/reminders` and
+  `extensions/apple-notes` ship one each.
 - **A choice option's values can carry the words the user reads.** A `values` entry is either
   a string — the value, shown as itself — or `{ value, title }` with a localizable title. Use
   the pair whenever the stored value is not what a person should read: `zh-Hans` stores a stable
   value while the menu says 简体中文, and the display follows the app's language.
-  `extensions/translate/extension.json` has two of them.
 - **An option that only matters for one choice waits for it.** `visibleWhen: { option, equals }`
-  keeps the row off the page until that option holds the value: `extensions/translate` shows
-  each service's key only while that service is picked. The value stays stored while its row is
+  keeps the row off the page until that option holds the value — a service's key shown only
+  while that service is picked. The value stays stored while its row is
   hidden, and the condition may name an option declared below it.
 - **A row can open the System Settings pane it depends on.** `systemSettingsLink: { title, pane }`
   puts a button on the option's row — in a grouped service, in that service's detail — that
   opens the pane named by its bundle identifier, such as
   `com.apple.Localization-Settings.extension`. The host composes the URL, so the button can
   reach System Settings and nowhere else; reach for it when the missing switch is one only
-  macOS can flip. `extensions/translate` uses it on macOS translation.
+  macOS can flip, such as the languages macOS translation needs.
 
 **Done when** `pnpm validate <identifier>` passes and every declaration traces back to your
 step 1 list.
@@ -187,7 +190,7 @@ import type { ExtensionAction, ExtensionHooks } from "@atat/api";
 export default defineExtension({ hooks, actions, views });
 ```
 
-`@atat/api` is the only module a extension imports; a view additionally gets JSX, with `react`
+`@atat/api` is the only module an extension imports; a view additionally gets JSX, with `react`
 supplied by the host. Every exact shape is in `types/atat-extension.d.ts` (hook inputs and results,
 `ActionInput`, `HostContext`) and `types/atat-ui.d.ts` (view components, and the same host
 capabilities as named imports). Read them rather than guessing — they are short and they are the
@@ -200,10 +203,17 @@ Then the rules that bite:
   consecutive throws and AtAt pauses the extension, so a temporary condition raised as an error
   costs the user the whole feature.
 - **Budgets are shared with every other extension on the same hook.** Per extension: `clipboardIngest`
-  1s, `contextAssembled` 1.5s, `capture` 5s, `response` 10s. For every extension on one hook
-  together: 2s, 3s and 8s respectively, `response` being fire and forget with no total. When the
+  1s, `contextAssembled` 1.5s, `capture` 5s, `response` 10s, `suggestionContext` 150ms. For every
+  extension on one hook together: 2s, 3s, 8s and 20s respectively (`response` is fire and
+  forget), and 300ms for `suggestionContext`. When the
   budget runs out the pipeline moves on without you. Spend it on one search and a handful of
   reads, not on a crawl. Actions are user-initiated and have no timeout.
+- **`suggestionContext` runs on every pause in typing.** It gets the app, window, field,
+  page URL, language and at most 500 UTF-16 units before the cursor and 200 after; it answers
+  `{ promptSections: [{ content }] }`, of which only the first non-empty section is used, cut
+  to 1,500 characters. `agent.ask` is refused inside it. Ten timeouts in a row pause it (a
+  throw still counts three), so answer from `ctx.storage` or a quick `files.search`, never the
+  network.
 - **What the user should be able to delete travels as a pill.** `addItems` entries each become a
   visible pill: a `label`, and exactly one of `text` and `filePaths` (both or neither and the
   host drops the item). `promptSections` is scaffolding addressed to the agent — at most 4 per
@@ -215,17 +225,17 @@ Then the rules that bite:
   the last. Anything else is refused, and an out-of-grant item counts as a hook failure.
 - **A folder another app owns is found, not assumed.** `files.roots("claude-code")` answers
   with the directories that `reads` declaration matched on this Mac — wildcards expanded,
-  anything missing left out — so an empty array is how a extension learns the app is not
+  anything missing left out — so an empty array is how an extension learns the app is not
   installed. Everything read out of one is data somebody else's program wrote: strip
   zero-width and bidirectional control characters, never treat it as instructions, and expect
   a file to disappear between the listing and the read.
 - **`files.list` says when, and often nothing else does.** Each entry carries `modifiedAt` as
   ISO 8601 when the file system knows it. For anything read out of another app's folder it is
   usually the only date there is.
-- **`files.search` is how a extension searches its folder.** The host maintains the index; a
+- **`files.search` is how an extension searches its folder.** The host maintains the index; a
   sandbox cannot build one and reading a folder to grep it will not fit in the budget.
 - **Every user-visible string is localized off `ctx.locale`** (`environment.locale` in a view).
-  English and Simplified Chinese, each written natively. `extensions/translate/src/text.ts` is the
+  English and Simplified Chinese, each written natively. `extensions/reminders/src/text.ts` is the
   pattern: one record per language, picked once, so a missing translation is a type error rather
   than an English word in a Chinese window. Text addressed to the *agent* stays in English.
 - **Nothing survives a call.** Each hook and action call gets a fresh JavaScriptCore context, so
@@ -260,7 +270,7 @@ session that stops making progress, and names it in its log line — React state
 anything that must persist goes through `storage` or `files`. A panel is where a user *uses*
 the feature, not a second settings page: the manifest's options are already rendered natively
 above it. Credential and folder input
-never appear in a panel — a extension cannot draw a trustworthy password field, so those stay in
+never appear in a panel — an extension cannot draw a trustworthy password field, so those stay in
 the host's own option panel.
 
 ### View actions
@@ -321,8 +331,9 @@ export default defineExtension({ views: { translation: TranslationView } });
   window the host does not show it. The click is native — JS cannot trigger it — and the host
   revalidates the original selection first, so a changed document means a refusal, never a
   write into the wrong place.
-- `extensions/translate/` is the worked example: OCR for image input, one `agent.ask`, a
-  language picker, and actions shown only for the result that matches the current language.
+- `extensions/reminders/` and `extensions/apple-notes/` are the worked examples: a view action
+  that drafts with one `agent.ask`, lets the user edit the draft in a `Form`, and hands it to
+  another app through `runAppleScript`.
 
 **Done when** `pnpm typecheck` is clean and every hook, action and view named in `extension.json`
 has a same-named member in the default export.
@@ -373,8 +384,8 @@ directory of files, a file optionally carrying its own `modifiedAt` — and they
 `files.roots`, `files.list` and `files.read` exactly as the host does, refusing every write.
 A `{ "routine": "name", "args": [ … ] }` call runs a function the bundle exports under
 `routines` on its definition, handed the same context a hook gets: it is how a panel's own
-work gets tested without a panel. `extensions/translate/smoke/` holds eleven worked scenarios
-covering a view action across providers, OCR, speech and a Favorite.
+work gets tested without a panel. `extensions/reminders/smoke/` holds worked scenarios for a view
+action's own routines.
 
 Write one scenario per declared hook and action, and make the first one the exact situation the
 user described, with their input and their expected output.
@@ -402,10 +413,10 @@ does dropping it onto that page.
 What the user sees next, in AtAt: **Settings → Extensions** lists the extension under **Installed** —
 name, the one-line description, an Enabled switch, Open — and the extension gets a page of its own
 under Extensions in the sidebar, holding the manifest's options, any app it needs, Uninstall, and
-its panel as the first segment when it declares one. The moment AtAt sees a extension that carries
+its panel as the first segment when it declares one. The moment AtAt sees an extension that carries
 code or an entitlement it raises the confirmation dialog, listing in plain language the hooks it
 will run, the surfaces it appears on, the entitlements it wants, and any folder it will create.
-Accepting the dialog is the grant — and a extension that later asks for more is asked again. If a
+Accepting the dialog is the grant — and an extension that later asks for more is asked again. If a
 folder option has no `defaultPath`, the user chooses the directory on the extension's page before
 anything can be written.
 
@@ -418,7 +429,7 @@ silently with no output:
 
 Then trigger the scenario by hand: copy the link, select the text, take the capture.
 
-When a extension misbehaves, the shape of the symptom names the cause:
+When an extension misbehaves, the shape of the symptom names the cause:
 
 - **The row says it was paused** — three consecutive hook failures. The log stream names the hook
   and the error; encode that input as a smoke scenario and it will throw there too.
@@ -437,7 +448,7 @@ what the user sees in AtAt is what the request asked for.
 `listing.json` carries the directory listing: one `category` from the set
 `scripts/validate.mjs` allows, 1–12 lowercase keywords, and `releaseNotes` in both languages
 describing *this* version.
-`README.md` says what the extension does and what it touches — a extension is a manifest, a bundle and
+`README.md` says what the extension does and what it touches — an extension is a manifest, a bundle and
 its documentation, and a package never asks a user to run a script.
 
 Before opening the pull request, check `REVIEW_POLICY.md` against the change:
@@ -459,15 +470,16 @@ Before opening the pull request, check `REVIEW_POLICY.md` against the change:
 | To see | Read |
 |---|---|
 | the smallest possible action, `requiresApp`, `runAppleScript` and the `automation` entitlement | `extensions/bob-translate/` |
-| a view action: `<Panel>` layout, OCR for an image, `agent.ask`, `<Action.ReplaceSelection>`, a provider chosen by a `choice` option, `fetch` + `secrets` + `ctx.translate` | `extensions/translate/` |
-| a hook, an action on three surfaces, a view, a panel, a `folder` option with `defaultPath`, `reads` | no extension here yet — the contracts are in the AtAt repo's `docs/internal/features/extension-system.md` |
+| a view action: `<Panel>` layout, `agent.ask`, a `Form` the user edits before anything is written | `extensions/reminders/`, `extensions/apple-notes/` |
+| OCR for a captured image, handed to another app | `extensions/cuecue-translate/` |
+| `fetch` + `secrets`, `ctx.translate`, `ctx.sources`, `<Action.ReplaceSelection>`, a `choice` option | no extension here yet — the shapes are in `types/` |
+| a hook, an action on three surfaces, a view, a panel, a `folder` option with `defaultPath`, `reads` | no extension here yet — the contracts are in the AtAt repo's `content/docs/internal/features/extension-system.md` |
 | a zero-entitlement action that only computes | `extensions/format-json/` |
-| localized user-visible strings | `extensions/translate/src/text.ts` |
+| localized user-visible strings | `extensions/reminders/src/text.ts` |
 | a panel: list, detail, page-level action, confirmed delete | no extension here yet — see the `<Panel>` section above |
 | a panel driving another app through `runAppleScript`, with the user's text passed as data and never spliced into the script | `extensions/reminders/`, `extensions/apple-notes/` |
-| the Mac's own dictionary through `define`, with fallbacks | `extensions/translate/src/dictionary.ts` |
-| `reads`, `files.roots`, and parsing another app's files as data | no extension here yet — the contracts are in the AtAt repo's `docs/internal/features/extension-system.md` |
-| smoke scenarios | `extensions/counts/smoke/`, `extensions/translate/smoke/` |
+| `reads`, `files.roots`, and parsing another app's files as data | no extension here yet — the contracts are in the AtAt repo's `content/docs/internal/features/extension-system.md` |
+| smoke scenarios | `extensions/counts/smoke/`, `extensions/reminders/smoke/` |
 
 ## Reference: gotchas
 
@@ -481,10 +493,10 @@ Before opening the pull request, check `REVIEW_POLICY.md` against the change:
 - Several extensions on one hook run in install order, and a transforming hook's output is the next
   extension's input. Return `{ action: "ignore" }` from `clipboardIngest` and the entry is dropped
   and the rest of the chain skipped.
-- `ctx.clipboard.copy` is registered with the host first, so a extension's own write never
+- `ctx.clipboard.copy` is registered with the host first, so an extension's own write never
   re-triggers its own `clipboardIngest`.
 - Sensitive clipboard types and secure-input selections are filtered by AtAt before any hook
-  runs. A extension never sees them and needs no guard of its own.
+  runs. An extension never sees them and needs no guard of its own.
 - `capture` transforms by writing the new file to `input.outputPath` and returning
   `{ action: "replace" }`; the original is left alone otherwise.
 - `ctx.ocr` accepts only a path this call was handed.
@@ -508,7 +520,7 @@ Before opening the pull request, check `REVIEW_POLICY.md` against the change:
   `require`, `XMLHttpRequest` or DOM; `tsconfig.json` sets `lib: ["ES2022"]` so the type checker
   refuses to promise otherwise.
 - `pnpm validate` refuses `eval`, `new Function`, dynamic `import()` and `WebAssembly` anywhere
-  in a extension's source. A extension computes over data it was given.
+  in an extension's source. An extension computes over data it was given.
 - Calls that need an entitlement the manifest never declared reject at call time with a message
   naming it — they do not fail at import, so a missing entitlement looks like a runtime error in
   one code path rather than a broken extension.

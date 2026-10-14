@@ -29,6 +29,7 @@ const HOOK_BUDGET_MS = {
   capture: 5000,
   contextAssembled: 1500,
   response: 10000,
+  suggestionContext: 150,
 };
 const ENTITLEMENTS = [
   "network",
@@ -39,12 +40,12 @@ const ENTITLEMENTS = [
   "clipboardRead",
   "favoritesRead",
   "capturesRead",
-  "memorySource",
 ];
 const MAXIMUM_READ_BYTES = 10_000_000;
 const MAXIMUM_STORAGE_BYTES = 5_000_000;
 const MAXIMUM_SECTIONS = 4;
 const MAXIMUM_SECTION_CHARACTERS = 16_000;
+const MAXIMUM_SUGGESTION_SECTION_CHARACTERS = 1_500;
 const SECTION_NAME = /^[a-z0-9-]{1,32}$/;
 
 const USAGE = `usage: pnpm smoke <identifier> [scenario.json]
@@ -89,10 +90,6 @@ A scenario is one hook call or one action call, with the world it happens in:
                                                               // for a routine the bundle exports
                                                               // under routines — a panel's own
                                                               // code, called with (ctx, …args)
-                                                              // or { "memorySource": "name", "input": { "cursor": …, "since": … } }
-                                                              // for a collection Memory imports;
-                                                              // a page request needs only a limit,
-                                                              // which defaults to the host's 200
   "expect": {
     "result":        { "addItems": [ { "label": "Memory · …" } ] },  // deep subset, null = nothing
     "contains":      ["substring of the returned JSON"],
@@ -575,6 +572,9 @@ function makeContext(manifest, scenario, roots, state) {
     agent: {
       async ask(prompt, opts) {
         gate("agent");
+        if (scenario.call?.hook === "suggestionContext") {
+          throw new Error("agent.ask is refused inside suggestionContext, whatever the manifest says");
+        }
         if (opts?.skill !== undefined && opts?.skill !== null) state.skills.push(String(opts.skill));
         state.asked.push(String(prompt));
         if (typeof scenario.agent === "string") return scenario.agent;
@@ -597,58 +597,7 @@ function makeContext(manifest, scenario, roots, state) {
 // ------------------------------------------------------------------ result inspection
 
 /** The host rules a returned value has to satisfy, checked here instead of after installing. */
-/** The ceiling `ExtensionMemorySourceRunner` enforces on one page request's `limit`. */
-const MAXIMUM_MEMORY_PAGE_SIZE = 1000;
-
-/**
- * A `memorySources` page, checked against the host's own reader.
- *
- * Strict where the host is strict. An item without a usable `externalKey` is dropped by the
- * host, a `url` that is not http(s) is dropped, and an item with no `title`/`body` fails the
- * whole page — so a page that only looks right here would import differently in the app.
- */
-function memoryPageErrors(result) {
-  const errors = [];
-  if (!result || typeof result !== "object" || Array.isArray(result)) {
-    return ["a memory source must answer with a page object"];
-  }
-  if (!Array.isArray(result.items)) errors.push("items must be an array");
-  if (typeof result.complete !== "boolean") {
-    errors.push(
-      "complete must be true or false — it is what authorizes the host to treat what it did " +
-        "not receive as deleted"
-    );
-  }
-  if (result.nextCursor !== undefined && typeof result.nextCursor !== "string") {
-    errors.push("nextCursor must be a string when present");
-  }
-  for (const [index, item] of (result.items ?? []).entries()) {
-    const field = `items[${index}]`;
-    if (typeof item?.externalKey !== "string" || item.externalKey.length === 0) {
-      errors.push(`${field}.externalKey is required and is the item's identity`);
-    }
-    if (typeof item?.title !== "string" || item.title.length === 0) {
-      errors.push(`${field}.title is required`);
-    }
-    if (typeof item?.body !== "string" || item.body.length === 0) {
-      errors.push(`${field}.body is required`);
-    }
-    if (item?.url !== undefined) {
-      const url = String(item.url);
-      if (!/^https?:\/\//.test(url)) {
-        errors.push(`${field}.url must be http(s); the host drops anything else`);
-      }
-    }
-    for (const key of ["observedAt", "updatedAt"]) {
-      if (item?.[key] !== undefined && Number.isNaN(Date.parse(String(item[key])))) {
-        errors.push(`${field}.${key} must be ISO 8601`);
-      }
-    }
-  }
-  return errors;
-}
-
-function contractErrors(result, roots) {
+function contractErrors(result, roots, hook) {
   const errors = [];
   if (!result || typeof result !== "object") return errors;
 
@@ -675,6 +624,21 @@ function contractErrors(result, roots) {
   }
 
   const sections = result.promptSections ?? [];
+  if (hook === "suggestionContext") {
+    // The host names the block after the extension and keeps only the first non-empty
+    // section, cut to 1,500 characters, so the contextAssembled naming rules do not apply.
+    for (const [index, section] of sections.entries()) {
+      if (typeof section?.content !== "string") errors.push(`promptSections[${index}].content must be text`);
+    }
+    const first = sections.find((section) => String(section?.content ?? "").trim().length > 0);
+    if (first && String(first.content).trim().length > MAXIMUM_SUGGESTION_SECTION_CHARACTERS) {
+      errors.push(
+        `promptSections: the first section is over ${MAXIMUM_SUGGESTION_SECTION_CHARACTERS} ` +
+          "characters; the host cuts it there"
+      );
+    }
+    return errors;
+  }
   if (sections.length > MAXIMUM_SECTIONS) {
     errors.push(`promptSections: at most ${MAXIMUM_SECTIONS} per call, got ${sections.length}`);
   }
@@ -865,26 +829,12 @@ async function runScenario(manifest, definition, scenarioPath) {
     if (typeof invoke !== "function") {
       return [`${label}: the bundle exports no action "${call.action}"`];
     }
-  } else if (call.memorySource) {
-    // A memory source is paged by the host rather than triggered by the user, so a scenario
-    // names the collection and hands it one page request. What comes back has to be a page:
-    // the host refuses to treat a malformed answer as an empty collection, because that is
-    // the one outcome it cannot tell apart from the user having deleted everything.
-    invoke = definition.memorySources?.[call.memorySource];
-    if (typeof invoke !== "function") {
-      return [`${label}: the bundle exports no memory source "${call.memorySource}"`];
-    }
   } else {
-    return [
-      `${label}: the scenario needs a "call" naming a hook, an action, a routine or a memory source`,
-    ];
+    return [`${label}: the scenario needs a "call" naming a hook, an action or a routine`];
   }
 
   const input = { ...(call.input ?? {}) };
   if (call.action && !Array.isArray(input.modifiers)) input.modifiers = [];
-  // The host always sends a limit, so a scenario that omits one gets the host's own page size
-  // rather than an undefined the handler has to defend against.
-  if (call.memorySource && typeof input.limit !== "number") input.limit = 200;
 
   const context = makeContext(manifest, scenario, roots, state);
   const started = Date.now();
@@ -938,16 +888,7 @@ async function runScenario(manifest, definition, scenarioPath) {
     }
   }
 
-  errors.push(...contractErrors(result, roots).map((message) => `${label}: ${message}`));
-  if (call.memorySource) {
-    if (input.limit > MAXIMUM_MEMORY_PAGE_SIZE) {
-      errors.push(
-        `${label}: the scenario asked for ${input.limit} items; the host caps a page at ` +
-          `${MAXIMUM_MEMORY_PAGE_SIZE}, so this proves nothing about the real call`
-      );
-    }
-    errors.push(...memoryPageErrors(result).map((message) => `${label}: ${message}`));
-  }
+  errors.push(...contractErrors(result, roots, call.hook).map((message) => `${label}: ${message}`));
   errors.push(
     ...(await expectationErrors(scenario.expect ?? {}, result, state, roots)).map(
       (message) => `${label}: ${message}`

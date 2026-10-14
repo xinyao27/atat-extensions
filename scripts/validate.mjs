@@ -8,8 +8,8 @@ const IDENTIFIER = /^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/;
 /// A System Settings pane's bundle identifier, as `systemSettingsLink.pane` carries it.
 const SETTINGS_PANE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const SEMVER = /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
-const ENTITLEMENTS = new Set(["network", "secrets", "automation", "agent", "translation", "clipboardRead", "favoritesRead", "capturesRead", "memorySource"]);
-const HOOKS = new Set(["clipboardIngest", "capture", "contextAssembled", "response"]);
+const ENTITLEMENTS = new Set(["network", "secrets", "automation", "agent", "translation", "clipboardRead", "favoritesRead", "capturesRead"]);
+const HOOKS = new Set(["clipboardIngest", "capture", "contextAssembled", "response", "suggestionContext"]);
 const SURFACES = new Set(["selectionBar", "clipboardHistory", "captureQuickAccess"]);
 const ROUTES = new Set(["paste", "copy", "show", "composer", "none"]);
 // No `heading`: options numerous enough to need grouping are a design mistake, not a
@@ -49,12 +49,6 @@ const ACTION_FIELDS = new Set([
 ]);
 const HOOK_FIELDS = new Set(["hook", "requirements"]);
 const READ_FIELDS = new Set(["identifier", "paths", "title"]);
-/// One collection a extension hands to Memory. Fixed shape: an identifier the host writes into
-/// `sources.adapter`, a title the source list shows, and a scope it implements.
-const MEMORY_SOURCE_FIELDS = new Set(["identifier", "title", "icon", "scope"]);
-/// The scopes the host implements. `perProject` is stated here as unsupported on purpose: a
-/// manifest that asks for it must be refused rather than silently imported as global.
-const MEMORY_SOURCE_SCOPES = new Set(["global"]);
 /// Directories the host refuses whatever a extension says it wants them for: the home folder
 /// and `~/Library` are not a folder but every folder, and the rest hold credentials.
 const REFUSED_READ_PATHS = new Set(["~", "~/library"]);
@@ -75,7 +69,6 @@ const ROOT_FIELDS = new Set([
   "views",
   "panels",
   "reads",
-  "memorySources",
 ]);
 const LISTING_CATEGORIES = new Set([
   "productivity",
@@ -437,7 +430,6 @@ function validateManifest(manifest, directoryName) {
   }
 
   validateReads(value.reads, identifier);
-  validateMemorySources(value.memorySources, identifier, entitlements);
 
   const panels = array(value.panels ?? [], `${identifier}.panels`);
   if (panels.length > 1) fail(`${identifier}: API v1 allows one panel`);
@@ -450,39 +442,6 @@ function validateManifest(manifest, directoryName) {
   }
 
   return { identifier, version };
-}
-
-/**
- * One `memorySources` declaration: a collection the extension hands to Memory to import.
- *
- * The identifier becomes half of `sources.adapter` and a settings key fragment, so it is
- * kebab-case and unique the way every other identifier here is. The entitlement is required
- * rather than merely expected: without it the host never calls the handlers, so a manifest that
- * declared a source anyway would put a row in front of the user that fails on its first refresh.
- */
-function validateMemorySources(value, identifier, entitlements) {
-  const declarations = array(value ?? [], `${identifier}.memorySources`);
-  if (declarations.length > 0 && !entitlements.includes("memorySource")) {
-    fail(`${identifier}: memorySources needs the memorySource entitlement`);
-  }
-  const seen = new Set();
-  for (const [index, entry] of declarations.entries()) {
-    const field = `${identifier}.memorySources[${index}]`;
-    const declaration = object(entry, field);
-    for (const key of Object.keys(declaration)) {
-      if (!MEMORY_SOURCE_FIELDS.has(key)) fail(`${identifier}: unsupported memorySources field ${key}`);
-    }
-    const name = string(declaration.identifier, `${field}.identifier`);
-    if (!IDENTIFIER.test(name)) fail(`${field}.identifier must be kebab-case`);
-    if (seen.has(name)) fail(`${identifier}: duplicate memorySource ${name}`);
-    seen.add(name);
-    localizable(declaration.title, `${field}.title`);
-    if (declaration.icon !== undefined) string(declaration.icon, `${field}.icon`);
-    const scope = declaration.scope ?? "global";
-    if (!MEMORY_SOURCE_SCOPES.has(scope)) {
-      fail(`${field}.scope must be one of ${[...MEMORY_SOURCE_SCOPES].join(", ")}`);
-    }
-  }
 }
 
 function validateListingMetadata(value, identifier) {

@@ -122,6 +122,16 @@ declare module "@atat/api" {
     ocr(filePath: string): Promise<string>;
 
     /**
+     * Entitlement: `translation`. Apple's on-device translation. The language pair has to be
+     * downloaded on this Mac already; a pair that is not rejects instead of offering the
+     * download. Resolves with the translated text and the language it ran from.
+     */
+    translate(
+      text: string,
+      options: { target: string; source?: string; timeoutMs?: number }
+    ): Promise<{ text: string; source: string }>;
+
+    /**
      * Reads text aloud with the Mac's own voice, choosing a voice for `language` when one is
      * installed. No entitlement: it is local and as harmless as `notify`. Resolves when the
      * utterance finishes or is stopped, so a button can toggle on the same promise.
@@ -207,6 +217,32 @@ declare module "@atat/api" {
     interactionSource: string;
   }
 
+  /**
+   * What the extension is told while the user types, for one inline suggestion. A snapshot
+   * of what the suggestion already uses, never a handle to read more through.
+   */
+  export interface SuggestionContextInput {
+    app: { name?: string; bundleID?: string };
+    window?: string;
+    /** The focused field as one sentence: role, label and placeholder. */
+    field?: string;
+    pageURL?: string;
+    /** At most the last 500 UTF-16 units before the cursor. */
+    textBeforeCursor: string;
+    /** At most the first 200 UTF-16 units after it. */
+    textAfterCursor: string;
+    /** The language detected in the field, which is not always the system's. */
+    language?: string;
+  }
+
+  /**
+   * Only the first non-empty section is used, trimmed to 1,500 characters. A `name` is
+   * ignored: the host names the block after the extension.
+   */
+  export interface SuggestionContextResult {
+    promptSections?: { content: string }[];
+  }
+
   export interface ClipboardIngestInput {
     text?: string;
     html?: string;
@@ -262,6 +298,11 @@ declare module "@atat/api" {
       ctx: HostContext
     ) => Promise<ContextAssembledResult | void>;
     response?: (input: ResponseInput, ctx: HostContext) => Promise<void>;
+    /** Runs on every pause in typing with a 150 ms budget; `agent.ask` is refused here. */
+    suggestionContext?: (
+      input: SuggestionContextInput,
+      ctx: HostContext
+    ) => Promise<SuggestionContextResult | void>;
   }
 
   /** A string return goes to the action's `after` route; `void` means it handled itself. */
@@ -291,76 +332,10 @@ declare module "@atat/api" {
   export interface ExtensionDefinition {
     hooks?: ExtensionHooks;
     actions?: Record<string, ExtensionAction>;
-    /**
-     * Collections this extension hands to @@ Memory to import. Each key matches a
-     * `memorySources` entry in the manifest, and the host calls it in pages rather than
-     * once — a vault or a workspace is larger than one call should carry.
-     *
-     * Entitlement: `memorySource`. It is supply-only: the handler answers with items, and
-     * the host decides what becomes a memory. Nothing here can read what Memory already
-     * holds, and there is no write-back to the collection an item came from.
-     */
-    memorySources?: Record<string, ExtensionMemorySource>;
     // Each view declares its own narrower input type; the host entry that mounts it is the
     // one that knows which shape it passes.
     views?: Record<string, ComponentType<ViewProps<any>>>;
   }
-
-  /**
-   * One page request. `cursor` is whatever `nextCursor` this handler returned last, handed
-   * back unchanged; `since` is the last complete read of this source as ISO 8601, present
-   * only when there has been one.
-   */
-  export interface MemorySourceRequest {
-    cursor?: string;
-    since?: string;
-    limit: number;
-  }
-
-  /**
-   * One item to import.
-   *
-   * `externalKey` is the item's identity and the whole reason a second import does not
-   * duplicate the first: it must be stable for the item's lifetime — never its title, its
-   * URL, or its body, all of which change.
-   */
-  export interface ExtensionMemoryItem {
-    /** Stable id inside the collection. Becomes the stored item's `native_key`. */
-    externalKey: string;
-    title: string;
-    /** Plain text or Markdown. The host trims it to a single item's budget. */
-    body: string;
-    /** `http(s)` only, for the "open the original" affordance. */
-    url?: string;
-    /** Where it sat in the collection, in the source's own words. */
-    locator?: string;
-    /** A starting value for the user's review, never an assertion about them. */
-    kind?: "fact" | "preference" | "decision" | "state" | "reference" | "procedure" | "conversation";
-    /** ISO 8601. Omit when the collection does not say; the host does not guess. */
-    observedAt?: string;
-    updatedAt?: string;
-  }
-
-  /**
-   * One page of a collection.
-   *
-   * `complete` is load-bearing: it is what authorizes the host to treat items it did not
-   * receive as deleted. Say `false`, or stop early, whenever the read did not see
-   * everything — a page reported as complete when it was not can delete the user's
-   * memories at the source's word alone.
-   */
-  export interface MemorySourcePage {
-    items: ExtensionMemoryItem[];
-    /** Where the next page resumes. Omit or return the same value and the read ends. */
-    nextCursor?: string;
-    complete: boolean;
-  }
-
-  /** Pages this extension's collection for Memory's import pipeline. */
-  export type ExtensionMemorySource = (
-    request: MemorySourceRequest,
-    ctx: HostContext
-  ) => Promise<MemorySourcePage>;
 
   export function defineExtension<Definition extends ExtensionDefinition>(
     extension: Definition
