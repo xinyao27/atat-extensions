@@ -28,7 +28,6 @@ const HOOK_BUDGET_MS = {
   clipboardIngest: 1000,
   capture: 5000,
   contextAssembled: 1500,
-  answerAssembled: 1500,
   response: 10000,
 };
 const ENTITLEMENTS = [
@@ -73,10 +72,6 @@ A scenario is one hook call or one action call, with the world it happens in:
   },
   "fetch":  { "https://host/path": { "status": 200, "body": "…" } },  // or "*" for any URL
   "agent":  "the reply agent.ask returns",        // or { "substring of prompt": "reply" }
-  "model":  { "pii": { "spans": [ { "label": "PERSON", "start": 0, "end": 4 } ] } },
-                                          // per capability; a function (text) => result is
-                                          // given the input text, for a classifier whose
-                                          // answer depends on it
   "appleScript": "the text runAppleScript returns", // or { "substring of script": "reply" }; default null
   "ocr":    "the text ocr() returns",
   "translation": "the text translate() returns",
@@ -110,7 +105,6 @@ A scenario is one hook call or one action call, with the world it happens in:
     "spoken":        ["substring of a speak() text"],
     "appleScripts":  ["substring of a runAppleScript source or input"],
     "requests":      ["substring of a fetch: \"POST https://…\" or the request body"],
-    "modelRuns":     ["substring of a ctx.model.run input text"],
     "storage":       { "key": { "any": "json" } }              // deep subset, after the call
   }
 }
@@ -593,37 +587,6 @@ function makeContext(manifest, scenario, roots, state) {
       },
     },
 
-    model: {
-      // `ctx.model.run` against the declarations in this manifest. The fake host answers
-      // from the scenario the way the real one answers from Metal — and enforces the two
-      // contract rules an extension otherwise discovers at install: the capability has to
-      // be declared, and only `model.run`-shaped text goes in.
-      async run(request) {
-        const capability = String(request?.capability ?? "");
-        const declared = (manifest.models ?? []).some((model) => model.capability === capability);
-        if (!declared) {
-          throw new Error(
-            `${manifest.identifier} declares no model with capability "${capability}". ` +
-              "Add it under models in extension.json."
-          );
-        }
-        const text = String(request?.input?.text ?? "");
-        state.modelRuns.push({ capability, text });
-        const canned = scenario.model?.[capability];
-        if (canned === undefined) {
-          throw new Error(
-            `no canned reply for model.run("${capability}"): add "model" to the scenario`
-          );
-        }
-        // A capability may answer from the input — a classifier is a pure function of the
-        // text — or with one canned value. Spans are given in UTF-16 code units, exactly
-        // as the host reports them, so a scenario can name `{ "label": "PERSON", "start": 0,
-        // "end": 4 }` and the extension slices the same string it sent.
-        const value = typeof canned === "function" ? canned(text) : canned;
-        return value === undefined ? {} : value;
-      },
-    },
-
     log(message) {
       state.log.push(String(message));
       process.stdout.write(`    log: ${String(message)}\n`);
@@ -775,7 +738,6 @@ async function expectationErrors(expected, result, state, roots) {
     favorites: state.favorites,
     spoken: state.spoken,
     appleScripts: state.appleScripts.map((run) => `${run.source}\n${run.input ?? ""}`),
-    modelRuns: state.modelRuns.map((run) => run.text),
     // One line per request: method, URL, then the body, so a needle can name any of them.
     requests: state.requests.map((request) => `${request.method} ${request.url}\n${request.body ?? ""}`),
   };
@@ -858,7 +820,6 @@ async function runScenario(manifest, definition, scenarioPath) {
     searches: [],
     requests: [],
     asked: [],
-    modelRuns: [],
     translations: [],
     spoken: [],
     opened: [],

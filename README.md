@@ -55,8 +55,6 @@ updated automatically.
 - `bob-translate`: kept as a source example of `requiresApp` and `automation`, but deferred
   from the release catalog and artifacts until its external-app behavior is reviewed.
 - `translate`: a view action with provider choice, OCR, and a panel.
-- `privacy-guard`: the hook pair that rewrites what leaves and restores what comes back,
-  with a `models` declaration and a bundled local model.
 - `counts`, `format-json`, `text-case`: local text tools that declare no entitlements at all.
 
 Every extension imports only `@atat/api`. The checked-in `types/` directory is a temporary

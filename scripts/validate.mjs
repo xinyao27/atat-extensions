@@ -9,19 +9,7 @@ const IDENTIFIER = /^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$/;
 const SETTINGS_PANE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const SEMVER = /^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
 const ENTITLEMENTS = new Set(["network", "secrets", "automation", "agent", "translation", "clipboardRead", "favoritesRead", "capturesRead", "memorySource"]);
-const HOOKS = new Set(["clipboardIngest", "capture", "contextAssembled", "answerAssembled", "response"]);
-/// The host's compiled-in format handlers, and the capabilities each one claims. A plugin's
-/// `format` has to be one of these or the install is refused, so the same list is the gate
-/// here — a manifest naming a format no build ships is a manifest that cannot install.
-const MODEL_FORMATS = new Map([["gpu-pii-format-1", new Set(["pii"])]]);
-const MODEL_HINT_FIELDS = new Set(["prefer", "maxResidentBytes"]);
-const MODEL_FIELDS = new Set(["capability", "format", "bundled", "remote", "hint"]);
-/// The ceiling `ModelStore` enforces on a remote weight file.
-const MAXIMUM_REMOTE_WEIGHT_BYTES = 256 * 1024 * 1024;
-/// A model weight file is the one source file allowed past the 2 MB source ceiling: the
-/// directory ships model bytes on purpose, and a PII classifier is megabytes, not kilobytes.
-/// Still bounded, so a manifest cannot turn the repository into a file host.
-const MAXIMUM_WEIGHT_BYTES = 32 * 1024 * 1024;
+const HOOKS = new Set(["clipboardIngest", "capture", "contextAssembled", "response"]);
 const SURFACES = new Set(["selectionBar", "clipboardHistory", "captureQuickAccess"]);
 const ROUTES = new Set(["paste", "copy", "show", "composer", "none"]);
 // No `heading`: options numerous enough to need grouping are a design mistake, not a
@@ -82,7 +70,6 @@ const ROOT_FIELDS = new Set([
   "entitlements",
   "networkHosts",
   "hooks",
-  "models",
   "actions",
   "options",
   "views",
@@ -117,11 +104,6 @@ function string(value, field) {
 
 function array(value, field) {
   if (!Array.isArray(value)) fail(`${field} must be an array`);
-  return value;
-}
-
-function number(value, field) {
-  if (typeof value !== "number" || !Number.isFinite(value)) fail(`${field} must be a number`);
   return value;
 }
 
@@ -300,8 +282,6 @@ function validateManifest(manifest, directoryName) {
     hooks.add(hook);
     requirements(declaration.requirements, `${field}.requirements`);
   }
-
-  validateModels(value.models, identifier, entitlements, networkHosts);
 
   const views = new Set();
   for (const [index, entry] of array(value.views ?? [], `${identifier}.views`).entries()) {
@@ -505,112 +485,6 @@ function validateMemorySources(value, identifier, entitlements) {
   }
 }
 
-/**
- * One `models` declaration: a local model the extension brings, and the host runs.
- *
- * Capability routes a `ctx.model.run` call and format selects a compiled-in handler, so both
- * have to name something this build actually ships — a plugin cannot invent either. Exactly
- * one of `bundled` and `remote`, because a declaration that could resolve two ways has no
- * single answer to "where do these bytes come from".
- */
-function validateModels(value, identifier, entitlements, networkHosts) {
-  const declarations = array(value ?? [], `${identifier}.models`);
-  const seen = new Set();
-  for (const [index, entry] of declarations.entries()) {
-    const field = `${identifier}.models[${index}]`;
-    const declaration = object(entry, field);
-    for (const key of Object.keys(declaration)) {
-      if (!MODEL_FIELDS.has(key)) fail(`${identifier}: unsupported model field ${key}`);
-    }
-    const capability = string(declaration.capability, `${field}.capability`);
-    if (seen.has(capability)) fail(`${identifier}: duplicate model capability ${capability}`);
-    seen.add(capability);
-
-    const format = string(declaration.format, `${field}.format`);
-    const capabilities = MODEL_FORMATS.get(format);
-    if (!capabilities) fail(`${field}.format: ${format} is not a format this build runs`);
-    if (!capabilities.has(capability)) {
-      fail(`${field}.capability: ${format} does not answer for ${capability}`);
-    }
-
-    const hasBundled = declaration.bundled !== undefined && declaration.bundled !== null;
-    const hasRemote = declaration.remote !== undefined && declaration.remote !== null;
-    if (hasBundled === hasRemote) {
-      fail(`${field}: exactly one of bundled and remote, never both and never neither`);
-    }
-
-    if (hasBundled) {
-      const bundled = object(declaration.bundled, `${field}.bundled`);
-      for (const key of Object.keys(bundled)) {
-        if (key !== "weights" && key !== "layout") fail(`${field}.bundled: unsupported field ${key}`);
-      }
-      modelRelativePath(bundled.weights, `${field}.bundled.weights`);
-      modelRelativePath(bundled.layout, `${field}.bundled.layout`);
-    } else {
-      if (!entitlements.includes("network")) {
-        fail(`${field}.remote: a remote model needs the network entitlement`);
-      }
-      const remote = object(declaration.remote, `${field}.remote`);
-      for (const key of Object.keys(remote)) {
-        if (!["url", "layoutUrl", "size", "sha256"].includes(key)) {
-          fail(`${field}.remote: unsupported field ${key}`);
-        }
-      }
-      modelRemoteURL(remote.url, `${field}.remote.url`, networkHosts);
-      modelRemoteURL(remote.layoutUrl, `${field}.remote.layoutUrl`, networkHosts);
-      const size = number(remote.size, `${field}.remote.size`);
-      if (!Number.isInteger(size) || size <= 0 || size > MAXIMUM_REMOTE_WEIGHT_BYTES) {
-        fail(`${field}.remote.size must be a positive integer no larger than ${MAXIMUM_REMOTE_WEIGHT_BYTES}`);
-      }
-      const sha256 = string(remote.sha256, `${field}.remote.sha256`).toLowerCase();
-      if (!/^[0-9a-f]{64}$/.test(sha256)) fail(`${field}.remote.sha256 must be 64 lowercase hex`);
-    }
-
-    if (declaration.hint !== undefined && declaration.hint !== null) {
-      const hint = object(declaration.hint, `${field}.hint`);
-      for (const key of Object.keys(hint)) {
-        if (!MODEL_HINT_FIELDS.has(key)) fail(`${field}.hint: unsupported field ${key}`);
-      }
-      if (hint.prefer !== undefined) {
-        const prefer = string(hint.prefer, `${field}.hint.prefer`);
-        if (prefer !== "metal") fail(`${field}.hint.prefer: ${prefer} is not a backend this build prefers`);
-      }
-      if (hint.maxResidentBytes !== undefined) {
-        const bytes = number(hint.maxResidentBytes, `${field}.hint.maxResidentBytes`);
-        if (!Number.isInteger(bytes) || bytes <= 0) fail(`${field}.hint.maxResidentBytes must be a positive integer`);
-      }
-    }
-  }
-}
-
-/** No absolute path, no `..`, no NUL: a model file lives inside the directory. */
-function modelRelativePath(value, field) {
-  const path = string(value, field);
-  if (path.startsWith("/") || path.includes("\u0000")) fail(`${field}: ${path} must be a package-relative path`);
-  const segments = path.split("/");
-  if (segments.some((segment) => segment === "." || segment === "..")) {
-    fail(`${field}: ${path} must name where it is, not walk there`);
-  }
-  if (path.trim().length === 0) fail(`${field} must name a file`);
-  return path;
-}
-
-/** HTTPS, or plain HTTP to the loopback host, and the host has to be declared. */
-function modelRemoteURL(value, field, networkHosts) {
-  const text = string(value, field);
-  let parsed;
-  try { parsed = new URL(text); } catch { fail(`${field}: ${text} is not a URL`); }
-  const loopback = ["127.0.0.1", "localhost", "[::1]", "::1"];
-  if (parsed.protocol === "https:") {
-    if (!networkHosts.includes(parsed.hostname)) {
-      fail(`${field}: ${parsed.hostname} is not in networkHosts`);
-    }
-    return text;
-  }
-  if (parsed.protocol === "http:" && loopback.includes(parsed.hostname)) return text;
-  fail(`${field}: ${text} must be https, or http to the loopback host`);
-}
-
 function validateListingMetadata(value, identifier) {
   const metadata = object(value, `${identifier}/listing.json`);
   for (const key of Object.keys(metadata)) {
@@ -624,22 +498,16 @@ function validateListingMetadata(value, identifier) {
   localizable(metadata.releaseNotes, `${identifier}.listing.releaseNotes`);
 }
 
-async function rejectUnsafeEntries(directory, relative = "", weightPaths = new Set()) {
+async function rejectUnsafeEntries(directory, relative = "") {
   for (const entry of await readdir(directory, { withFileTypes: true })) {
     if (["node_modules", "dist", "main.js", ".DS_Store"].includes(entry.name)) continue;
     const path = join(directory, entry.name);
     const label = join(relative, entry.name);
     const info = await lstat(path);
     if (info.isSymbolicLink()) fail(`${label}: symlinks are not allowed`);
-    if (info.isDirectory()) await rejectUnsafeEntries(path, label, weightPaths);
+    if (info.isDirectory()) await rejectUnsafeEntries(path, label);
     if (info.isFile()) {
-      // A declared model weight is the one file allowed past the source ceiling — it is
-      // bytes, not source, and it is named in the manifest where the reviewer can see it.
-      // Everything else stays a source-sized file.
-      const ceiling = weightPaths.has(label) ? MAXIMUM_WEIGHT_BYTES : 2_000_000;
-      if (info.size > ceiling) {
-        fail(`${label}: file exceeds ${Math.round(ceiling / 1_000_000)} MB`);
-      }
+      if (info.size > 2_000_000) fail(`${label}: source file exceeds 2 MB`);
       if (/\.(?:[cm]?[jt]sx?)$/.test(entry.name)) {
         const source = await readFile(path, "utf8");
         if (/(?:\beval\s*\(|\bnew\s+Function\s*\(|\bFunction\s*\(|\bimport\s*\(|\bWebAssembly\s*\.)/.test(source)) {
@@ -658,19 +526,6 @@ for (const identifier of identifiers) {
   const result = validateManifest(manifest, basename(directory));
   const listingMetadata = JSON.parse(await readFile(join(directory, "listing.json"), "utf8"));
   validateListingMetadata(listingMetadata, result.identifier);
-  // The weight paths the manifest declared, so the size gate can tell bytes from source and
-  // only the former may exceed the source ceiling.
-  const weightPaths = new Set();
-  for (const model of manifest.models ?? []) {
-    const bundled = model?.bundled;
-    if (!bundled) continue;
-    for (const key of ["weights", "layout"]) {
-      if (typeof bundled[key] === "string") {
-        // Same shape `rejectUnsafeEntries` builds for `label`: identifier/relative.
-        weightPaths.add(join(result.identifier, bundled[key].replace(/^\.\/+/, "")));
-      }
-    }
-  }
-  await rejectUnsafeEntries(directory, result.identifier, weightPaths);
+  await rejectUnsafeEntries(directory, result.identifier);
   process.stdout.write(`Valid ${result.identifier} ${result.version} (API 1, free extension policy)\n`);
 }

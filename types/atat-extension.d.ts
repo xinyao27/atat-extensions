@@ -155,38 +155,7 @@ declare module "@atat/api" {
       ask(prompt: string, opts?: { timeoutMs?: number; skill?: string }): Promise<string>;
     };
 
-    /**
-     * A local model this extension declared in `models`. Capability routes to the
-     * declaration in *this* extension's manifest — never another extension's weights, and
-     * there is no fallback to a model the host happens to have. No entitlement: the model
-     * runs on this Mac.
-     *
-     * `pii` answers with spans over the text handed in; a `generation` capability answers
-     * with text. Offsets are UTF-16 code units, so the string sliced here is the string
-     * returned with the same boundaries. `timeoutMs` defaults to 3s and is capped at 5s.
-     */
-    model: {
-      run(request: {
-        capability: string;
-        input: { text: string };
-        timeoutMs?: number;
-      }): Promise<ModelRunResult>;
-    };
-
     log(message: string): void;
-  }
-
-  /** One labelled, contiguous range of the input text, in UTF-16 code units. */
-  export interface ModelSpan {
-    label: string;
-    start: number;
-    end: number;
-  }
-
-  /** `{ spans }` from a classifier, or `{ text }` from a generator. */
-  export interface ModelRunResult {
-    spans?: ModelSpan[];
-    text?: string;
   }
 
   // -------------------------------------------------------------------- hooks
@@ -204,12 +173,6 @@ declare module "@atat/api" {
     prompt: string;
     items: ContextItemSnapshot[];
     interactionSource: string;
-    /**
-     * One request and its answer share this id. An extension that masks the request keeps
-     * its placeholder map under it (in `ctx.storage`) and finds it again in
-     * `answerAssembled`, which carries the same id.
-     */
-    turnID?: string;
   }
 
   /** Exactly one of `text` and `filePaths`; both or neither and the host drops the item. */
@@ -230,45 +193,10 @@ declare module "@atat/api" {
     removeItemIDs?: string[];
     promptSections?: PromptSection[];
     /**
-     * Replace what is about to be sent, rather than adding to it. `items` addresses the
-     * snapshots by `id`; a path is deliberately out of reach — it chooses which file the
-     * agent opens.
-     */
-    rewrite?: {
-      prompt?: string;
-      items?: { id: string; text?: string }[];
-    };
-    /**
      * Say this interaction should not be sent. The user is always offered a way past it —
      * a wrong block must not be able to break the entry point — and the reason is shown.
      */
     block?: { reason: string };
-  }
-
-  /**
-   * The answer the moment the agent finishes it, before it is shown or recorded — the
-   * answer-side mirror of `contextAssembled`. `responseText` is not truncated here (the
-   * read-only `response` hook's input is), because an extension restoring placeholders has
-   * to see the whole thing.
-   */
-  export interface AnswerAssembledInput {
-    prompt: string;
-    responseText: string;
-    items: ContextItemSnapshot[];
-    /** The turn this answer belongs to — the id `contextAssembled` carried for its request. */
-    turnID?: string;
-    /** The extension that masked this turn's request, which alone may rewrite this answer. */
-    maskedBy?: string;
-  }
-
-  /**
-   * A whole replacement for the answer: whatever comes back is what the user sees, the
-   * session records, and a later chat turn sends back. Past 400,000 characters the result
-   * is refused rather than truncated. Only `contextAssembled` and `answerAssembled` may
-   * return one, and one extension rewrites a given answer.
-   */
-  export interface AnswerAssembledResult {
-    rewrite?: { responseText: string };
   }
 
   export interface ResponseInput {
@@ -333,14 +261,6 @@ declare module "@atat/api" {
       input: ContextAssembledInput,
       ctx: HostContext
     ) => Promise<ContextAssembledResult | void>;
-    /**
-     * Awaited before the answer is shown or recorded, so a later chat turn sees what this
-     * returned. Failures skip the extension, and the answer on screen stays the model's own.
-     */
-    answerAssembled?: (
-      input: AnswerAssembledInput,
-      ctx: HostContext
-    ) => Promise<AnswerAssembledResult | void>;
     response?: (input: ResponseInput, ctx: HostContext) => Promise<void>;
   }
 

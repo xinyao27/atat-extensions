@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { execFileSync, spawnSync } from "node:child_process";
 import { copyFile, mkdir, readFile, readdir, rm, stat, utimes, writeFile } from "node:fs/promises";
-import { basename, dirname, join, resolve } from "node:path";
+import { basename, join, resolve } from "node:path";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const EXTENSIONS = join(ROOT, "extensions");
@@ -72,19 +72,6 @@ try {
         if (error.code !== "ENOENT") throw error;
       }
     }
-    // A `bundled` model travels with the package, path for path: the manifest names
-    // `assets/model.bin`, and the loader resolves exactly that against the installed
-    // directory. Nothing else under `assets/` is copied — the manifest is the list.
-    for (const model of manifest.models ?? []) {
-      const bundled = model?.bundled;
-      if (!bundled) continue;
-      for (const relative of [bundled.weights, bundled.layout]) {
-        if (typeof relative !== "string") continue;
-        const target = join(packageDirectory, relative);
-        await mkdir(dirname(target), { recursive: true });
-        await copyFile(join(source, relative), target);
-      }
-    }
     // A service's own mark travels with the package: a PNG at the extension's root, other
     // than the two the directory itself uses — `icon.png`, the extension's own icon, and
     // `glyph.png`, the website listing's glyph, which no installed copy needs.
@@ -139,13 +126,6 @@ try {
       entitlements: manifest.entitlements ?? [],
       networkHosts: manifest.networkHosts ?? [],
       hooks: (manifest.hooks ?? []).map((hook) => hook.hook),
-      // Only the capability and format: the app resolves those against its own registry,
-      // and the weights it already has inside the archive.
-      models: (manifest.models ?? []).map((model) => ({
-        capability: model.capability,
-        format: model.format,
-        source: model.bundled ? "bundled" : "remote",
-      })),
       catalog: {
         name: manifest.name,
         description: manifest.description,

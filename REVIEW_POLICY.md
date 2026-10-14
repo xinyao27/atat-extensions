@@ -25,11 +25,8 @@ and an icon — and the repository owns the toolchain, not the author.
 - A lint, format or editor configuration of the author's own, or hunks that only reformat
   code. Code standards belong to the repository — VitePlus for format and lint,
   `pnpm typecheck` for types — not to a submission.
-- Analytics, an undeclared binary, or a wrapper that asks the user to install something else.
-  An extension computes over what the host hands it. The one exception is a model weight
-  named under `models[].bundled` in the manifest (usually `assets/model.bin`): it travels
-  with the package because the host runs it locally, and `pnpm validate` already bounds its
-  size. Anything else binary-shaped is refused.
+- Analytics, a bundled or downloaded binary, or a wrapper that asks the user to install
+  something else. An extension computes over what the host hands it.
 
 ## Suggested, never required
 

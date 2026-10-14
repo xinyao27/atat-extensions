@@ -29,11 +29,8 @@ host already has, or a button the user presses?) and **what does the user get ba
 | "when I copy X, clean it up / expand it / retitle it" | `clipboardIngest` hook |
 | "when I take a screenshot, do X to it first" | `capture` hook |
 | "every time I ask AtAt something, bring in X" | `contextAssembled` hook |
-| "change what I send before it goes" | `contextAssembled` hook returning `rewrite.prompt` / `rewrite.items` |
 | "stop this from being sent, and tell me why" | `contextAssembled` hook returning `block.reason` |
 | "after AtAt answers, record / send / count X" | `response` hook (fire and forget) |
-| "change the answer before I see it" | `answerAssembled` hook returning `rewrite.responseText` |
-| "detect names/emails/… locally" or "use a local model" | a `models` declaration + `ctx.model.run` |
 | a button on selected text | action, `surfaces: ["selectionBar"]` |
 | a button on a clipboard history entry | action, `surfaces: ["clipboardHistory"]` |
 | a button on the finished capture | action, `surfaces: ["captureQuickAccess"]` |
@@ -56,7 +53,6 @@ host already has, or a button the user presses?) and **what does the user get ba
 | "it drives <app>" (Bob, Things, …) | the action's `requiresApp` — the button greys out with the reason while the app is missing |
 | remember a few kilobytes between runs | `ctx.storage` — no entitlement |
 | keep the user's own documents | a `folder` option and `ctx.files` — no entitlement |
-| "it brings its own model and runs it here" | a `models` declaration — the format is one the host ships, the weights are `bundled` in `assets/` or `remote` |
 
 Zero entitlements is the default and the strong position: the local text tools (`counts`,
 `format-json`, `text-case`…) declare none. Reach for one only when
@@ -153,15 +149,8 @@ schema. What it cannot tell you:
   repository's `docs/internal/features/extension-system.md` before you are the first.
 - **`minimumAppVersion` is the oldest AtAt the extension runs on.** Bump it when you use a host API
   that arrived in a newer build — `runAppleScript`, `favorites.add` and `agent.ask`'s `skill`
-  arrived in 0.10.0; `ctx.model.run`, `answerAssembled` and `contextAssembled`'s `rewrite` /
-  `block` arrived in 1.3.0 — so an older AtAt lists the extension with "needs @@ x.y or newer"
-  instead of failing at the first call.
-- **`models` declares a local model only this extension may run.** Capability routes
-  `ctx.model.run`; format must be one the host ships today (`gpu-pii-format-1` for `pii`).
-  Exactly one of `bundled` (paths under the directory, usually `assets/`) or `remote` (HTTPS
-  URL + `layoutUrl` + `size` + `sha256`, and the `network` entitlement). A weight file named
-  in `bundled` may be larger than ordinary source — still capped — and is the one binary a
-  submission may carry. `extensions/privacy-guard/extension.json` is the worked example.
+  arrived in 0.10.0; `contextAssembled`'s `block` arrived in 1.3.0 — so an older AtAt lists the
+  extension with "needs @@ x.y or newer" instead of failing at the first call.
 - **A hook's failure never holds a message.** The pipeline always moves on — there is no
   `onTimeout` field, and the host refuses a manifest that writes one. The only way a check
   stops a send is returning `block: { reason }` from `contextAssembled` itself, and the user
@@ -169,7 +158,7 @@ schema. What it cannot tell you:
 - **Options are few or the design is wrong.** Each one answers a question a real user has ("I
   want it somewhere else", "I don't want to be recorded"). There is no grouping heading, because
   a list long enough to need grouping is the problem. `extensions/translate/extension.json` ships
-  ten of them for one action and one view, and `privacy-guard` ships a single boolean.
+  ten of them for one action and one view.
 - **A choice option's values can carry the words the user reads.** A `values` entry is either
   a string — the value, shown as itself — or `{ value, title }` with a localizable title. Use
   the pair whenever the stored value is not what a person should read: `zh-Hans` stores a stable
@@ -209,23 +198,12 @@ Then the rules that bite:
 - **A hook swallows its own failures.** No match, an index still building, a file that moved, a
   grant that has gone: catch it, `ctx.log()` a metadata-only line, return nothing. Three
   consecutive throws and AtAt pauses the extension, so a temporary condition raised as an error
-  costs the user the whole feature. `extensions/privacy-guard/src/index.ts` is the worked example:
-  `detect` catches, logs the metadata only, and rethrows — a failure means the check did not
-  run, never that the message is held.
+  costs the user the whole feature.
 - **Budgets are shared with every other extension on the same hook.** Per extension: `clipboardIngest`
-  1s, `contextAssembled` 1.5s, `answerAssembled` 1.5s, `capture` 5s, `response` 10s. For every
-  extension on one hook together: 2s, 3s and 8s respectively, `response` being fire and forget
-  with no total. When the budget runs out the pipeline moves on without you. Spend a
-  budget on one search and a handful of reads, or one `ctx.model.run`, not on a crawl. Actions
-  are user-initiated and have no timeout.
-- **`ctx.model.run` only sees models this extension declared.** Capability is the key; there is
-  no fallback to another extension's weights or to a model the host happens to keep. Spans come
-  back in UTF-16 code units over the same string you handed in. Catch a miss and return nothing
-  — three consecutive throws pause the extension.
-- **`rewrite` and `block` on `contextAssembled` change what leaves; `answerAssembled` changes
-  what comes back.** One extension rewrites a given prompt or answer. A `block` always leaves
-  the user a way past it. `response` stays fire-and-forget after the answer is already on
-  screen — use `answerAssembled` when the user must see the restored text.
+  1s, `contextAssembled` 1.5s, `capture` 5s, `response` 10s. For every extension on one hook
+  together: 2s, 3s and 8s respectively, `response` being fire and forget with no total. When the
+  budget runs out the pipeline moves on without you. Spend it on one search and a handful of
+  reads, not on a crawl. Actions are user-initiated and have no timeout.
 - **What the user should be able to delete travels as a pill.** `addItems` entries each become a
   visible pill: a `label`, and exactly one of `text` and `filePaths` (both or neither and the
   host drops the item). `promptSections` is scaffolding addressed to the agent — at most 4 per
@@ -484,8 +462,6 @@ Before opening the pull request, check `REVIEW_POLICY.md` against the change:
 | a view action: `<Panel>` layout, OCR for an image, `agent.ask`, `<Action.ReplaceSelection>`, a provider chosen by a `choice` option, `fetch` + `secrets` + `ctx.translate` | `extensions/translate/` |
 | a hook, an action on three surfaces, a view, a panel, a `folder` option with `defaultPath`, `reads` | no extension here yet — the contracts are in the AtAt repo's `docs/internal/features/extension-system.md` |
 | a zero-entitlement action that only computes | `extensions/format-json/` |
-| a hook that swallows its own failures, inside a budget | `extensions/privacy-guard/src/index.ts` |
-| `rewrite` / `block` on `contextAssembled`, `answerAssembled`, a `models` declaration, `ctx.model.run` | `extensions/privacy-guard/` |
 | localized user-visible strings | `extensions/translate/src/text.ts` |
 | a panel: list, detail, page-level action, confirmed delete | no extension here yet — see the `<Panel>` section above |
 | a panel driving another app through `runAppleScript`, with the user's text passed as data and never spliced into the script | `extensions/reminders/`, `extensions/apple-notes/` |
